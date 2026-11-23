@@ -608,7 +608,7 @@ function pregame() {
   const nextSec = `<h2>Next week · worth betting early <span class="cnt">${nwVal.length}</span></h2>
     <div class="tiny muted" style="margin:-4px 0 8px">Early: injury news can still move these. ${es.n ? `So far the early price was ${es.avg > 0 ? `${es.avg}¢ cheaper` : `${-es.avg}¢ dearer`} than at kickoff on average (${es.cheaper} cheaper, ${es.dearer} dearer, ${es.n} teams).` : "We're tracking whether early prices beat kickoff prices."}</div>
     ${nw.length ? (nwVal.length ? `<div class="glist">${nwVal.map(gameRow).join("")}</div>` : NOREC("No early value yet: no team wins 5¢+ more than its price")) +
-      (nwRest.length ? `<details class="others"><summary>Other games next week (${nwRest.length}) · no early value</summary><div class="glist">${nwRest.map(gameRow).join("")}</div></details>` : "")
+      (nwRest.length ? `<details class="others"${S.othersOpen ? " open" : ""} ontoggle="S.othersOpen = this.open"><summary>Other games next week (${nwRest.length}) · no early value</summary><div class="glist">${nwRest.map(gameRow).join("")}</div></details>` : "")
       : NOREC("Kalshi hasn't listed next week's games yet")}`;
   h += `<h2>All games this week <span class="cnt">${games.length}</span></h2>${games.length ? `${lvg.map(gameRow).join("")}${up.length ? `<div class="glist">${up.map(gameRow).join("")}</div>` : ""}${fin.length ? `<div class="glist" style="margin-top:10px">${fin.map(gameRow).join("")}</div>` : ""}` : NOREC()}`;
   // desktop: games on the left, picks on the right (one column on a phone, picks first)
