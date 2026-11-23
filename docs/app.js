@@ -406,7 +406,7 @@ function expertsLine(g) {
 function winLine(g) {
   const f = c => c.confidence ? `<b>${esc(c.team)}</b> ${Math.round(c.fair ?? c.confidence.score)}% <span class="cl ${c.confidence.level}">${c.confidence.level}</span>` : "";
   const a = f(g.teams.away), h = f(g.teams.home);
-  return a || h ? `<div class="tiny muted" style="margin-top:2px">Win chance: ${a}${a && h ? " · " : ""}${h}</div>` : "";
+  return a || h ? `<div class="winl muted" title="Win chance">${a}${a && h ? " · " : ""}${h}</div>` : "";
 }
 // every chip names the team to bet on first, then the reason (naming the team it's about)
 const lastName = n => String(n || "").split(" ").slice(-1)[0];

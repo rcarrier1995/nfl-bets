@@ -361,3 +361,4 @@ svg text{font-size:10px}
 }
 @media(max-width:1099px){.cols .colR:empty{display:none}}
 @media(max-width:1099px){.cols.q .colL{order:-1}}
+.winl{font-size:12.5px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
