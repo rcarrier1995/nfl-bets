@@ -1,7 +1,9 @@
 {
- "builtAt": "2026-11-23T02:56:31Z",
+ "builtAt": "2026-11-23T03:28:57Z",
  "teams": {
   "ARI": {
+   "lateDef": -0.0909,
+   "h2D": 0.0021,
    "passOff": -0.0057,
    "rushOff": -0.0731,
    "passDef": 0.2589,
@@ -43,6 +45,8 @@
    "season": 2026,
    "qb": "00-0026300",
    "rank": {
+    "lateDef": 3,
+    "h2D": 21,
     "passOff": 22,
     "rushOff": 17,
     "passDef": 32,
@@ -84,6 +88,8 @@
    }
   },
   "ATL": {
+   "lateDef": -0.031,
+   "h2D": 0.0386,
    "passOff": -0.031,
    "rushOff": -0.042,
    "passDef": 0.05,
@@ -125,6 +131,8 @@
    "season": 2026,
    "qb": "00-0039917",
    "rank": {
+    "lateDef": 8,
+    "h2D": 27,
     "passOff": 27,
     "rushOff": 11,
     "passDef": 16,
@@ -166,6 +174,8 @@
    }
   },
   "BAL": {
+   "lateDef": 0.2804,
+   "h2D": 0.1255,
    "passOff": 0.0392,
    "rushOff": -0.003,
    "passDef": 0.0916,
@@ -207,6 +217,8 @@
    "season": 2026,
    "qb": "00-0033119",
    "rank": {
+    "lateDef": 32,
+    "h2D": 32,
     "passOff": 18,
     "rushOff": 6,
     "passDef": 23,
@@ -248,6 +260,8 @@
    }
   },
   "BUF": {
+   "lateDef": -0.0053,
+   "h2D": -0.1017,
    "passOff": 0.1549,
    "rushOff": 0.0295,
    "passDef": -0.0094,
@@ -289,6 +303,8 @@
    "season": 2026,
    "qb": "00-0034857",
    "rank": {
+    "lateDef": 9,
+    "h2D": 2,
     "passOff": 6,
     "rushOff": 1,
     "passDef": 6,
@@ -330,6 +346,8 @@
    }
   },
   "CAR": {
+   "lateDef": 0.0887,
+   "h2D": -0.0338,
    "passOff": 0.0678,
    "rushOff": -0.0803,
    "passDef": 0.0912,
@@ -371,6 +389,8 @@
    "season": 2026,
    "qb": "00-0039150",
    "rank": {
+    "lateDef": 24,
+    "h2D": 13,
     "passOff": 16,
     "rushOff": 22,
     "passDef": 22,
@@ -412,6 +432,8 @@
    }
   },
   "CHI": {
+   "lateDef": 0.0521,
+   "h2D": -0.0575,
    "passOff": 0.0944,
    "rushOff": -0.0226,
    "passDef": 0.0343,
@@ -453,6 +475,8 @@
    "season": 2026,
    "qb": "00-0039918",
    "rank": {
+    "lateDef": 20,
+    "h2D": 6,
     "passOff": 13,
     "rushOff": 7,
     "passDef": 12,
@@ -494,6 +518,8 @@
    }
   },
   "CIN": {
+   "lateDef": -0.0873,
+   "h2D": 0.0006,
    "passOff": 0.139,
    "rushOff": -0.0369,
    "passDef": 0.05,
@@ -535,6 +561,8 @@
    "season": 2026,
    "qb": "00-0036442",
    "rank": {
+    "lateDef": 4,
+    "h2D": 19,
     "passOff": 8,
     "rushOff": 9,
     "passDef": 16,
@@ -576,6 +604,8 @@
    }
   },
   "CLE": {
+   "lateDef": 0.0288,
+   "h2D": -0.1137,
    "passOff": -0.0282,
    "rushOff": -0.1331,
    "passDef": -0.0363,
@@ -617,6 +647,8 @@
    "season": 2026,
    "qb": "00-0033537",
    "rank": {
+    "lateDef": 14,
+    "h2D": 1,
     "passOff": 26,
     "rushOff": 30,
     "passDef": 4,
@@ -658,6 +690,8 @@
    }
   },
   "DAL": {
+   "lateDef": 0.1469,
+   "h2D": 0.0568,
    "passOff": 0.1615,
    "rushOff": -0.0013,
    "passDef": 0.2101,
@@ -699,6 +733,8 @@
    "season": 2026,
    "qb": "00-0033077",
    "rank": {
+    "lateDef": 29,
+    "h2D": 29,
     "passOff": 4,
     "rushOff": 4,
     "passDef": 30,
@@ -740,6 +776,8 @@
    }
   },
   "DEN": {
+   "lateDef": -0.0766,
+   "h2D": -0.0295,
    "passOff": 0.0965,
    "rushOff": -0.0779,
    "passDef": 0.0206,
@@ -781,6 +819,8 @@
    "season": 2026,
    "qb": "00-0039732",
    "rank": {
+    "lateDef": 5,
+    "h2D": 14,
     "passOff": 12,
     "rushOff": 20,
     "passDef": 11,
@@ -822,6 +862,8 @@
    }
   },
   "DET": {
+   "lateDef": 0.1108,
+   "h2D": 0.0764,
    "passOff": 0.1557,
    "rushOff": -0.0402,
    "passDef": 0.1086,
@@ -863,6 +905,8 @@
    "season": 2026,
    "qb": "00-0033106",
    "rank": {
+    "lateDef": 27,
+    "h2D": 30,
     "passOff": 5,
     "rushOff": 10,
     "passDef": 24,
@@ -904,6 +948,8 @@
    }
   },
   "GB": {
+   "lateDef": 0.0361,
+   "h2D": 0.0118,
    "passOff": 0.1523,
    "rushOff": -0.1493,
    "passDef": 0.0531,
@@ -945,6 +991,8 @@
    "season": 2026,
    "qb": "00-0036264",
    "rank": {
+    "lateDef": 16,
+    "h2D": 23,
     "passOff": 7,
     "rushOff": 31,
     "passDef": 18,
@@ -986,6 +1034,8 @@
    }
   },
   "HOU": {
+   "lateDef": 0.0208,
+   "h2D": 0.038,
    "passOff": 0.1269,
    "rushOff": -0.1129,
    "passDef": 0.0039,
@@ -1027,6 +1077,8 @@
    "season": 2026,
    "qb": "00-0039163",
    "rank": {
+    "lateDef": 12,
+    "h2D": 26,
     "passOff": 10,
     "rushOff": 27,
     "passDef": 7,
@@ -1068,6 +1120,8 @@
    }
   },
   "IND": {
+   "lateDef": 0.0609,
+   "h2D": -0.0456,
    "passOff": -0.101,
    "rushOff": -0.064,
    "passDef": 0.1102,
@@ -1109,6 +1163,8 @@
    "season": 2026,
    "qb": "00-0035710",
    "rank": {
+    "lateDef": 21,
+    "h2D": 9,
     "passOff": 32,
     "rushOff": 14,
     "passDef": 26,
@@ -1150,6 +1206,8 @@
    }
   },
   "JAX": {
+   "lateDef": -0.0319,
+   "h2D": -0.0214,
    "passOff": 0.1922,
    "rushOff": -0.091,
    "passDef": -0.0779,
@@ -1191,6 +1249,8 @@
    "season": 2026,
    "qb": "00-0036971",
    "rank": {
+    "lateDef": 7,
+    "h2D": 16,
     "passOff": 2,
     "rushOff": 25,
     "passDef": 2,
@@ -1232,6 +1292,8 @@
    }
   },
   "KC": {
+   "lateDef": 0.0428,
+   "h2D": -0.0488,
    "passOff": 0.0644,
    "rushOff": -0.0362,
    "passDef": 0.0173,
@@ -1273,6 +1335,8 @@
    "season": 2026,
    "qb": "00-0033873",
    "rank": {
+    "lateDef": 19,
+    "h2D": 7,
     "passOff": 17,
     "rushOff": 8,
     "passDef": 9,
@@ -1314,6 +1378,8 @@
    }
   },
   "LAC": {
+   "lateDef": 0.0124,
+   "h2D": -0.0596,
    "passOff": -0.0757,
    "rushOff": -0.116,
    "passDef": 0.0412,
@@ -1355,6 +1421,8 @@
    "season": 2026,
    "qb": "00-0036355",
    "rank": {
+    "lateDef": 11,
+    "h2D": 5,
     "passOff": 30,
     "rushOff": 28,
     "passDef": 14,
@@ -1396,6 +1464,8 @@
    }
   },
   "LAR": {
+   "lateDef": 0.0632,
+   "h2D": 0.0012,
    "passOff": 0.1372,
    "rushOff": 0.0103,
    "passDef": -0.0118,
@@ -1437,6 +1507,8 @@
    "season": 2026,
    "qb": "00-0026498",
    "rank": {
+    "lateDef": 22,
+    "h2D": 20,
     "passOff": 9,
     "rushOff": 3,
     "passDef": 5,
@@ -1478,6 +1550,8 @@
    }
   },
   "LV": {
+   "lateDef": -0.28,
+   "h2D": -0.0617,
    "passOff": 0.0316,
    "rushOff": -0.1824,
    "passDef": 0.1347,
@@ -1519,6 +1593,8 @@
    "season": 2026,
    "qb": "00-0041562",
    "rank": {
+    "lateDef": 1,
+    "h2D": 4,
     "passOff": 19,
     "rushOff": 32,
     "passDef": 28,
@@ -1560,6 +1636,8 @@
    }
   },
   "MIA": {
+   "lateDef": 0.0383,
+   "h2D": 0.0486,
    "passOff": -0.0197,
    "rushOff": -0.0743,
    "passDef": 0.1088,
@@ -1601,6 +1679,8 @@
    "season": 2026,
    "qb": "00-0040014",
    "rank": {
+    "lateDef": 18,
+    "h2D": 28,
     "passOff": 24,
     "rushOff": 18,
     "passDef": 25,
@@ -1642,6 +1722,8 @@
    }
   },
   "MIN": {
+   "lateDef": -0.2474,
+   "h2D": -0.0392,
    "passOff": -0.0822,
    "rushOff": -0.0752,
    "passDef": -0.1188,
@@ -1683,6 +1765,8 @@
    "season": 2026,
    "qb": "00-0029604",
    "rank": {
+    "lateDef": 2,
+    "h2D": 12,
     "passOff": 31,
     "rushOff": 19,
     "passDef": 1,
@@ -1724,6 +1808,8 @@
    }
   },
   "NE": {
+   "lateDef": 0.0367,
+   "h2D": 0.0308,
    "passOff": 0.1722,
    "rushOff": -0.0683,
    "passDef": 0.0552,
@@ -1765,6 +1851,8 @@
    "season": 2026,
    "qb": "00-0038476",
    "rank": {
+    "lateDef": 17,
+    "h2D": 24,
     "passOff": 3,
     "rushOff": 15,
     "passDef": 19,
@@ -1806,6 +1894,8 @@
    }
   },
   "NO": {
+   "lateDef": 0.0334,
+   "h2D": -0.0416,
    "passOff": 0.0202,
    "rushOff": -0.1233,
    "passDef": 0.0045,
@@ -1847,6 +1937,8 @@
    "season": 2026,
    "qb": "00-0040743",
    "rank": {
+    "lateDef": 15,
+    "h2D": 11,
     "passOff": 20,
     "rushOff": 29,
     "passDef": 8,
@@ -1888,6 +1980,8 @@
    }
   },
   "NYG": {
+   "lateDef": 0.0278,
+   "h2D": 0.0335,
    "passOff": 0.1009,
    "rushOff": -0.0793,
    "passDef": 0.0344,
@@ -1929,6 +2023,8 @@
    "season": 2026,
    "qb": "00-0039923",
    "rank": {
+    "lateDef": 13,
+    "h2D": 25,
     "passOff": 11,
     "rushOff": 21,
     "passDef": 13,
@@ -1970,6 +2066,8 @@
    }
   },
   "NYJ": {
+   "lateDef": 0.1003,
+   "h2D": -0.0136,
    "passOff": -0.0258,
    "rushOff": -0.0816,
    "passDef": 0.2297,
@@ -2011,6 +2109,8 @@
    "season": 2026,
    "qb": "00-0030565",
    "rank": {
+    "lateDef": 26,
+    "h2D": 17,
     "passOff": 25,
     "rushOff": 23,
     "passDef": 31,
@@ -2052,6 +2152,8 @@
    }
   },
   "PHI": {
+   "lateDef": 0.1822,
+   "h2D": 0.0902,
    "passOff": -0.003,
    "rushOff": -0.0848,
    "passDef": 0.0474,
@@ -2093,6 +2195,8 @@
    "season": 2026,
    "qb": "00-0039398",
    "rank": {
+    "lateDef": 31,
+    "h2D": 31,
     "passOff": 21,
     "rushOff": 24,
     "passDef": 15,
@@ -2134,6 +2238,8 @@
    }
   },
   "PIT": {
+   "lateDef": 0.0015,
+   "h2D": -0.0438,
    "passOff": -0.0129,
    "rushOff": 0.0293,
    "passDef": 0.0561,
@@ -2175,6 +2281,8 @@
    "season": 2026,
    "qb": "00-0023459",
    "rank": {
+    "lateDef": 10,
+    "h2D": 10,
     "passOff": 23,
     "rushOff": 2,
     "passDef": 20,
@@ -2216,6 +2324,8 @@
    }
   },
   "SEA": {
+   "lateDef": -0.0348,
+   "h2D": -0.0468,
    "passOff": 0.081,
    "rushOff": -0.093,
    "passDef": -0.0627,
@@ -2257,6 +2367,8 @@
    "season": 2026,
    "qb": "00-0035704",
    "rank": {
+    "lateDef": 6,
+    "h2D": 8,
     "passOff": 14,
     "rushOff": 26,
     "passDef": 3,
@@ -2298,6 +2410,8 @@
    }
   },
   "SF": {
+   "lateDef": 0.0752,
+   "h2D": 0.0057,
    "passOff": 0.225,
    "rushOff": -0.002,
    "passDef": 0.081,
@@ -2339,6 +2453,8 @@
    "season": 2026,
    "qb": "00-0037834",
    "rank": {
+    "lateDef": 23,
+    "h2D": 22,
     "passOff": 1,
     "rushOff": 5,
     "passDef": 21,
@@ -2380,6 +2496,8 @@
    }
   },
   "TB": {
+   "lateDef": 0.1144,
+   "h2D": -0.0243,
    "passOff": -0.0313,
    "rushOff": -0.0564,
    "passDef": 0.02,
@@ -2421,6 +2539,8 @@
    "season": 2026,
    "qb": "00-0034855",
    "rank": {
+    "lateDef": 28,
+    "h2D": 15,
     "passOff": 28,
     "rushOff": 13,
     "passDef": 10,
@@ -2462,6 +2582,8 @@
    }
   },
   "TEN": {
+   "lateDef": 0.16,
+   "h2D": -0.0666,
    "passOff": -0.0435,
    "rushOff": -0.0563,
    "passDef": 0.1994,
@@ -2503,6 +2625,8 @@
    "season": 2026,
    "qb": "00-0040676",
    "rank": {
+    "lateDef": 30,
+    "h2D": 3,
     "passOff": 29,
     "rushOff": 12,
     "passDef": 29,
@@ -2544,6 +2668,8 @@
    }
   },
   "WSH": {
+   "lateDef": 0.0905,
+   "h2D": -0.0059,
    "passOff": 0.069,
    "rushOff": -0.071,
    "passDef": 0.131,
@@ -2585,6 +2711,8 @@
    "season": 2026,
    "qb": "00-0039910",
    "rank": {
+    "lateDef": 25,
+    "h2D": 18,
     "passOff": 15,
     "rushOff": 16,
     "passDef": 27,

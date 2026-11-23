@@ -251,7 +251,7 @@ function liveCard(g) {
       ${c.dipLine ? `<div class="dip">${esc(c.dipLine)}</div>` : ""}
       ${c.bothOff ? `<div class="dip">${esc(c.bothOff)}</div>` : ""}
       ${bestLine(c)}
-      ${teamChips(g, c.team, ["Comeback", "2nd half"])}
+      ${teamChips(g, c.team, ["Comeback", "Holds leads", "2nd half", "2nd-half D"])}
       ${liveInjLines(c)}
     </div>`;
   };

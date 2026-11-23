@@ -222,7 +222,7 @@ def spots(df):
 
 # ------------------------------------------------------------------ rolling (pre-game) grades
 SUMS = [c for c in ("o_n o_epa o_pn o_pe o_rn o_re o_succ o_expl o_stuff o_db o_sk o_n1 o_e1 o_n2 o_e2 o_neu o_neup "
-                    "o_ltn o_lte d_n d_epa d_pn d_pe d_rn d_re d_succ d_expl d_stuff d_db d_sk d_n1 d_e1 d_n2 d_e2 "
+                    "o_ltn o_lte d_ltn d_lte d_n d_epa d_pn d_pe d_rn d_re d_succ d_expl d_stuff d_db d_sk d_n1 d_e1 d_n2 d_e2 "
                     "o3c o3f d3c d3f o_rz o_rzt d_rz d_rzt of_fum of_lost df_fum df_lost fga fgm g4n g4 "
                     "pf1 pf2 pf3 pf4 pa1 pa2 pa3 pa4").split()]
 
@@ -278,6 +278,9 @@ def grades(T):
     T["protect"] = R["ldr"] / (R["ldn"] + 8)
     T["protectN"] = R["ldn"]
     T["lateQbEpa"] = _ratio(R["o_lte"], R["o_ltn"], 0, 40)
+    # defense side: Q4 EPA allowed while ahead by 1-16 (stopping comebacks), 2nd-half minus 1st-half EPA allowed
+    T["lateDef"] = _ratio(R["d_lte"], R["d_ltn"], 0, 40)
+    T["h2D"] = _ratio(R["d_e2"], R["d_n2"], 0, 100) - _ratio(R["d_e1"], R["d_n1"], 0, 100)
     # schedule strength: mean pre-game netEpa of the opponents faced (prior 17)
     key = T.set_index(["game_id", "team"]).netEpa
     T["oppNet"] = [key.get((gid, o), np.nan) for gid, o in zip(T.game_id, T.opp)]
@@ -309,6 +312,8 @@ MATCHUPS = {
     "2nd-half closer vs fader": lambda t, o: t.h2h1,
     "Comeback grade": lambda t, o: t.comeback,
     "Lead protection": lambda t, o: t.protect,
+    "Defense stops comebacks (Q4, ahead)": lambda t, o: -t.lateDef,
+    "2nd-half defense (vs 1st half)": lambda t, o: -t.h2D,
     "QB late-game EPA when trailing": lambda t, o: t.qbLate,
     "Recent form (last 4 vs season)": lambda t, o: t.form,
     "Schedule-adjusted EPA": lambda t, o: t.adjEpa,
@@ -490,14 +495,16 @@ def study():
                                                                     b.mean() * a.mean() > 0 and abs(b.mean()) > 1.5 * seb)})
     # in-game: spots vs the live win chance (cents)
     P = T.set_index(["game_id", "team"])
-    S = S.join(P[["comeback", "protect", "h2h1", "qbLate", "comebackN"]], on=["game_id", "team"])
-    So = S.join(P[["comeback", "protect", "h2h1"]].add_prefix("opp_"), on=["game_id", "opp"])
+    S = S.join(P[["comeback", "protect", "h2h1", "qbLate", "comebackN", "lateDef", "h2D"]], on=["game_id", "team"])
+    So = S.join(P[["comeback", "protect", "h2h1", "qbLate"]].add_prefix("opp_"), on=["game_id", "opp"])
     So = So[So.season >= 2021]
     trs, tes = (So.season < CUR).values, (So.season == CUR).values
     live = [
         ("Comeback grade (trailing at half / after Q3)", So.kind == "tr", So.comeback),
         ("QB late-game EPA (trailing at half / after Q3)", So.kind == "tr", So.qbLate),
         ("Lead protection (leading at half / after Q3)", So.kind == "ld", So.protect - So.opp_comeback),
+        ("Defense stops comebacks (leading at half / after Q3)", So.kind == "ld", -So.lateDef),
+        ("2nd-half defense (leading at half)", (So.kind == "ld") & (So.qtr == 2), -So.h2D),
         ("2nd-half closer vs fader (at half time)", So.qtr == 2, So.h2h1 - So.opp_h2h1),
         ("Outplaying but trailing: yards/play edge", So.kind == "tr", So.ypp_d),
         ("Outplaying but trailing: first-down rate edge", So.kind == "tr", So.fdr_d),
@@ -581,7 +588,7 @@ def build_profiles(T=None):
     last = T.sort_values("game_date").groupby("team").tail(1).copy()
     # roll forward one game: grades are "before this game", so recompute including it
     nxt = {}
-    fields = ["passOff", "rushOff", "passDef", "rushDef", "passRate", "netEpa", "form", "h2h1", "sackAllowed",
+    fields = ["lateDef", "h2D", "passOff", "rushOff", "passDef", "rushDef", "passRate", "netEpa", "form", "h2h1", "sackAllowed",
               "sackRate", "stuffAllowed", "stuffRate", "third", "thirdD", "rzTd", "rzTdD", "expl", "explD",
               "succ", "succD", "fumLuck", "fg40", "go4", "q1For", "q2For", "q3For", "q4For", "q1Against",
               "q2Against", "q3Against", "q4Against", "comeback", "comebackN", "protect", "protectN", "lateQbEpa",
@@ -601,7 +608,7 @@ def build_profiles(T=None):
         nxt[t]["season"] = int(last.set_index("team").at[t, "season"])
         nxt[t]["qb"] = None if pd.isna(last.set_index("team").at[t, "qb"]) else last.set_index("team").at[t, "qb"]
     # ranks (1 = best for that team)
-    better_low = {"passDef", "rushDef", "sackAllowed", "stuffAllowed", "thirdD", "rzTdD", "explD", "succD",
+    better_low = {"lateDef", "h2D", "passDef", "rushDef", "sackAllowed", "stuffAllowed", "thirdD", "rzTdD", "explD", "succD",
                   "q1Against", "q2Against", "q3Against", "q4Against"}
     F = pd.DataFrame({t: {f: nxt[t][f] for f in fields} for t in nxt}).T.astype(float)
     for f in fields:
@@ -694,14 +701,17 @@ def comeback_line(team, opp):
 
 
 SCORES = [("Comeback", "comeback", "Comes back when behind"),
+          ("Holds leads", "protect", "Wins when ahead"),
           ("2nd half", "h2h1", "Gets better after half time"),
+          ("2nd-half D", "h2D", "Defense after half time"),
+          ("Late D", "lateDef", "Stops comebacks in Q4"),
+          ("Q4 scoring", "q4For", "Scores late"),
           ("Pass O", "passOff", "Passing offense"),
           ("Run O", "rushOff", "Running offense"),
           ("Pass D", "passDef", "Stops the pass"),
           ("Run D", "rushDef", "Stops the run"),
           ("Pass rush", "sackRate", "Gets sacks"),
-          ("Protection", "sackAllowed", "Protects the QB"),
-          ("Q4 scoring", "q4For", "Scores late")]
+          ("Protection", "sackAllowed", "Protects the QB")]
 
 
 def scores(team):
