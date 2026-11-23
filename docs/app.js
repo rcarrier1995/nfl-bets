@@ -406,7 +406,7 @@ function tagText(w, g) {
 function earlyValue(g) {
   const gap = S.B.combos?.watch?.gap || 5;
   return (g.watch || []).some(w => w.kind !== "fade" && w.est != null && w.price != null && w.est - w.price >= gap)
-    || [g.teams.away, g.teams.home].some(c => callOf(c) === "Buy");
+    || [g.teams.away, g.teams.home].some(c => callOf(c) === "Value");
 }
 function tagBar(g, id) {
   const items = { [g.away]: [], [g.home]: [] };
@@ -707,9 +707,105 @@ function topCard(c, i) {
     <div style="margin-top:8px">${c.legs.map(l => `<div class="leg">${badge(l.team, "sm")}<div style="min-width:0"><b>${esc(l.team)}</b> <span class="small muted">vs ${esc(l.opp)}</span>${l.dog ? ` <span class="tag look">underdog</span>` : ""}<br>${(l.why || []).map(x => `<span class="tag good">${esc(x)}</span>`).join("")}</div><span class="sp"></span><span class="small muted">${Math.round(l.est)}%</span><span class="p">${ct(l.price)}</span></div>`).join("")}</div>
   </div>`;
 }
+// ---------- build your own combo: Rick taps teams, we analyse it (all in the browser, from the board) ----------
+const lsGet = k => { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch (e) { return null; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+// same leg estimate as the Top picks (engine/topcombos.legs_for): our fair + best value tag, fades move value to the other side
+function buildLegs(gl) {
+  const E = S.B.watch?.edges || {}, out = [];
+  for (const g of gl || []) {
+    if (g.state !== "pre") continue;
+    const T = [g.teams.away, g.teams.home], adj = {}, good = {}, why = {};
+    for (const c of T) { adj[c.team] = 0; good[c.team] = 0; why[c.team] = []; }
+    for (const w of g.watch || []) {
+      const e = E[w.tag] || 0, o = T.find(c => c.team !== w.team)?.team;
+      if (w.kind === "fade") { adj[w.team] -= e; if (o) { adj[o] += e; why[o].push(`${w.team} ${w.tag.toLowerCase()}`); } }
+      else if (w.team in good) { good[w.team] = Math.max(good[w.team], e); why[w.team].push(w.tag); }
+    }
+    for (const c of T) {
+      if (!c.price || c.fair == null || c.price < 3 || c.price > 97) continue;
+      out.push({ gameId: g.id, team: c.team, opp: c.opp, price: c.price, fair: c.fair, call: callOf(c), why: why[c.team],
+        est: Math.max(1, Math.min(97, Math.round((c.fair + good[c.team] + adj[c.team]) * 10) / 10)) });
+    }
+  }
+  return out;
+}
+window.buildWeek = w => { S.bld = { week: w, sel: {} }; lsSet("bld", S.bld); render(); };
+window.buildTap = (gid, team) => { const s = S.bld.sel; s[gid] === team ? delete s[gid] : s[gid] = team; lsSet("bld", S.bld); render(); };
+window.buildClear = () => { S.bld.sel = {}; lsSet("bld", S.bld); render(); };
+window.buildSwap = (gid, ngid, team) => { delete S.bld.sel[gid]; S.bld.sel[ngid] = team; lsSet("bld", S.bld); render(); };
+function buildView() {
+  S.bld = S.bld || lsGet("bld") || { week: "thisWeek", sel: {} };
+  const B = S.bld, gl = B.week === "nextWeek" ? S.B.nextWeek : S.B.games;
+  const pool = buildLegs(gl), by = Object.fromEntries(pool.map(l => [l.gameId + "|" + l.team, l]));
+  for (const gid of Object.keys(B.sel)) if (!by[gid + "|" + B.sel[gid]]) delete B.sel[gid];   // game started or no price
+  const legs = Object.entries(B.sel).map(([gid, t]) => by[gid + "|" + t]);
+  let h = `<div class="ptitle">Combos</div><div class="psub">Build your own · tap a team in each game you want</div>${comboTabs("build")}
+    <div class="ctabs" style="margin-top:6px"><button class="${B.week === "thisWeek" ? "on" : ""}" onclick="buildWeek('thisWeek')">This week</button><button class="${B.week === "nextWeek" ? "on" : ""}" onclick="buildWeek('nextWeek')">Next week (early)</button></div>`;
+  h += buildAnalysis(legs, pool);
+  const games = (gl || []).filter(g => pool.some(l => l.gameId === g.id));
+  h += `<h2>Pick teams <span class="cnt">${games.length}</span></h2>`;
+  if (!games.length) return h + NOREC(B.week === "nextWeek" ? "Kalshi hasn't listed next week's games yet" : "No upcoming games with prices right now");
+  const btn = (g, c) => {
+    const l = by[g.id + "|" + c.team];
+    if (!l) return `<button class="bt" disabled>${esc(c.team)}<span>no price</span></button>`;
+    return `<button class="bt ${B.sel[g.id] === c.team ? "on" : ""}" onclick="buildTap('${esc(g.id)}','${esc(c.team)}')">${badge(c.team, "sm")}<b>${esc(c.team)}</b><span>${ct(l.price)} · wins ${Math.round(l.est)}%</span></button>`;
+  };
+  h += `<div class="card" style="padding:8px">${games.map(g => `<div class="bpair"><div class="tiny muted">${esc(g.short || "")} · ${esc(kick(g.kickoff))}</div><div class="brow">${btn(g, g.teams.away)}${btn(g, g.teams.home)}</div></div>`).join("")}</div>`;
+  h += `<div class="tiny muted" style="margin-top:8px">Win chance = our fair value plus watch tags, same as Top picks. Info only: check each leg's Buy/Wait/Pass, and Robinhood's real combo price.</div>`;
+  return h;
+}
+function buildAnalysis(legs, pool) {
+  if (legs.length < 2) return `<div class="card"><div class="small"><b>${legs.length ? "Pick at least one more team." : "Tap teams below to build a combo."}</b> <span class="muted">We'll show the chance it hits, what it costs, what $5 wins, weak legs and better swaps.</span></div></div>`;
+  const k = legs.length, prod = f => legs.reduce((a, l) => a * f(l) / 100, 1) * 100;
+  const hit = prod(l => l.est), legsCost = prod(l => l.price), cost = legsCost * markup(k), conf = comboConfJS(hit, cost, legs);
+  const r1 = x => Math.round(x * 10) / 10;
+  // one line per leg that has a problem; Pass/Sell only flagged this week (next week's early calls are mostly Pass)
+  const flags = [], bad = new Set(), early = S.bld.week === "nextWeek";
+  for (const l of legs) {
+    const why = [];
+    if (l.est < 45) why.push("weak leg, one loss sinks the combo");
+    else if (l.est < l.price - 2) why.push(`costs more than its chance (${ct(l.price)})`);
+    if (l.price < 50 && l.est < 50) why.push("underdog we don't expect to win");
+    if (!early && (l.call === "Pass" || l.call === "Sell")) why.push(`${LBL(l.call)} on its own`);
+    if (l.est < 45 || l.est < l.price - 2) bad.add(l);
+    if (why.length) flags.push(`<b>${esc(l.team)}</b> ${Math.round(l.est)}%: ${why.join(", ")}`);
+  }
+  // swaps: for each problem leg, the open leg that best improves chance + value (like Top picks); stay under 10c when you were
+  const used = new Set(legs.map(l => l.gameId)), cap = cost <= 10 ? 10 : Infinity;
+  const score = (h, c) => (h - c) + 0.15 * h;
+  const swaps = [];
+  for (const l of [...bad].sort((a, b) => a.est - b.est)) {
+    const find = lim => {
+      let best = null;
+      for (const x of pool) {
+        if (used.has(x.gameId) || x.est < 55 || x.est < x.price - 2 || swaps.some(s => s.alt.gameId === x.gameId)) continue;
+        const nh = hit / l.est * x.est, nc = cost / l.price * x.price;
+        if (nc > lim) continue;
+        const sc = score(nh, nc);
+        if (sc > score(hit, cost) && (!best || sc > best.sc)) best = { alt: x, nh, nc, sc };
+      }
+      return best;
+    };
+    const best = find(cap) || find(Infinity);
+    if (best) swaps.push({ l, alt: best.alt, txt: `Swap <b>${esc(l.team)}</b> → <b>${esc(best.alt.team)}</b> (${ct(best.alt.price)}, wins ${Math.round(best.alt.est)}%): chance ${r1(hit)}% → ${r1(best.nh)}%, cost ${r1(cost)}¢ → ${r1(best.nc)}¢${best.nc > 10 && cost <= 10 ? " (over 10¢)" : ""}` });
+  }
+  const verdict = hit >= cost + 2 ? `<span style="color:var(--good)">Our chance beats the cost by ${r1(hit - cost)}¢</span>` : hit >= cost ? "About a fair price" : `<span style="color:var(--bad)">Costs ${r1(cost - hit)}¢ more than our chance</span>`;
+  return `<div class="card">
+    <div class="row"><b>Your combo · ${k} legs</b><span class="sp"></span>${confChip(conf)}</div>
+    <div class="safehit"><b>${r1(hit)}%</b><span>our chance every leg wins (about 1 in ${Math.max(1, Math.round(100 / hit))}) · costs about ${r1(cost)}¢</span></div>
+    ${stake5(cost)}
+    <div class="tiny muted">${verdict} · legs multiplied ${r1(legsCost)}¢${k > 3 ? ` + about ${Math.round((markup(k) - 1) * 100)}% combo markup` : ""}. Skip if Robinhood's combo price is 10%+ above that.</div>
+    <div style="margin-top:8px">${legs.map(l => `<div class="leg">${badge(l.team, "sm")}<div style="min-width:0"><b>${esc(l.team)}</b> <span class="small muted">vs ${esc(l.opp)}</span> <span class="small" style="color:var(--${{ Value: "good", Wait: "wait", Pass: "bad", Sell: "sell" }[l.call] || "muted"})">${esc(LBL(l.call) || "")}</span><br>${l.why.map(x => `<span class="tag good">${esc(x)}</span>`).join("")}</div><span class="sp"></span><span class="small muted">${Math.round(l.est)}%</span><span class="p">${ct(l.price)}</span><button class="x" onclick="buildTap('${esc(l.gameId)}','${esc(l.team)}')" aria-label="Remove">✕</button></div>`).join("")}</div>
+    ${flags.length ? `<div class="small" style="margin-top:8px"><b>Watch out</b>${flags.map(f => `<div class="tiny" style="margin-top:3px">⚠ ${f}</div>`).join("")}</div>` : `<div class="small" style="margin-top:8px;color:var(--good)">No weak legs: every leg is 45%+ and priced at or under its chance.</div>`}${early ? `<div class="tiny muted" style="margin-top:4px">Next week's prices are early: news can still move them.</div>` : ""}
+    ${swaps.length ? `<div class="small" style="margin-top:8px"><b>Better swaps</b>${swaps.map(s => `<div class="tiny" style="margin-top:3px">${s.txt} <button class="btn sm" onclick="buildSwap('${esc(s.l.gameId)}','${esc(s.alt.gameId)}','${esc(s.alt.team)}')">Swap</button></div>`).join("")}</div>` : ""}
+    <div class="row" style="margin-top:10px"><button class="btn" onclick="buildClear()">Clear</button></div>
+  </div>`;
+}
+const comboTabs = cat => `<div class="ctabs">${ctabTop()}<button class="${cat === "build" ? "on" : ""}" onclick="setCombo('build')">Build your own</button><button class="${cat === "standard" ? "on" : ""}" onclick="setCombo('standard')">All games</button><button class="${cat === "combined" ? "on" : ""}" onclick="setCombo('combined')">Shoe-in + dips</button></div>`;
 function topCombosView() {
   const T = S.B.topCombos || {};
-  let h = `<div class="ptitle">Combos</div><div class="psub">Top picks · this week and next week</div><div class="ctabs">${ctabTop()}<button onclick="setCombo('standard')">All games</button><button onclick="setCombo('combined')">Shoe-in + dips</button></div>`;
+  let h = `<div class="ptitle">Combos</div><div class="psub">Top picks · this week and next week</div>${comboTabs("top")}`;
   const sec = (w, title, early) => {
     const x = T[w] || {};
     h += `<h2>${title} · 3 under ${T.cheapMax || 10}¢</h2><div class="small muted" style="margin:-4px 0 8px">Best chance to hit for under ${T.cheapMax || 10}¢, using as few of the same games as possible. Built mostly from favourites (they've been slightly underpriced); an underdog only when we expect it to win.${early ? " Early prices: news can change these." : ""}</div>`;
@@ -728,12 +824,13 @@ function combosView() {
   S.csize = S.csize || {};
   const cat = S.ccat || "top";
   if (cat === "top") return topCombosView();
+  if (cat === "build") return buildView();
   const sizes = comboSizes(cat);
   const r = S.B.combos[cat] || {};
   const k = sizes.includes(S.csize[cat]) ? S.csize[cat] : bestSize(cat);
   const found = sizes.filter(x => r[x].combo).length;
   let h = `<div class="ptitle">Combos</div><div class="psub">${found ? `${found} size${found > 1 ? "s" : ""} clear the bar` : "Nothing clears the bar right now"} · live + upcoming games</div>
-    <div class="ctabs">${ctabTop()}<button class="${cat === "standard" ? "on" : ""}" onclick="setCombo('standard')">All games</button><button class="${cat === "combined" ? "on" : ""}" onclick="setCombo('combined')">Shoe-in + dips</button></div>`;
+    ${comboTabs(cat)}`;
   h += `<h2>${cat === "standard" ? "Weekly combos — live + upcoming" : "Combined combos — lopsided + TD dip + shoe-in"}</h2>`;
   if (!sizes.length) return h + NOREC(`${S.B.combos.poolGames || 0} games with prices — need 2`) + (cat === "standard" ? watchCombo() : "");
   h += `<div class="sizes">${sizes.map(x => `<button class="${x === k ? "on" : ""} ${r[x].combo ? "has" : ""}" onclick="setCombo('${cat}',${x})"><b>${x}</b><span>${r[x].combo ? "+" + ct1(r[x].combo.edge) : "legs"}</span></button>`).join("")}</div>`;
