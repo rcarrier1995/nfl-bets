@@ -22,6 +22,8 @@ def leg_label(leg):
         tags.append("TD dip")
     if leg.get("call") == "Pass":
         tags.append("Pass single")
+    if leg.get("price") is not None and leg["price"] <= 10:
+        tags.append("Longshot")
     return tags
 
 

@@ -127,7 +127,7 @@ def test_best_time_lines():
     from engine.timing import best_time, threshold
     assert threshold(70) == 53                     # 70 - 53 - 2 = 15
     assert best_time({"state": "pre", "price": 50, "call": "Value", "edge": 18, "fair": 70}).startswith("Now")
-    assert best_time({"state": "pre", "price": 60, "call": "Wait", "edge": 9, "fair": 71, "buyAt": 54}) == "Before kickoff, if it drops to 54¢"
+    assert best_time({"state": "pre", "price": 60, "call": "Wait", "edge": 9, "fair": 71, "buyAt": 54}) == "Set a limit order at 54¢ before kickoff"
     assert best_time({"state": "pre", "price": 60, "call": "Pass", "edge": 0, "fair": 62}) == "Only at 45¢ or less"
     assert best_time({"state": "pre", "price": 5, "call": "Pass", "edge": 0, "fair": 10}) == "No price works"
     assert best_time({"state": "in", "price": 40, "alertsOff": "late Q4"}).startswith("Too late")

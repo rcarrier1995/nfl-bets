@@ -85,6 +85,7 @@ function betCard(c, opts = {}) {
   const tags = [];
   if (c.aboveRange && call !== "Pass") tags.push(`<span class="tag above">above your usual range</span>`);
   if (c.lag && !live) tags.push(`<span class="tag lag">slow price</span>`);
+  if (c.price != null && c.price <= 10) tags.push(`<span class="tag look">longshot — cheap contracts lose most</span>`);
   const open = S.open.has(id);
   return `<div class="card bg-${call}" data-card="${esc(c.key)}">
     <div class="row">${badge(c.team)}<div style="min-width:0"><b>${esc(c.name || c.team)}</b>${opts.vs ? `<div class="tiny muted">vs ${esc(c.opp)}</div>` : ""}</div><span class="sp"></span><span class="pill c-${call}">${call === "Value" ? "Value now" : call === "Wait" ? "Wait for a dip" : "Pass"}</span></div>
@@ -321,6 +322,7 @@ function comboCard(cat, k, res) {
     <div class="row"><span class="pill ${t.edge >= 0 ? "c-Value" : "c-Pass"}">${legs.length}-leg${S.comboEdits[ek] ? " · edited" : ""}</span><span class="sp"></span>${tierTag(t.cost)}</div>
     <div class="row" style="margin-top:12px;align-items:flex-end"><span class="hero">${ct1(t.cost)}</span><span class="sp"></span><span class="small" style="text-align:right"><b class="c-Value">+${ct1(100 - t.cost)}</b> if it wins</span></div>
     <div class="mpbar"><div class="cost ${t.cost > t.maxPay ? "over" : ""}" style="width:${w}%"></div><div class="max" style="left:calc(${mx}% - 1px)"></div></div>
+    <div class="small" style="margin-top:8px"><b>Pay no more than ${ct1(t.maxPay)} for the combo.</b> ${legs.length >= 6 ? `<span class="muted">Big combos are often quoted 7–22% above the legs multiplied — compare the quote to ${ct1(t.cost)}.</span>` : `<span class="muted">Compare the quote to ${ct1(t.cost)} (legs multiplied).</span>`}</div>
     <div class="kpis"><div><b>${pct(t.hit)}</b><span>Hits</span></div><div><b>${ct1(t.maxPay)}</b><span>Max pay</span></div><div><b class="${t.edge >= 0 ? "c-Value" : "bad"}">${t.edge >= 0 ? "+" : ""}${ct1(t.edge)}</b><span>Edge</span></div></div>
     <div style="margin-top:8px">${legs.map((l, i) => `<div class="leg" onclick="swapLeg('${ek}',${i})">${badge(l.team, "sm")}<div style="min-width:0"><b>${esc(l.team)}</b> <span class="small muted">vs ${esc(l.opp)}${l.state === "in" ? " · live" : ""}</span><br>${(l.tags || []).map(x => `<span class="tag ${x === "Shoe-in" ? "shoe" : ""}">${esc(x)}</span>`).join("")}</div><span class="sp"></span><span class="small muted">${pct(l.fair)}</span><span class="p">${ct(l.price)}</span>${edit && legs.length > 2 ? `<button class="x" onclick="event.stopPropagation();dropLeg('${ek}',${i})" aria-label="Remove">✕</button>` : ""}</div>`).join("")}</div>
     <div class="row" style="margin-top:10px"><button class="btn" onclick="toggle('${id}')">${edit ? "Done" : "Edit"}</button>${edit ? `<button class="btn" onclick="addLeg('${ek}')">+ Add leg</button>` : ""}${S.comboEdits[ek] ? `<button class="btn" onclick="resetCombo('${ek}')">Reset</button>` : ""}</div>
