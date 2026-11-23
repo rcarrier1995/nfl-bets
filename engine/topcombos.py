@@ -98,8 +98,8 @@ def combo_conf(hit, cost, sel):
 
 
 def pick(legs, kind, n=3):
-    if kind == "cheap":   # combo study: longshot legs sink cheap combos; an underdog only if we expect it to win or it's 3c+ underpriced
-        legs = [l for l in legs if l["price"] >= 50 or l["est"] >= 50 or (l["price"] >= 30 and l["est"] >= l["price"] + 3)]
+    if kind == "cheap":   # combo study: longshot legs sink cheap combos; an underdog only if we expect it to win
+        legs = [l for l in legs if l["price"] >= 50 or l["est"] >= 50]
     out, used = [], set()
     for _ in range(n):
         st = _frontier(legs, used)
