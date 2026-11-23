@@ -308,7 +308,9 @@ def stats(st):
         _finish(s)
         for v in (s.get("bySeason") or {}).values():
             _finish(v)
-    ranked = sorted([n for n, s in ex.items() if s["n"] >= MIN_PICKS and s["roi"] is not None],
+    cur = str(st.get("season") or "")
+    ranked = sorted([n for n, s in ex.items() if s["n"] >= MIN_PICKS and s["roi"] is not None
+                     and (not cur or cur in (s.get("bySeason") or {}))],      # still picking this season
                     key=lambda n: (-ex[n]["roi"], -ex[n]["pct"]))
     for i, n in enumerate(ranked):
         ex[n]["rank"] = i + 1
