@@ -79,7 +79,7 @@ function move(c) {
   return `<span style="white-space:nowrap">${a} <span class="tiny muted">${ago(S.B.generatedAt)}</span></span>`;
 }
 function bestLine(c) {
-  if (!c.bestTime) return "";
+  if (!c.bestTime || /^Only at/.test(c.bestTime)) return "";  // the verdict already says the buy-at price
   const now = c.bestTime.startsWith("Now");
   return `<div class="best ${now ? "now" : ""}"><span>⏱ Best time</span><b>${esc(c.bestTime)}</b></div>`;
 }
@@ -107,9 +107,9 @@ function verdict(c) {
   return `<div class="verdict v-${call}">${esc(t)}</div>`;
 }
 // signals that don't change the call right now stay behind one tap
-function moreInfo(c, lines) {
+function moreInfo(c, lines, grades = true) {
   const g = (S.B.games || []).find(x => x.id === c.gameId);
-  const hasGrades = (g?.grades?.[c.team] || []).length;
+  const hasGrades = grades && (g?.grades?.[c.team] || []).length;
   if (!lines.length && !hasGrades) return "";
   const id = "mi:" + c.key;
   let h = `<div class="line u muted" onclick="toggle('${esc(id)}')">More info${lines.length ? ` (${lines.length})` : ""}</div>`;
@@ -122,7 +122,10 @@ function gradesToggle(c) {
   const id = "gt:" + c.key;
   return `<div class="line u muted" onclick="toggle('${esc(id)}')">${ic("mu")}Team grades</div>${S.open.has(id) ? teamChips(g, c.team) : ""}`;
 }
-function profitLine(buy) { return buy == null ? "" : `Buy ${ct(buy)} → +${ct(100 - buy)} if it wins`; }
+function fairPay(c, fair, buy, call) {
+  const pay = call === "Sell" || buy == null ? "" : ` · <b>+${ct(100 - buy)}</b> if it wins${call === "Wait" ? ` at ${ct(buy)}` : ""}`;
+  return `Fair ${ct1(fair)}${pay}`;
+}
 
 // ---------- bet card ----------
 function betCard(c, opts = {}) {
@@ -140,9 +143,8 @@ function betCard(c, opts = {}) {
     <div class="row">${badge(c.team)}<div style="min-width:0"><b>${esc(c.name || c.team)}</b>${opts.vs ? `<div class="tiny muted">vs ${esc(c.opp)}</div>` : ""}</div><span class="sp"></span><span class="pill c-${call}">${call === "Wait" ? "Wait for a dip" : LBL(call)}</span></div>
     ${verdict(c)}
     <div class="row" style="margin-top:12px"><span class="hero">${ct(c.price)}</span><span class="sp"></span><span class="small">${move(c)}</span></div>
-    <div class="sub">${call === "Wait" ? `Buy at ${ct(buyAt)} · ` : ""}Fair ${ct1(fair)}${c.edge != null && !live ? ` · Edge ${c.edge > 0 ? "+" : ""}${ct1(live ? c.liveEdge : c.edge)}` : ""}</div>
+    <div class="sub">${fairPay(c, fair, buy, call)}</div>
     ${priceBar(c.price, fair, c.dayLo, c.dayHi)}
-    <div class="row small"><span>${meter(c.confidence)}</span><span class="sp"></span><span>${call === "Sell" ? `Sell now → ${ct(c.sell.bid)} back` : call !== "Pass" ? profitLine(buy) : (c.price != null ? `+${ct(100 - c.price)} if it wins` : "")}</span></div>
     ${tags.join("")}
     ${call !== "Pass" && call !== "Sell" ? bestLine(c) : ""}
     <div class="why u" onclick="toggle('${esc(id)}')">Details</div>
@@ -285,6 +287,14 @@ function quarterTable(g, only) {
   return `<table class="qt"><tr><th>Q</th><th>Score</th><th>Lead</th><th>Weather</th><th>Injuries</th><th>TO</th><th>QB</th></tr>${qs.map(q =>
     `<tr><td>Q${q.q}</td><td>${q.cumAway}-${q.cumHome}</td><td>${esc(q.leader)}</td><td>${esc(q.weather || "")}</td><td>${esc((q.injuries || []).join(", "))}</td><td>${q.turnovers?.[g.away] ?? 0}/${q.turnovers?.[g.home] ?? 0}</td><td>${esc(Object.values(q.qb || {}).filter(Boolean).join(" / "))}</td></tr>`).join("")}</table>`;
 }
+// a live game whose price is 2¢ or less on one side is effectively over: one line, no team cards
+function decided(g) {
+  const a = g.teams.away, h = g.teams.home;
+  const lv = c => c.price ?? c.liveFair;
+  if (lv(a) == null || lv(h) == null) return "";
+  const [w, l] = lv(a) >= lv(h) ? [a, h] : [h, a];
+  return lv(l) <= 2 || lv(w) >= 98 ? `${w.team} ${ct(lv(w))} · ${l.team} ${ct(lv(l))}` : "";
+}
 function liveCard(g) {
   const id = "q:" + g.id;
   const tc = c => {
@@ -293,23 +303,22 @@ function liveCard(g) {
     return `<div class="card bg-${call}" style="margin:6px 0">
       <div class="row">${badge(c.team, "sm")}<b>${esc(c.team)}</b><span class="pill c-${call}">${LBL(call)}</span><span class="sp"></span><span class="hero" style="font-size:28px">${ct(c.price)}</span></div>
       ${verdict(c)}
-      <div class="row small" style="margin-top:8px"><span>Fair ${ct(c.liveFair)}${call === "Wait" ? ` · Buy at ${ct(c.liveBuyAt)}` : ""}</span><span class="sp"></span>${move(c)}</div>
+      <div class="row small" style="margin-top:8px"><span>${fairPay(c, c.liveFair, call === "Wait" ? c.liveBuyAt : c.price, call)}</span><span class="sp"></span>${move(c)}</div>
       ${priceBar(c.price, c.liveFair, c.dayLo, c.dayHi)}
-      <div class="row small"><span>${meter(c.confidence)}</span><span class="sp"></span>${c.price != null ? `<span style="white-space:nowrap">+${ct(100 - c.price)} if it wins</span>` : ""}</div>
       ${c.dipLine && call !== "Pass" ? `<div class="note">${esc(c.dipLine.replace("Price dropped: now ", "Price fell to ").replace(", was ", " from "))}</div>` : ""}
       ${c.bothOff && call === "Value" ? `<div class="note">${esc(c.bothOff)}</div>` : ""}
       ${call !== "Pass" && call !== "Sell" ? bestLine(c) : ""}
       ${liveInjLines({ ...c, liveLines: ctx.filter(l => l.kind === "inj" || l.kind === "nextq") })}
-      ${moreInfo(c, ctx.filter(l => l.kind !== "inj" && l.kind !== "nextq"))}
+      ${moreInfo(c, ctx.filter(l => l.kind !== "inj" && l.kind !== "nextq"), false)}
     </div>`;
   };
   const wa = g.teams.away.liveFair, wh = g.teams.home.liveFair;
   const wp = wa != null && wh != null ? `<div class="wpbar"><i style="width:${wa / (wa + wh) * 100}%;background:${esc(COLORS()[g.away] || "#556")}"></i><i style="flex:1;background:${esc(COLORS()[g.home] || "#889")}"></i></div><div class="row tiny muted" style="margin:-6px 0 8px"><span>${pct(wa)} win</span><span class="sp"></span><span>${pct(wh)} win</span></div>` : "";
   return `<div class="card">${scoreBlock(g)}${wp}
-    <div class="teams2">${tc(g.teams.away)}${tc(g.teams.home)}</div>
+    ${decided(g) ? `<div class="note">Decided: ${esc(decided(g))} — nothing to buy or sell</div>` : `<div class="teams2">${tc(g.teams.away)}${tc(g.teams.home)}</div>`}
     <div class="line u" onclick="toggle('${id}')">Quarters · ${(g.quarters || []).map(q => `Q${q.q} ${q.cumAway}-${q.cumHome}`).join(" · ") || "—"}</div>
     ${S.open.has(id) ? quarterTable(g) : ""}
-    ${injLine(g)}${gradesBlock(g)}${gradeLines(g)}${toLine(g)}${wxLine(g)}</div>`;
+    ${injLine(g)}${decided(g) ? "" : gradesBlock(g) + gradeLines(g)}${toLine(g)}${wxLine(g)}</div>`;
 }
 
 // ---------- tabs ----------
@@ -344,7 +353,7 @@ function pregame() {
       const buy = c.call === "Wait" ? c.buyAt : c.price;
       return `<div class="card bg-${c.call}" onclick="openBreakdown('${esc(c.key)}')"><div class="row">${badge(c.team)}<div><b>${esc(c.team)}</b><div class="tiny muted">vs ${esc(c.opp)}</div></div><span class="sp"></span><span class="pill c-${c.call}">${LBL(c.call)}</span></div>
       <div class="hero" style="margin-top:12px">${ct(c.price)}</div><div class="sub">${c.call === "Wait" ? `Buy at ${ct(c.buyAt)} · ` : ""}Fair ${ct1(c.fair)}</div>
-      <div class="small" style="margin-top:6px"><b>Buy ${ct(buy)} → win ${ct(100 - buy)}</b></div><div class="small">${meter(c.confidence)}</div>${bestLine(c)}</div>`;
+      <div class="small" style="margin-top:6px"><b>+${ct(100 - buy)}</b> if it wins</div>${bestLine(c)}</div>`;
     }).join("")}</div>`;
   }
   const vw = pre.filter(c => ["Value", "Wait"].includes(c.call)).filter(filt).sort((a, b) => rank(b.call) - rank(a.call) || b.edge - a.edge);
