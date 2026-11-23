@@ -21,3 +21,12 @@ cbs straight-up 7 20260718142438 ok 123s
 cbs straight-up 8 20251024035131 nomatch 67849
 cbs straight-up 8 20260415064621 err <urlopen error _ssl.c:1063: The handshake operation timed out>
 cbs straight-up 8 MISSING (2 snaps)
+cbs straight-up 9 20260208221536 nomatch 60932
+cbs straight-up 9 MISSING (1 snaps)
+cbs straight-up 10 20251215171942 err <urlopen error [Errno 111] Connection refused>
+cbs straight-up 10 MISSING (1 snaps)
+cbs straight-up 11 cdx err <urlopen error _ssl.c:1063: The handshake operation timed out>
+cbs straight-up 12 20251121171332 nomatch 61661
+cbs straight-up 12 20251209042057 nomatch 59736
+cbs straight-up 12 20260121132358 err <urlopen error [Errno 111] Connection refused>
+cbs straight-up 12 MISSING (3 snaps)
