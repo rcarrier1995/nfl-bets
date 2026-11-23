@@ -305,6 +305,8 @@ def tick(force=()):
     board["feedNotes"] = feed_notes(board, HEALTH.data)
     board["health"] = HEALTH.data
     board["push"] = P.public()
+    od = load_json(os.path.join(C.STATE, "odds.json"), {}) or {}
+    board["odds"] = {k: od.get(k) for k in ("enabled", "fetchedAt", "left", "used", "error")}
     board["banners"] = {"weekly": weekly_banner(board, L),
                         "windows": [w for w in L["windows"] if w["season"] == season and w["week"] == week]}
     board["learningShrink"] = L["shrink"]

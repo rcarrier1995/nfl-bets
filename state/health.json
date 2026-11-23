@@ -1,19 +1,21 @@
 {
  "espn": {
   "ok": true,
-  "lastOk": "2026-11-23T02:15:07Z",
+  "lastOk": "2026-11-23T02:19:47Z",
   "note": "",
   "fails": 0
  },
  "kalshi": {
   "ok": true,
-  "lastOk": "2026-11-23T02:15:06Z",
+  "lastOk": "2026-11-23T02:19:46Z",
   "note": "",
-  "fails": 0
+  "fails": 0,
+  "lastFail": "2026-11-23T02:19:30Z",
+  "error": "HTTP Error 429: Too Many Requests"
  },
  "weather": {
   "ok": true,
-  "lastOk": "2026-11-23T02:15:06Z",
+  "lastOk": "2026-11-23T02:19:46Z",
   "note": "",
   "fails": 0
  },

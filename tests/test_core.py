@@ -154,6 +154,22 @@ def test_news_alerts_once_and_seeded():
     assert len(sent) == 1 and "Joe Q" in sent[0]
 
 
+def test_odds_consensus_and_spread():
+    from engine.odds import consensus_from, spread_from_p
+    from engine.model import fair_pair
+    ev = [{"home_team": "Denver Broncos", "away_team": "Las Vegas Raiders", "commence_time": "x",
+           "bookmakers": [{"key": "pinnacle", "markets": [{"key": "h2h", "outcomes": [
+               {"name": "Denver Broncos", "price": -300}, {"name": "Las Vegas Raiders", "price": 250}]}]},
+                          {"key": "fanduel", "markets": [{"key": "h2h", "outcomes": [
+               {"name": "Denver Broncos", "price": -320}, {"name": "Las Vegas Raiders", "price": 260}]}]}]}]
+    c = consensus_from(ev)["LV@DEN"]
+    assert c["books"] == 2 and c["pinnacle"] and 0.72 < c["pHome"] < 0.76
+    sp = spread_from_p(c["pHome"])
+    assert sp < 0                                   # home favoured
+    h, a, _ = fair_pair(-sp)                        # home margin = -spread; round-trips
+    assert abs(h - c["pHome"] * 100) < 0.6
+
+
 if __name__ == "__main__":
     for k, f in list(globals().items()):
         if k.startswith("test_"):

@@ -197,9 +197,11 @@ def build(now=None, extra_shrink=1.0, calib=None, sb_override=None):
             pts.append(p)
     wx_all, wx_stale = weather_batch(pts) if pts else ([], False)
 
+    from .odds import refresh as odds_refresh
+    cons = odds_refresh([parse_dt(ev.get("date")) for ev in events if ev["status"]["type"]["state"] == "pre"], now)
     games, calls, legs_pool, alerts = [], [], [], []
     for ev in events:
-        g = build_game(ev, tables, kidx, wx_all, pt_idx, live_state, snaps, prev_calls, now, extra_shrink, calib)
+        g = build_game(ev, tables, kidx, wx_all, pt_idx, live_state, snaps, prev_calls, now, extra_shrink, calib, cons)
         games.append(g)
         for side in ("away", "home"):
             c = g["teams"][side]
@@ -268,7 +270,7 @@ def _indoor(comp, home):
     return home in FIXED_DOMES and not comp.get("neutralSite")
 
 
-def build_game(ev, tables, kidx, wx_all, pt_idx, live_state, snaps, prev_calls, now, extra_shrink, calib):
+def build_game(ev, tables, kidx, wx_all, pt_idx, live_state, snaps, prev_calls, now, extra_shrink, calib, cons=None):
     comp = ev["competitions"][0]
     st = ev["status"]
     state = st["type"]["state"]           # pre / in / post
@@ -296,6 +298,12 @@ def build_game(ev, tables, kidx, wx_all, pt_idx, live_state, snaps, prev_calls, 
             book = (odds.get("provider") or {}).get("name")
         except Exception:
             spread_home = None
+    espn_spread = spread_home
+    cs = (cons or {}).get(f"{away}@{home}") if state == "pre" else None
+    if cs:   # sharper: many-book consensus moneyline, as an equivalent spread
+        from .odds import spread_from_p
+        spread_home = spread_from_p(cs["pHome"])
+        book = f"Consensus of {cs['books']} books" + (" incl. Pinnacle" if cs.get("pinnacle") else "")
     snap = snaps.get(gkey, {})
     if spread_home is None and snap.get("spreadHome") is not None:
         spread_home, total, book = snap["spreadHome"], snap.get("total"), snap.get("book")
@@ -318,7 +326,7 @@ def build_game(ev, tables, kidx, wx_all, pt_idx, live_state, snaps, prev_calls, 
          "situation": SG.tags(g_season(ev), away, home) + SG.venue_tags(away, home, indoor, neutral, wx),
          "colors": {away: "#" + (comps["away"]["team"].get("color") or "334155"),
                     home: "#" + (comps["home"]["team"].get("color") or "334155")},
-         "spreadHome": spread_home, "total": total, "book": book,
+         "spreadHome": spread_home, "total": total, "book": book, "espnSpread": espn_spread,
          "spreadPts": None if spread_home is None else abs(spread_home),
          "weather": wx, "weatherLine": wx_line(wx, indoor),
          "injuries": inj[away] + inj[home],
@@ -341,8 +349,8 @@ def build_game(ev, tables, kidx, wx_all, pt_idx, live_state, snaps, prev_calls, 
         th = snap.get("thursday") or {}
         b_inj = th.get("inj") if th else None
         move = None
-        if th and th.get("spreadHome") is not None and spread_home is not None:
-            move = spread_home - th["spreadHome"]
+        if th and th.get("spreadHome") is not None and (espn_spread if espn_spread is not None else spread_home) is not None:
+            move = (espn_spread if espn_spread is not None else spread_home) - th["spreadHome"]
         i_h, n_h = M.injury_pts(inj[home], b_inj, move)
         i_a, n_a = M.injury_pts(inj[away], b_inj, move)
         pts_home = margin_home + adj_h + (w_h - w_a) + (i_h - i_a)
@@ -520,7 +528,7 @@ def set_thursday_baseline(board):
             continue
         s = snaps[g["key"]]
         s["thursday"] = {"at": board["generatedAt"], "inj": [i for i in g["injuries"] if i["starter"]],
-                         "spreadHome": g.get("spreadHome"),
+                         "spreadHome": g.get("espnSpread") if g.get("espnSpread") is not None else g.get("spreadHome"),
                          "wxLine": g.get("weatherLine"),
                          "teams": {g["teams"][x]["team"]: {k: g["teams"][x].get(k) for k in ("fair", "price", "call")}
                                    for x in ("away", "home")}}

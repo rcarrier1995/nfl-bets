@@ -674,6 +674,7 @@ function setup() {
    <ol class="small"><li>Install the free <b>ntfy</b> app (App Store / Google Play).</li><li>Tap <b>+</b>, type the topic above, Subscribe.</li><li>Tap <b>Test</b> here — your phone should buzz.</li></ol>
    <div class="small"><a href="https://github.com/${REPO}/edit/main/config.json" target="_blank" rel="noopener">Change the server topic</a> (edit <code>ntfyTopic</code>, Commit).</div>
   </div>
+  <div class="card"><h3>Sharper line (many sportsbooks)</h3><div class="small">${S.B.odds?.enabled ? `<span class="ok">On</span> · last check ${ago(S.B.odds.fetchedAt)}${S.B.odds.left != null ? ` · ${S.B.odds.left} free lookups left this month` : ""}${S.B.odds.error ? `<br><span class="bad">${esc(S.B.odds.error)}</span>` : ""}` : `Off — using ESPN's single sportsbook. Add a free key from the-odds-api.com as the repo secret <code>ODDS_API_KEY</code> to switch on.`}</div></div>
   <div class="card"><h3>Sunday inactives check</h3><div class="small">Re-checks inactives and backups now.</div>
    <a class="btn" href="https://github.com/${REPO}/actions/workflows/manual.yml" target="_blank" rel="noopener">Run inactives check</a>
    <div class="tiny muted" style="margin-top:4px">Opens GitHub → tap “Run workflow”, pick <code>inactives</code>.</div></div>

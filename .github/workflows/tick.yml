@@ -31,6 +31,8 @@ jobs:
           key: feeds-${{ github.run_id }}
           restore-keys: feeds-
       - run: python -m engine.run tick
+        env:
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
       - name: Save results
         run: |
           git config user.name "nfl-bets-bot"
