@@ -312,3 +312,5 @@ input:focus,select:focus{border-color:color-mix(in srgb,var(--accent) 55%,var(--
 .cconf.Med{color:var(--wait);background:color-mix(in srgb,var(--wait) 14%,transparent)}
 .cconf.Low{color:var(--bad);background:color-mix(in srgb,var(--bad) 13%,transparent)}
 .cl.High{color:var(--good)} .cl.Med{color:var(--wait)} .cl.Low{color:var(--bad)}
+.others{margin-top:8px}
+.others summary{cursor:pointer;font-size:12px;color:var(--muted);padding:6px 2px}

@@ -402,6 +402,12 @@ function tagText(w, g) {
   }
   return [t, w.tag];
 }
+// next week's game is worth betting early: a value tag says a team wins 5c+ more than its price, or the call is already Buy
+function earlyValue(g) {
+  const gap = S.B.combos?.watch?.gap || 5;
+  return (g.watch || []).some(w => w.kind !== "fade" && w.est != null && w.price != null && w.est - w.price >= gap)
+    || [g.teams.away, g.teams.home].some(c => callOf(c) === "Buy");
+}
 function tagBar(g, id) {
   const items = { [g.away]: [], [g.home]: [] };
   for (const w of g.watch || []) {
@@ -416,8 +422,8 @@ function tagBar(g, id) {
   if (e?.agree && items[e.agree]) items[e.agree].push(["exp", e.agree, `all ${e.n} experts agree`]);
   if (e?.dogPicks?.length && items[e.dog]) items[e.dog].push(["exp", e.dog, `underdog pick by ${e.dogPicks.map(lastName).join(", ")}`]);
   if (!items[g.away].length && !items[g.home].length) return "";
-  const col = (t, al) => `<div class="wcol ${al}">${items[t].map(([k, p, x, early]) => `<span class="wchip ${k}"><b>${early ? "Early pick" : "Pick"} ${esc(p)}</b> · ${esc(x)}</span>`).join("")}</div>`;
-  return `<div class="wban"${id ? ` onclick="toggle('${id}')"` : ""}>${col(g.away, "l")}${col(g.home, "r")}</div>`;
+  const chips = items[g.away].concat(items[g.home]);
+  return `<div class="wban"${id ? ` onclick="toggle('${id}')"` : ""}><div class="wcol">${chips.map(([k, p, x, early]) => `<span class="wchip ${k}"><b>${early ? "Early pick" : "Pick"} ${esc(p)}</b> · ${esc(x)}</span>`).join("")}</div></div>`;
 }
 function watchLine(g) {
   if (!g.watch?.length) return "";
@@ -572,9 +578,12 @@ function pregame() {
   const up = games.filter(g => g.state === "pre"), lvg = games.filter(g => g.state === "in"), fin = games.filter(g => g.state === "post");
   const nw = (S.B.nextWeek || []).filter(g => filt(g.teams.away) || filt(g.teams.home) || (S.chip === "All" && !S.q));
   const es = S.B.earlyStudy || {};
-  const nextSec = `<h2>Next week · early prices <span class="cnt">${nw.length}</span></h2>
+  const nwVal = nw.filter(earlyValue), nwRest = nw.filter(g => !earlyValue(g));
+  const nextSec = `<h2>Next week · worth betting early <span class="cnt">${nwVal.length}</span></h2>
     <div class="tiny muted" style="margin:-4px 0 8px">Early: injury news can still move these. ${es.n ? `So far the early price was ${es.avg > 0 ? `${es.avg}¢ cheaper` : `${-es.avg}¢ dearer`} than at kickoff on average (${es.cheaper} cheaper, ${es.dearer} dearer, ${es.n} teams).` : "We're tracking whether early prices beat kickoff prices."}</div>
-    ${nw.length ? `<div class="glist">${nw.map(gameRow).join("")}</div>` : NOREC("Kalshi hasn't listed next week's games yet")}`;
+    ${nw.length ? (nwVal.length ? `<div class="glist">${nwVal.map(gameRow).join("")}</div>` : NOREC("No early value yet: no team wins 5¢+ more than its price")) +
+      (nwRest.length ? `<details class="others"><summary>Other games next week (${nwRest.length}) · no early value</summary><div class="glist">${nwRest.map(gameRow).join("")}</div></details>` : "")
+      : NOREC("Kalshi hasn't listed next week's games yet")}`;
   h += `<h2>All games this week <span class="cnt">${games.length}</span></h2>${games.length ? `${lvg.map(gameRow).join("")}${up.length ? `<div class="glist">${up.map(gameRow).join("")}</div>` : ""}${fin.length ? `<div class="glist" style="margin-top:10px">${fin.map(gameRow).join("")}</div>` : ""}` : NOREC()}`;
   return h + nextSec;
 }
