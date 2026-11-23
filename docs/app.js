@@ -386,16 +386,37 @@ function winLine(g) {
   const a = f(g.teams.away), h = f(g.teams.home);
   return a || h ? `<div class="tiny muted" style="margin-top:2px">Win chance: ${a}${a && h ? " · " : ""}${h}</div>` : "";
 }
+// every chip names the team to bet on first, then the reason (naming the team it's about)
+const lastName = n => String(n || "").split(" ").slice(-1)[0];
+function tagText(w, g) {
+  const t = w.team, o = w.opp || (t === g.away ? g.home : g.away);
+  const n = w.n ?? +((/without (\d+)/.exec(w.why || "") || [])[1] || 0);
+  const qb = w.qb ? lastName(w.qb) : "";
+  switch (w.tag) {
+    case "Elite QB, weak D": return [t, `elite QB${qb ? " " + qb : ""}, ${t}'s own D is weak (market underrates)`];
+    case "Their D banged up": return [t, `${o} D banged up${n ? ` (${n} key defenders out)` : ""}`];
+    case "QB + WR1 beat their secondary": return [t, `${qb && w.wr ? `${qb} + ${lastName(w.wr)}` : "QB + WR1"} beat ${o}'s pass D`];
+    case "Hot streak overpriced": return [o, `${t} on a hot streak, priced about 4¢ too high`];
+    case "Key WR out": return [o, `${t} missing key WR${w.players?.length ? " " + w.players.map(lastName).join(", ") : ""}, priced about 4¢ too high`];
+    case "Underdog experts pick": return [t, `underdog experts like ${t}`];
+  }
+  return [t, w.tag];
+}
 function tagBar(g, id) {
   const items = { [g.away]: [], [g.home]: [] };
-  const short = { "QB + WR1 beat their secondary": "QB + WR1 > their pass D", "Hot streak overpriced": "Hot streak · priced about 4¢ too high" };
-  for (const w of g.watch || []) if (items[w.team]) items[w.team].push([w.kind === "fade" ? "fade" : "good",
-    (short[w.tag] || w.tag) + (w.est != null ? ` · wins about ${Math.round(w.est)}% · costs ${Math.round(w.price)}¢` : "") + (w.inGame ? " · now" : "") + (w.early ? " · early" : "")]);
+  for (const w of g.watch || []) {
+    const [pickT, why] = tagText(w, g);
+    if (!items[pickT]) continue;
+    const fade = w.kind === "fade";
+    const odds = !fade && w.est != null ? ` · wins about ${Math.round(w.est)}% · costs ${Math.round(w.price)}¢`
+      : fade && w.oppPrice != null ? ` · costs ${w.oppPrice}¢` : "";
+    items[pickT].push([fade ? "fade" : "good", pickT, why + odds + (w.inGame ? " · now" : "") + (w.early ? " · early" : "")]);
+  }
   const e = g.experts;
-  if (e?.agree && items[e.agree]) items[e.agree].push(["exp", `All ${e.n} experts pick`]);
-  if (e?.dogPicks?.length && items[e.dog]) items[e.dog].push(["exp", `Underdog pick: ${e.dogPicks.map(n => n.split(" ").slice(-1)[0]).join(", ")}`]);
+  if (e?.agree && items[e.agree]) items[e.agree].push(["exp", e.agree, `all ${e.n} experts agree`]);
+  if (e?.dogPicks?.length && items[e.dog]) items[e.dog].push(["exp", e.dog, `underdog pick by ${e.dogPicks.map(lastName).join(", ")}`]);
   if (!items[g.away].length && !items[g.home].length) return "";
-  const col = (t, al) => `<div class="wcol ${al}">${items[t].map(([k, x]) => `<span class="wchip ${k}">${al === "l" ? `<b>${esc(t)}</b> ` : ""}${esc(x)}${al === "r" ? ` <b>${esc(t)}</b>` : ""}</span>`).join("")}</div>`;
+  const col = (t, al) => `<div class="wcol ${al}">${items[t].map(([k, p, x]) => `<span class="wchip ${k}"><b>Pick ${esc(p)}</b> · ${esc(x)}</span>`).join("")}</div>`;
   return `<div class="wban"${id ? ` onclick="toggle('${id}')"` : ""}>${col(g.away, "l")}${col(g.home, "r")}</div>`;
 }
 function watchLine(g) {

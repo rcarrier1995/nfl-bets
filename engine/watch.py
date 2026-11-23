@@ -264,7 +264,7 @@ def for_board(board, games_list=None, week=None, early=False):
         for t, o in ((a, h), (h, a)):
             v = info[t]
             if flag[t] and not flag[o]:
-                tags.append({"team": t, "tag": TAGS["eqwd"], "kind": "good",
+                tags.append({"team": t, "tag": TAGS["eqwd"], "kind": "good", "qb": v["qbName"],
                              "why": f"{v['qbName']} career {v['qbEpa']:+.2f} EPA/play (top 20%), {t} D allows {100 * v['dsr']:.0f}% success (worst 20%)"})
             # key defenders out: final injury report, plus confirmed in-game exits
             if o not in kd:
@@ -275,12 +275,12 @@ def for_board(board, games_list=None, week=None, early=False):
                     and str(i.get("state", "")).startswith("confirmed") and _norm(i.get("full") or i.get("name")) in kd[o]]
             live = [n for n in live if _norm(n) not in {_norm(x) for x in outs}]
             if len(outs) + len(live) >= 2:
-                tags.append({"team": t, "tag": TAGS["dbu"], "kind": "good", "inGame": bool(live),
+                tags.append({"team": t, "tag": TAGS["dbu"], "kind": "good", "inGame": bool(live), "n": len(outs) + len(live),
                              "why": f"{o} without {len(outs) + len(live)} key defenders: {', '.join(outs + [n + ' (left the game)' for n in live])}"})
             # QB and WR1 both clearly better than the secondary they face, priced 65-80c
             if t in rq and t in rw and o in rd and v["price"] is not None and 65 <= v["price"] <= 80 \
                     and rq[t] - rd[o] >= 8 and rw[t] - rd[o] >= 8:
-                tags.append({"team": t, "tag": TAGS["qbwr"], "kind": "good",
+                tags.append({"team": t, "tag": TAGS["qbwr"], "kind": "good", "qb": v["qbName"], "wr": v["wr1"],
                              "why": f"{v['qbName']} and {v['wr1']} both rank well above {o}'s pass D, priced {v['price']:.0f}¢"})
             # hot streak: priced a bit too high, the other side is slightly better value
             hot = []
@@ -301,13 +301,14 @@ def for_board(board, games_list=None, week=None, early=False):
             wo = [i["player"] for i in g.get("injuries") or [] if i.get("team") == t and i.get("status") in ("Out", "Doubtful")
                   and _norm(i.get("player")) in kw[t]]
             if wo:
-                tags.append({"team": t, "tag": TAGS["wrout"], "kind": "fade",
+                tags.append({"team": t, "tag": TAGS["wrout"], "kind": "fade", "players": wo,
                              "why": f"{', '.join(wo)} out (key WR). Teams missing a key WR have been priced about 4¢ too high, so {o} is slightly better value"})
         e = g.get("experts") or {}
         if e.get("dogPicks") and e.get("dog") in (a, h):
             tags.append({"team": e["dog"], "tag": TAGS["dogx"], "kind": "good",
                          "why": f"Picked by our underdog experts ({', '.join(n.split()[-1] for n in e['dogPicks'])}): +6% a pick over 2 seasons, small sample"})
         for x in tags:
+            x["opp"] = h if x["team"] == a else a
             k = next(k for k, v in TAGS.items() if v == x["tag"])
             c = g["teams"]["away" if x["team"] == a else "home"]
             if g.get("state") == "pre" and k in EDGE and info[x["team"]]["price"] is not None:
