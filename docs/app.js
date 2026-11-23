@@ -129,6 +129,24 @@ function fairPay(c, fair, buy, call) {
   return `Fair ${ct1(fair)}${pay}`;
 }
 
+// close games (fair 40-60¢): only the levers that matter, only the ones that apply
+function closeTag(c) {
+  const live = c.state === "in";
+  const fair = live ? c.liveFair : c.fair;
+  if (fair == null || fair < 40 || fair > 60 || c.state === "post") return "";
+  const fee = c.fee ?? 2, g = gameBy()[c.gameId] || {};
+  const L = [];
+  const buy = Math.floor(fair - 15 - fee), wait = Math.floor(fair - 8 - fee);
+  if (buy > 0) L.push(`Buy only at ${buy}¢ or less${wait > buy ? ` (Wait zone ${buy + 1}–${wait}¢)` : ""}`);
+  if (c.lag && !live) L.push("Slow price: Kalshi hasn't caught up with the line yet");
+  const q = (g.injuries || []).filter(i => i.team === c.team && i.starter && i.status === "Questionable");
+  if (q.length) L.push(`Injury watch: ${q.slice(0, 3).map(i => `${i.pos} ${i.player.split(" ").slice(-1)[0]}`).join(", ")} questionable — could tip it`);
+  if (live && c.liveBuyAt) L.push(`Live dip target: ${c.liveBuyAt}¢`);
+  const sharp = /Consensus/.test(g.book || "");
+  L.push(sharp ? `Line: ${g.book}` : `Line: one sportsbook${g.book ? ` (${g.book})` : ""} — multi-book line is off`);
+  return `<div class="note"><b>Close game</b><br>${L.map(esc).join("<br>")}</div>`;
+}
+
 // ---------- bet card ----------
 function betCard(c, opts = {}) {
   const call = callOf(c);
@@ -148,6 +166,7 @@ function betCard(c, opts = {}) {
     <div class="sub">${fairPay(c, fair, buy, call)}</div>
     ${priceBar(c.price, fair, c.dayLo, c.dayHi)}
     ${tags.join("")}
+    ${closeTag(c)}
     ${call !== "Pass" && call !== "Sell" ? bestLine(c) : ""}
     <div class="why u" onclick="toggle('${esc(id)}')">Details</div>
     ${open ? cardMore(c) : ""}
@@ -371,6 +390,7 @@ function liveCard(g) {
       ${verdict(c)}
       <div class="row small" style="margin-top:8px"><span>${fairPay(c, c.liveFair, call === "Wait" ? c.liveBuyAt : c.price, call)}</span><span class="sp"></span>${move(c)}</div>
       ${priceBar(c.price, c.liveFair, c.dayLo, c.dayHi, c.pregamePrice)}
+      ${closeTag(c)}
       ${c.dipLine && call !== "Pass" ? `<div class="note">${esc(c.dipLine.replace("Price dropped: now ", "Price fell to ").replace(", was ", " from "))}</div>` : ""}
       ${c.bothOff && call === "Value" ? `<div class="note">${esc(c.bothOff)}</div>` : ""}
       ${call !== "Pass" && call !== "Sell" ? bestLine(c) : ""}
