@@ -1,5 +1,5 @@
 // Network-first: always try fresh data; fall back to cache when offline.
-const C = "nflbets-v1";
+const C = "nflbets-v2";
 self.addEventListener("install", e => self.skipWaiting());
 self.addEventListener("activate", e => e.waitUntil(self.clients.claim()));
 self.addEventListener("fetch", e => {

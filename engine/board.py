@@ -221,6 +221,8 @@ def build(now=None, extra_shrink=1.0, calib=None, sb_override=None):
                      if (l.get("fair") or 0) >= C.SHOE_IN or l.get("lopsided") or l.get("tdDip")]
     comb = CB.search_legs(combined_legs)
 
+    from .lag import record_and_detect
+    record_and_detect({"games": games}, now)
     top3 = top_three([c for c in calls if c.get("state") == "pre"])
     save_json(LIVE_FILE, live_state, compact=True)
     save_json(SNAP_FILE, snaps, compact=True)
@@ -309,6 +311,8 @@ def build_game(ev, tables, kidx, wx_all, pt_idx, live_state, snaps, prev_calls, 
          "score": {"away": _int(comps["away"].get("score")), "home": _int(comps["home"].get("score"))},
          "linescores": {s: [_int(x.get("displayValue")) for x in (comps[s].get("linescores") or [])] for s in ("away", "home")},
          "venue": (comp.get("venue") or {}).get("fullName"), "indoor": indoor, "neutral": neutral,
+         "colors": {away: "#" + (comps["away"]["team"].get("color") or "334155"),
+                    home: "#" + (comps["home"]["team"].get("color") or "334155")},
          "spreadHome": spread_home, "total": total, "book": book,
          "spreadPts": None if spread_home is None else abs(spread_home),
          "weather": wx, "weatherLine": wx_line(wx, indoor),

@@ -102,6 +102,27 @@ def test_replay_live_plus_upcoming_combo():
     assert all(l["state"] != "post" for l in b["combos"]["pool"])
 
 
+def test_slow_price_detects_kalshi_lag():
+    from datetime import datetime, timezone, timedelta
+    from engine.lag import detect
+    now = datetime(2026, 11, 22, 17, 0, tzinfo=timezone.utc)
+    t = lambda m: (now - timedelta(minutes=m)).isoformat()
+    rows = [[t(50), -3.0, 40, 62], [t(5), -6.0, 40, 63]]       # home moved 3 pts, Kalshi +1c
+    lag = detect(rows, now)
+    assert lag and lag["side"] == "home"
+    rows = [[t(50), -3.0, 40, 62], [t(5), -6.0, 33, 69]]       # Kalshi kept up
+    assert detect(rows, now) is None
+
+
+def test_combos_any_size_from_two():
+    from engine import combos as CB
+    pool = [({"gameId": str(i), "team": f"A{i}", "fair": 60, "price": 55},
+             {"gameId": str(i), "team": f"B{i}", "fair": 40, "price": 45}) for i in range(5)]
+    r = CB.search(pool)
+    assert sorted(map(int, r)) == [2, 3, 4, 5]
+    assert r["2"]["checked"] == 10 * 4
+
+
 if __name__ == "__main__":
     for k, f in list(globals().items()):
         if k.startswith("test_"):

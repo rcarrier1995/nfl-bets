@@ -241,7 +241,7 @@ def tick(force=()):
     vsent = rs.setdefault("valueSent", {})
     for c in board["calls"]:
         if c.get("state") == "pre" and c.get("call") == "Value" and vsent.get(c["key"]) != round(c["price"] or 0):
-            P.send(f"Value now: {c['team']} {c['price']:.0f}c",
+            P.send(f"{'Slow price' if c.get('lag') else 'Value now'}: {c['team']} {c['price']:.0f}c",
                    f"{c['team']} vs {c['opp']} {c['price']:.0f}c -> win {100 - c['price']:.0f}c · {c['confidence']['level']}\n{c['why']}")
             vsent[c["key"]] = round(c["price"] or 0)
     if len(vsent) > 400:

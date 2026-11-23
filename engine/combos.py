@@ -88,11 +88,16 @@ def tier(cost):
     return "above"
 
 
-def search(pool_games, sizes=C.COMBO_SIZES):
+def sizes_for(n):
+    """Every combo size from 2 legs up to one leg per available game."""
+    return list(range(C.COMBO_MIN, min(n, C.COMBO_MAX) + 1))
+
+
+def search(pool_games, sizes=None):
     """pool_games: list of (legA, legB) with numeric fair & price. Returns {k: result}."""
     games = [g for g in pool_games if all(l.get("fair") is not None and l.get("price") for l in g)]
     out = {}
-    for k in sizes:
+    for k in (sizes or sizes_for(len(games))):
         best, checked, n = _best_for_size(games, k)
         res = {"size": k, "checked": checked, "games": n}
         if not best:
@@ -110,12 +115,12 @@ def search(pool_games, sizes=C.COMBO_SIZES):
     return out
 
 
-def search_legs(legs, sizes=C.COMBO_SIZES):
+def search_legs(legs, sizes=None):
     """Combined combos: a fixed leg pool (one side each). Exhaustive over leg subsets with
     one leg per game."""
     legs = [l for l in legs if l.get("fair") is not None and l.get("price")]
     out = {}
-    for k in sizes:
+    for k in (sizes or sizes_for(len({l["gameId"] for l in legs}))):
         best, checked = None, 0
         for sub in itertools.combinations(range(len(legs)), k):
             if len({legs[i]["gameId"] for i in sub}) < k:

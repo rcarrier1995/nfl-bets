@@ -21,11 +21,25 @@ function ago(iso) {
 }
 function kick(iso) {
   const d = new Date(iso);
-  return d.toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" }).replace(":00", "");
+  return d.toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" }).replace(":00", "");
 }
 const callOf = c => c.state === "in" && c.liveCall ? c.liveCall : c.call;
 const callsBy = () => Object.fromEntries((S.B?.calls || []).map(c => [c.key, c]));
 const gameBy = () => Object.fromEntries((S.B?.games || []).map(g => [g.id, g]));
+const COLORS = () => Object.assign({}, ...(S.B?.games || []).map(g => g.colors || {}));
+function badge(team, size = "") {
+  const c = COLORS()[team] || "#334155";
+  return `<span class="tb ${size}" style="--c:${esc(c)}">${esc(team)}</span>`;
+}
+const ICON = {
+  inj: '<path d="M12 5v14M5 12h14"/>', wx: '<path d="M3 8h10a3 3 0 1 0-3-3M3 12h15a3 3 0 1 1-3 3M3 16h7"/>',
+  dome: '<path d="M3 19h18M5 19a7 7 0 0 1 14 0"/>', mu: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+  to: '<path d="M4 12a8 8 0 0 1 14-5l2 2M20 12a8 8 0 0 1-14 5l-2-2M20 4v5h-5M4 20v-5h5"/>',
+  ch: '<path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/>', link: '<path d="M10 14a4 4 0 0 0 6 0l3-3a4 4 0 0 0-6-6l-1 1M14 10a4 4 0 0 0-6 0l-3 3a4 4 0 0 0 6 6l1-1"/>',
+  line: '<path d="M4 6h16M4 12h10M4 18h6"/>', search: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>',
+  trophy: '<path d="M8 21h8M12 17v4M7 4h10v4a5 5 0 0 1-10 0V4zM17 6h3a3 3 0 0 1-3 4M7 6H4a3 3 0 0 0 3 4"/>'
+};
+const ic = k => `<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICON[k] || ""}</svg>`;
 function toggle(id) { S.open.has(id) ? S.open.delete(id) : S.open.add(id); render(); }
 window.toggle = toggle;
 
@@ -65,10 +79,11 @@ function betCard(c, opts = {}) {
   const buy = call === "Wait" ? buyAt : c.price;
   const tags = [];
   if (c.aboveRange && call !== "Pass") tags.push(`<span class="tag above">above your usual range</span>`);
+  if (c.lag && !live) tags.push(`<span class="tag lag">slow price</span>`);
   const open = S.open.has(id);
   return `<div class="card bg-${call}" data-card="${esc(c.key)}">
-    <div class="row"><b>${esc(c.team)}</b><span class="small muted">${esc(c.name)}${opts.vs ? " vs " + esc(c.opp) : ""}</span><span class="sp"></span><span class="pill c-${call}">${call === "Value" ? "Value now" : call === "Wait" ? "Wait for a dip" : "Pass"}</span></div>
-    <div class="row" style="margin-top:6px"><span class="hero">${ct(c.price)}</span><span class="sp"></span><span class="small">${move(c)}</span></div>
+    <div class="row">${badge(c.team)}<div style="min-width:0"><b>${esc(c.name || c.team)}</b>${opts.vs ? `<div class="tiny muted">vs ${esc(c.opp)}</div>` : ""}</div><span class="sp"></span><span class="pill c-${call}">${call === "Value" ? "Value now" : call === "Wait" ? "Wait for a dip" : "Pass"}</span></div>
+    <div class="row" style="margin-top:12px"><span class="hero">${ct(c.price)}</span><span class="sp"></span><span class="small">${move(c)}</span></div>
     <div class="sub">${call === "Wait" ? `Buy at ${ct(buyAt)} · ` : ""}Fair ${ct1(fair)}${c.edge != null && !live ? ` · Edge ${c.edge > 0 ? "+" : ""}${ct1(live ? c.liveEdge : c.edge)}` : ""}</div>
     ${priceBar(c.price, fair)}
     <div class="row small"><span>${meter(c.confidence)}</span><span class="sp"></span><span>${call !== "Pass" ? profitLine(buy) : (c.price != null ? `+${ct(100 - c.price)} if it wins` : "")}</span></div>
@@ -88,24 +103,24 @@ function injLine(g) {
   const q = (g.injuries || []).filter(i => i.starter && i.status === "Questionable");
   if (!key.length && !q.length) return "";
   const id = "inj:" + g.id;
-  let h = `<div class="line u" onclick="toggle('${id}')">🏥 ${key.length} key injur${key.length === 1 ? "y" : "ies"}${q.length ? ` · ${q.length} questionable` : ""}</div>`;
+  let h = `<div class="line u" onclick="toggle('${id}')">${ic("inj")}${key.length} key injur${key.length === 1 ? "y" : "ies"}${q.length ? ` · ${q.length} questionable` : ""}</div>`;
   if (S.open.has(id)) h += `<div class="kv small">${key.concat(q).map(i => `<span><b>${esc(i.team)}</b> ${esc(i.pos)}</span><span>${esc(i.player)} — ${esc(i.status)}${i.top10 ? ` ⭐ top-10` : ""}</span>`).join("")}</div>`;
   return h;
 }
 function wxLine(g) {
-  if (g.indoor) return `<div class="line muted">🏟 Indoors</div>`;
+  if (g.indoor) return `<div class="line muted">${ic("dome")}Indoors</div>`;
   if (!g.weatherLine) return "";
   const id = "wx:" + g.id;
-  let h = `<div class="line u" onclick="toggle('${id}')">🌬 ${esc(g.weatherLine)}</div>`;
+  let h = `<div class="line u" onclick="toggle('${id}')">${ic("wx")}${esc(g.weatherLine)}</div>`;
   if (S.open.has(id) && g.weather?.hours) h += wxChart(g.weather.hours);
   return h;
 }
 function muLine(g) {
   const a = g.matchup?.[g.away], h = g.matchup?.[g.home];
   const id = "mu:" + g.id;
-  if (!a || !h) return `<div class="line muted">📊 Rankings unavailable</div>`;
+  if (!a || !h) return `<div class="line muted">${ic("mu")}Rankings unavailable</div>`;
   const s = `${g.away} pass #${a.passOff?.rank ?? "–"} vs ${g.home} pass D #${h.passDef?.rank ?? "–"} · ${g.home} pass #${h.passOff?.rank ?? "–"} vs D #${a.passDef?.rank ?? "–"}`;
-  let out = `<div class="line u" onclick="toggle('${id}')">📊 ${esc(s)}</div>`;
+  let out = `<div class="line u" onclick="toggle('${id}')">${ic("mu")}${esc(s)}</div>`;
   if (S.open.has(id)) out += matchupBars(g);
   return out;
 }
@@ -113,14 +128,14 @@ function toLine(g) {
   if (!g.turnovers || g.state === "pre") return "";
   const id = "to:" + g.id;
   const t = g.turnovers;
-  let h = `<div class="line u" onclick="toggle('${id}')">🔁 Turnovers ${g.away} ${t[g.away] ?? 0} · ${g.home} ${t[g.home] ?? 0}</div>`;
+  let h = `<div class="line u" onclick="toggle('${id}')">${ic("to")}Turnovers ${g.away} ${t[g.away] ?? 0} · ${g.home} ${t[g.home] ?? 0}</div>`;
   if (S.open.has(id)) h += quarterTable(g, ["turnovers"]);
   return h;
 }
 function changesLine(g) {
   if (!g.changes?.length || g.state !== "pre") return "";
   const id = "ch:" + g.id;
-  let h = `<div class="line u" onclick="toggle('${id}')">🔄 What changed since Thursday (${g.changes.length})</div>`;
+  let h = `<div class="line u" onclick="toggle('${id}')">${ic("ch")}What changed since Thursday (${g.changes.length})</div>`;
   if (S.open.has(id)) h += `<div class="small">${g.changes.map(esc).join("<br>")}</div>`;
   return h;
 }
@@ -128,7 +143,7 @@ function gameCombosLine(g) {
   const all = [];
   for (const cat of ["standard", "combined"]) for (const [k, r] of Object.entries(S.B.combos[cat] || {})) if (r.combo && r.combo.legs.some(l => l.gameId === g.id)) all.push(`${k}-leg ${cat === "combined" ? "combined" : ""}`.trim());
   if (!all.length) return "";
-  return `<div class="line muted">🔗 In ${all.join(", ")} combo</div>`;
+  return `<div class="line muted">${ic("link")}In ${all.join(", ")} combo</div>`;
 }
 function liveInjLines(c) {
   return (c.liveLines || []).map((l, i) => {
@@ -146,29 +161,34 @@ function gameRow(g) {
   if (g.state === "post") return finalLine(g);
   if (g.state === "in") return liveCard(g);
   const bc = callOf(best);
-  let row = `<div class="grow" onclick="toggle('${id}')"><span class="t">${esc(g.short)}</span><span class="small muted">${kick(g.kickoff)}</span><span class="sp"></span><span class="small c-${bc}">${esc(best.team)} ${bc} ${ct(best.price)}</span></div>`;
-  if (S.open.has(id)) row += `<div class="card">${gameDetail(g)}</div>`;
+  const o = S.open.has(id);
+  const tm = c => `<div class="tm">${badge(c.team, "sm")}<span>${esc(c.name || c.team)}</span><span class="sp"></span></div>`;
+  let row = `<div class="grow" onclick="toggle('${id}')"><div class="mt sp">${tm(a)}${tm(h)}</div>
+    <div class="rt"><span class="kt">${kick(g.kickoff)}</span><span class="pill c-${bc}">${esc(best.team)} ${bc === "Value" ? "Value" : bc === "Wait" ? "Wait" : "Pass"}</span></div>
+    <span class="chev ${o ? "open" : ""}">›</span></div>`;
+  if (o) row += `<div class="card">${gameDetail(g)}</div>`;
   return row;
 }
 const rank = c => ({ Value: 3, Wait: 2, Pass: 1 }[c] || 0);
 function gameDetail(g) {
   return `<div class="teams2">${betCard(g.teams.away)}${betCard(g.teams.home)}</div>
     ${injLine(g)}${wxLine(g)}${muLine(g)}${toLine(g)}${changesLine(g)}${gameCombosLine(g)}
-    ${g.spreadHome != null ? `<div class="line muted">📏 ${esc(g.home)} ${g.spreadHome > 0 ? "+" : ""}${g.spreadHome} · total ${g.total ?? "—"}</div>` : ""}`;
+    ${g.spreadHome != null ? `<div class="line muted">${ic("line")}${esc(g.home)} ${g.spreadHome > 0 ? "+" : ""}${g.spreadHome} · total ${g.total ?? "—"}</div>` : ""}`;
 }
 function finalLine(g) {
   const id = "f:" + g.id;
   const r = g.result;
   const res = r?.right == null ? "" : r.right ? ` · <span class="ok">✓ ${esc(r.pick)}</span>` : ` · <span class="bad">✗ ${esc(r.pick)}</span>`;
-  let h = `<div class="grow" onclick="toggle('${id}')"><span class="u">${esc(g.away)} ${g.score.away ?? ""} — ${esc(g.home)} ${g.score.home ?? ""} · Final${res}</span></div>`;
+  const sa = g.score.away ?? 0, sh = g.score.home ?? 0;
+  let h = `<div class="grow" onclick="toggle('${id}')"><div class="final">${badge(g.away, "sm")}<span class="sc ${sa < sh ? "l" : ""}">${sa}</span><span class="muted">–</span><span class="sc ${sh < sa ? "l" : ""}" style="text-align:left">${sh}</span>${badge(g.home, "sm")}<span class="tiny muted">Final</span><span class="sp"></span><span class="small">${res.replace(/^ · /, "")}</span><span class="chev ${S.open.has(id) ? "open" : ""}">›</span></div></div>`;
   if (S.open.has(id)) h += `<div class="card">${scoreBlock(g)}${quarterTable(g)}${injLine(g)}${toLine(g)}${wxLine(g)}</div>`;
   return h;
 }
 function scoreBlock(g) {
   const pos = t => g.possession === t ? `<span class="dot" title="ball"></span>` : "";
-  return `<div class="score"><div class="tm"><b>${esc(g.away)}${pos(g.away)}</b><span class="pts">${g.score.away ?? 0}</span></div>
+  return `<div class="score"><div class="tm">${badge(g.away, "lg")}<b>${esc(g.away)}${pos(g.away)}</b><span class="pts">${g.score.away ?? 0}</span></div>
     <div class="clock">${g.state === "in" ? `<b>${g.period >= 5 ? "OT" : "Q" + g.period} ${esc(g.clock)}</b>` : `<b>${esc(g.detail || "")}</b>`}<br><span class="muted">${esc(g.downDist || "")}</span></div>
-    <div class="tm"><b>${esc(g.home)}${pos(g.home)}</b><span class="pts">${g.score.home ?? 0}</span></div></div>`;
+    <div class="tm">${badge(g.home, "lg")}<b>${esc(g.home)}${pos(g.home)}</b><span class="pts">${g.score.home ?? 0}</span></div></div>`;
 }
 function quarterTable(g, only) {
   const qs = g.quarters || [];
@@ -182,7 +202,7 @@ function liveCard(g) {
   const tc = c => {
     const call = callOf(c);
     return `<div class="card bg-${call}" style="margin:6px 0">
-      <div class="row"><b>${esc(c.team)}</b><span class="pill c-${call}">${call}</span><span class="sp"></span><span class="hero" style="font-size:26px">${ct(c.price)}</span></div>
+      <div class="row">${badge(c.team, "sm")}<b>${esc(c.team)}</b><span class="pill c-${call}">${call}</span><span class="sp"></span><span class="hero" style="font-size:28px">${ct(c.price)}</span></div>
       <div class="row small"><span>Fair ${ct1(c.liveFair)}${call === "Wait" ? ` · Buy at ${ct(c.liveBuyAt)}` : ""}</span><span class="sp"></span><span>${move(c)}</span></div>
       ${priceBar(c.price, c.liveFair)}
       <div class="row small"><span>${meter(c.confidence)}</span><span class="sp"></span>${c.price != null ? `<span>+${ct(100 - c.price)} if it wins</span>` : ""}</div>
@@ -190,7 +210,9 @@ function liveCard(g) {
       ${liveInjLines(c)}
     </div>`;
   };
-  return `<div class="card">${scoreBlock(g)}
+  const wa = g.teams.away.liveFair, wh = g.teams.home.liveFair;
+  const wp = wa != null && wh != null ? `<div class="wpbar"><i style="width:${wa / (wa + wh) * 100}%;background:${esc(COLORS()[g.away] || "#556")}"></i><i style="flex:1;background:${esc(COLORS()[g.home] || "#889")}"></i></div><div class="row tiny muted" style="margin:-6px 0 8px"><span>${pct(wa)} win</span><span class="sp"></span><span>${pct(wh)} win</span></div>` : "";
+  return `<div class="card">${scoreBlock(g)}${wp}
     <div class="teams2">${tc(g.teams.away)}${tc(g.teams.home)}</div>
     <div class="line u" onclick="toggle('${id}')">Quarters · ${(g.quarters || []).map(q => `Q${q.q} ${q.cumAway}-${q.cumHome}`).join(" · ") || "—"}</div>
     ${S.open.has(id) ? quarterTable(g) : ""}
@@ -219,14 +241,17 @@ function banners(kind) {
 function pregame() {
   const by = callsBy();
   const pre = S.B.calls.filter(c => c.state === "pre");
-  let h = `<input class="search" id="q" placeholder="Search team" value="${esc(S.q)}">
+  const nV = pre.filter(c => c.call === "Value").length, nW = pre.filter(c => c.call === "Wait").length;
+  const nG = S.B.games.filter(g => g.state !== "post").length;
+  let h = `<div class="ptitle">Pregame</div><div class="stats"><div class="stat"><b class="c-Value">${nV}</b><span>Value now</span></div><div class="stat"><b class="c-Wait">${nW}</b><span>Wait for a dip</span></div><div class="stat"><b>${nG}</b><span>Games left</span></div></div>
+    <div class="searchw">${ic("search")}<input class="search" id="q" placeholder="Search team" value="${esc(S.q)}"></div>
     <div class="chips">${["All", "Value", "Wait", "Preferred"].map(x => `<button class="chip ${S.chip === x ? "on" : ""}" data-chip="${x}">${x === "Preferred" ? "≤65¢" : x}</button>`).join("")}</div>`;
   const top = (S.B.top3 || []).map(k => by[k]).filter(Boolean).filter(filt);
   if (top.length) {
-    h += `<h2>🏆 Top 3 today</h2><div class="rail">${top.map(c => {
+    h += `<h2>Top 3 today</h2><div class="rail">${top.map((c, i) => {
       const buy = c.call === "Wait" ? c.buyAt : c.price;
-      return `<div class="card bg-${c.call}" onclick="openBreakdown('${esc(c.key)}')"><div class="row"><b>${esc(c.team)}</b><span class="small muted">vs ${esc(c.opp)}</span><span class="sp"></span><span class="pill c-${c.call}">${c.call}</span></div>
-      <div class="hero" style="margin-top:6px">${ct(c.price)}</div><div class="sub">${c.call === "Wait" ? `Buy at ${ct(c.buyAt)} · ` : ""}Fair ${ct1(c.fair)}</div>
+      return `<div class="card bg-${c.call}" onclick="openBreakdown('${esc(c.key)}')"><div class="row">${badge(c.team)}<div><b>${esc(c.team)}</b><div class="tiny muted">vs ${esc(c.opp)}</div></div><span class="sp"></span><span class="pill c-${c.call}">${c.call}</span></div>
+      <div class="hero" style="margin-top:12px">${ct(c.price)}</div><div class="sub">${c.call === "Wait" ? `Buy at ${ct(c.buyAt)} · ` : ""}Fair ${ct1(c.fair)}</div>
       <div class="small" style="margin-top:6px"><b>Buy ${ct(buy)} → win ${ct(100 - buy)}</b></div><div class="small">${meter(c.confidence)}</div></div>`;
     }).join("")}</div>`;
   }
@@ -236,19 +261,20 @@ function pregame() {
   const hint = closest ? `Closest: ${closest.team} at ${ct(closest.price)}, edge ${ct1(closest.edge)} · ${S.B.nextCheck || ""}` : S.B.nextCheck;
   h += `<h2>Preferred-price singles</h2>${pref.length ? pref.map(c => betCard(c, { vs: 1 })).join("") : NOREC(hint)}`;
   h += `<h2>Other bets above 65¢</h2>${above.length ? above.map(c => betCard(c, { vs: 1 })).join("") : NOREC()}`;
-  h += `<h2>Wait list</h2>${waits.length ? waits.map(c => `<div class="grow" onclick="openBreakdown('${esc(c.key)}')"><b>${esc(c.team)}</b><span class="small">now ${ct(c.price)}</span><span class="sp"></span><span class="small c-Wait">buy at ${ct(c.buyAt)} → +${ct(100 - c.buyAt)}</span></div>`).join("") : NOREC(closest ? `Closest Wait: ${closest.team} at ${ct(closest.price)}, needs fair − 8¢ after fees` : "")}`;
+  h += `<h2>Wait list</h2>${waits.length ? waits.map(c => `<div class="grow" onclick="openBreakdown('${esc(c.key)}')">${badge(c.team, "sm")}<b>${esc(c.team)}</b><span class="small">now ${ct(c.price)}</span><span class="sp"></span><span class="small c-Wait">buy at ${ct(c.buyAt)} → +${ct(100 - c.buyAt)}</span></div>`).join("") : NOREC(closest ? `Closest Wait: ${closest.team} at ${ct(closest.price)}, needs fair − 8¢ after fees` : "")}`;
   const games = S.B.games.filter(g => filt(g.teams.away) || filt(g.teams.home) || (S.chip === "All" && !S.q));
-  h += `<h2>All games this week</h2>${games.length ? games.map(gameRow).join("") : NOREC()}`;
+  const up = games.filter(g => g.state === "pre"), lvg = games.filter(g => g.state === "in"), fin = games.filter(g => g.state === "post");
+  h += `<h2>All games this week <span class="cnt">${games.length}</span></h2>${games.length ? `${lvg.map(gameRow).join("")}${up.length ? `<div class="glist">${up.map(gameRow).join("")}</div>` : ""}${fin.length ? `<div class="glist" style="margin-top:10px">${fin.map(gameRow).join("")}</div>` : ""}` : NOREC()}`;
   return h;
 }
 function live() {
   const lv = S.B.games.filter(g => g.state === "in");
   const fin = S.B.games.filter(g => g.state === "post");
   const al = S.B.alerts || [];
-  let h = banners();
+  let h = `<div class="ptitle">Live</div><div class="psub">${lv.length ? `${lv.length} game${lv.length > 1 ? "s" : ""} in progress` : esc(nextKick() || "No games in progress")}</div>` + banners();
   h += `<h2>Live dip alerts</h2>${al.length ? al.map(a => `<div class="card bg-Value"><div class="row"><b>${esc(a.team)}</b><span class="small muted">${esc(a.game)}</span><span class="sp"></span><span class="hero" style="font-size:26px">${ct(a.price)}</span></div><div class="small"><b>+${ct(a.profit)} if it wins</b> · ${esc(a.confidence)}</div><div class="why">${esc(a.why)}</div></div>`).join("") : NOREC(lv.length ? "" : S.B.nextCheck)}`;
   h += `<h2>Live games</h2>${lv.length ? lv.map(liveCard).join("") : NOREC(nextKick())}`;
-  h += `<h2>Final</h2>${fin.length ? fin.map(finalLine).join("") : NOREC()}`;
+  h += `<h2>Final <span class="cnt">${fin.length}</span></h2>${fin.length ? `<div class="glist">${fin.map(finalLine).join("")}</div>` : NOREC()}`;
   return h;
 }
 function nextKick() {
@@ -270,45 +296,67 @@ function tierTag(cost) {
 }
 function comboCard(cat, k, res) {
   const ek = `${cat}-${k}`;
-  const legs = S.comboEdits[ek] || res.combo?.legs;
-  if (!legs) {
-    const cl = res.closest;
-    const hint = res.note && !res.checked ? res.note : `Checked ${Number(res.checked || 0).toLocaleString()} combos across ${res.games} games${cl ? ` · closest miss ${ct1(cl.edge)}` : ""}`;
-    return `<h3>${k}-leg</h3>${NOREC(hint)}`;
+  const legs = S.comboEdits[ek] || res?.combo?.legs;
+  if (!legs || !legs.length) {
+    const cl = res?.closest;
+    const hint = !res ? "" : res.note && !res.checked ? res.note : `Checked ${Number(res.checked || 0).toLocaleString()} combos across ${res.games} games${cl ? ` · closest miss ${ct1(cl.edge)}` : ""}`;
+    return NOREC(hint);
   }
   const t = comboTotals(legs);
   const id = "cb:" + ek;
+  const edit = S.open.has(id);
   const w = Math.min(100, t.cost / Math.max(t.maxPay, t.cost, 0.01) * 100), mx = Math.min(100, t.maxPay / Math.max(t.maxPay, t.cost, 0.01) * 100);
-  return `<h3>${k}-leg</h3><div class="card">
-    <div class="row"><span class="hero" style="font-size:28px">${ct1(t.cost)}</span><span class="sp"></span><span class="small">hits ${pct(t.hit)} · max pay ${ct1(t.maxPay)}</span></div>
+  return `<div class="card ${t.edge >= 0 ? "bg-Value" : ""}">
+    <div class="row"><span class="pill ${t.edge >= 0 ? "c-Value" : "c-Pass"}">${legs.length}-leg${S.comboEdits[ek] ? " · edited" : ""}</span><span class="sp"></span>${tierTag(t.cost)}</div>
+    <div class="row" style="margin-top:12px;align-items:flex-end"><span class="hero">${ct1(t.cost)}</span><span class="sp"></span><span class="small" style="text-align:right"><b class="c-Value">+${ct1(100 - t.cost)}</b> if it wins</span></div>
     <div class="mpbar"><div class="cost ${t.cost > t.maxPay ? "over" : ""}" style="width:${w}%"></div><div class="max" style="left:calc(${mx}% - 1px)"></div></div>
-    <div class="small"><b>Buy ${ct1(t.cost)} → +${ct1(100 - t.cost)} if it wins</b> · edge ${t.edge >= 0 ? "+" : ""}${ct1(t.edge)} ${tierTag(t.cost)}</div>
-    <div style="margin-top:6px">${legs.map((l, i) => `<div class="leg" onclick="swapLeg('${ek}',${i})"><div><b>${esc(l.team)}</b> <span class="small muted">vs ${esc(l.opp)}${l.state === "in" ? " · live" : ""}</span><br>${(l.tags || []).map(x => `<span class="tag ${x === "Shoe-in" ? "shoe" : ""}">${esc(x)}</span>`).join("")}</div><span class="sp"></span><span class="small muted">${pct(l.fair)}</span><span class="p">${ct(l.price)}</span><span class="small muted">→ +${ct(100 - l.price)}</span></div>`).join("")}</div>
-    <div class="row" style="margin-top:6px"><button class="btn" onclick="toggle('${id}')">Edit</button>${S.comboEdits[ek] ? `<button class="btn" onclick="resetCombo('${ek}')">Reset</button>` : ""}</div>
-    ${S.open.has(id) ? `<div class="small muted" style="margin-top:6px">Pick any leg above to swap it.</div>` : ""}
+    <div class="kpis"><div><b>${pct(t.hit)}</b><span>Hits</span></div><div><b>${ct1(t.maxPay)}</b><span>Max pay</span></div><div><b class="${t.edge >= 0 ? "c-Value" : "bad"}">${t.edge >= 0 ? "+" : ""}${ct1(t.edge)}</b><span>Edge</span></div></div>
+    <div style="margin-top:8px">${legs.map((l, i) => `<div class="leg" onclick="swapLeg('${ek}',${i})">${badge(l.team, "sm")}<div style="min-width:0"><b>${esc(l.team)}</b> <span class="small muted">vs ${esc(l.opp)}${l.state === "in" ? " · live" : ""}</span><br>${(l.tags || []).map(x => `<span class="tag ${x === "Shoe-in" ? "shoe" : ""}">${esc(x)}</span>`).join("")}</div><span class="sp"></span><span class="small muted">${pct(l.fair)}</span><span class="p">${ct(l.price)}</span>${edit && legs.length > 2 ? `<button class="x" onclick="event.stopPropagation();dropLeg('${ek}',${i})" aria-label="Remove">✕</button>` : ""}</div>`).join("")}</div>
+    <div class="row" style="margin-top:10px"><button class="btn" onclick="toggle('${id}')">${edit ? "Done" : "Edit"}</button>${edit ? `<button class="btn" onclick="addLeg('${ek}')">+ Add leg</button>` : ""}${S.comboEdits[ek] ? `<button class="btn" onclick="resetCombo('${ek}')">Reset</button>` : ""}</div>
+    ${edit ? `<div class="small muted" style="margin-top:8px">Pick any leg to swap it, ✕ to drop it, or add one. Any size from 2 legs.</div>` : ""}
   </div>`;
 }
+const comboLegs = (ek) => { const [cat, k] = ek.split("-"); return S.comboEdits[ek] || S.B.combos[cat][k]?.combo?.legs || S.B.combos[cat][k]?.closest?.legs || []; };
 window.resetCombo = ek => { delete S.comboEdits[ek]; render(); };
-window.swapLeg = (ek, i) => {
-  const [cat, k] = ek.split("-");
-  const legs = S.comboEdits[ek] || S.B.combos[cat][k].combo.legs;
+window.dropLeg = (ek, i) => { const l = comboLegs(ek).slice(); l.splice(i, 1); S.comboEdits[ek] = l; render(); };
+function legPicker(ek, i, title) {
+  const legs = comboLegs(ek);
   const used = new Set(legs.map((l, j) => j === i ? null : l.gameId));
   const alts = (S.B.combos.pool || []).filter(l => !used.has(l.gameId)).sort((a, b) => (b.fair - b.price) - (a.fair - a.price));
-  openModal(`<h2>Swap leg ${i + 1}</h2>${alts.map((l, j) => `<div class="leg" onclick="pickLeg('${ek}',${i},${j})"><div><b>${esc(l.team)}</b> <span class="small muted">vs ${esc(l.opp)}</span><br>${(l.tags || []).map(x => `<span class="tag">${esc(x)}</span>`).join("")}</div><span class="sp"></span><span class="small muted">${pct(l.fair)}</span><span class="p">${ct(l.price)}</span></div>`).join("")}`);
+  openModal(`<h2>${title}</h2>${alts.length ? alts.map((l, j) => `<div class="leg" onclick="pickLeg('${ek}',${i},${j})">${badge(l.team, "sm")}<div><b>${esc(l.team)}</b> <span class="small muted">vs ${esc(l.opp)}</span><br>${(l.tags || []).map(x => `<span class="tag">${esc(x)}</span>`).join("")}</div><span class="sp"></span><span class="small muted">${pct(l.fair)}</span><span class="p">${ct(l.price)}</span></div>`).join("") : NOREC("Every game is already in this combo")}`);
   window._alts = alts;
-};
+}
+window.swapLeg = (ek, i) => legPicker(ek, i, `Swap leg ${i + 1}`);
+window.addLeg = ek => legPicker(ek, -1, "Add a leg");
 window.pickLeg = (ek, i, j) => {
-  const [cat, k] = ek.split("-");
-  const legs = (S.comboEdits[ek] || S.B.combos[cat][k].combo.legs).slice();
-  legs[i] = window._alts[j];
+  const legs = comboLegs(ek).slice();
+  if (i < 0) legs.push(window._alts[j]); else legs[i] = window._alts[j];
   S.comboEdits[ek] = legs;
   closeModal(); render();
 };
+function comboSizes(cat) {
+  return Object.keys(S.B.combos[cat] || {}).map(Number).sort((a, b) => a - b);
+}
+function bestSize(cat) {
+  const r = S.B.combos[cat] || {};
+  const found = comboSizes(cat).filter(k => r[k].combo);
+  if (!found.length) return comboSizes(cat)[0];
+  return found.sort((a, b) => r[b].combo.edge - r[a].combo.edge)[0];
+}
+window.setCombo = (cat, k) => { S.ccat = cat; if (k != null) S.csize[cat] = k; render(); };
 function combosView() {
-  let h = `<h2>Weekly combos — live + upcoming</h2>`;
-  for (const k of ["4", "6", "8", "10"]) h += comboCard("standard", k, S.B.combos.standard[k]);
-  h += `<h2>Combined combos — lopsided + TD dip + shoe-in</h2>`;
-  for (const k of ["4", "6", "8", "10"]) h += comboCard("combined", k, S.B.combos.combined[k]);
+  S.csize = S.csize || {};
+  const cat = S.ccat || "standard";
+  const sizes = comboSizes(cat);
+  const r = S.B.combos[cat] || {};
+  const k = sizes.includes(S.csize[cat]) ? S.csize[cat] : bestSize(cat);
+  const found = sizes.filter(x => r[x].combo).length;
+  let h = `<div class="ptitle">Combos</div><div class="psub">${found ? `${found} size${found > 1 ? "s" : ""} clear the bar` : "Nothing clears the bar right now"} · live + upcoming games</div>
+    <div class="ctabs"><button class="${cat === "standard" ? "on" : ""}" onclick="setCombo('standard')">All games</button><button class="${cat === "combined" ? "on" : ""}" onclick="setCombo('combined')">Shoe-in + dips</button></div>`;
+  h += `<h2>${cat === "standard" ? "Weekly combos — live + upcoming" : "Combined combos — lopsided + TD dip + shoe-in"}</h2>`;
+  if (!sizes.length) return h + NOREC(`${S.B.combos.poolGames || 0} games with prices — need 2`);
+  h += `<div class="sizes">${sizes.map(x => `<button class="${x === k ? "on" : ""} ${r[x].combo ? "has" : ""}" onclick="setCombo('${cat}',${x})"><b>${x}</b><span>${r[x].combo ? "+" + ct1(r[x].combo.edge) : "legs"}</span></button>`).join("")}</div>`;
+  h += comboCard(cat, String(k), r[k]);
   return h;
 }
 
@@ -330,7 +378,7 @@ function learning() {
   const all = bets();
   const wk = all.filter(b => String(b.week) === String(S.B.week));
   const ws = betStats(wk), at = betStats(all);
-  let h = `<div class="mybets"><span>This week: ${ws.w}–${ws.l} · ${money(ws.pnl)}</span><span class="small">All: ${money(at.pnl)}</span></div>`;
+  let h = `<div class="ptitle">Learning</div><div class="mybets"><span>This week: ${ws.w}–${ws.l} · ${money(ws.pnl)}</span><span class="small">All: ${money(at.pnl)}</span></div>`;
   h += banners();
   const t = L.totals;
   if (t) h += `<div class="banner"><b>${t.right}/${t.games} right · ${t.pct}%</b> <span class="small muted">(${t.baseline.right}/${t.baseline.games} backtest + ${t.reviewedRight}/${t.reviewed} reviewed)</span></div>`;
@@ -592,7 +640,7 @@ function setup() {
   const p = S.B.push || {};
   const topic = localGet("topic") || p.topic || "";
   const h = S.B.health || {};
-  return `<h2>Setup & Edge</h2>
+  return `<div class="ptitle">Setup</div><h2>Setup & Edge</h2>
   <div class="card"><h3>Phone alerts</h3>
    <div class="small">Status: ${p.topic ? `<span class="ok">topic saved on server</span>` : `<span class="bad">no topic on server</span>`}${p.lastNote ? `<br>${esc(p.lastNote)}` : ""}</div>
    <div class="row" style="margin-top:8px"><input id="topic" placeholder="ntfy topic" value="${esc(topic)}" style="flex:1"><button class="btn pri" onclick="testPush()">Test</button></div>
@@ -629,7 +677,7 @@ function setup() {
 function healthTable(h) {
   return `<div class="kv small">${Object.entries(h).map(([k, v]) => `<span><b>${esc(k)}</b></span><span>${v.ok ? `<span class="ok">ok</span>` : `<span class="bad">down</span>`} · last ok ${ago(v.lastOk)}${v.error && !v.ok ? " · " + esc(v.error) : ""}</span>`).join("")}</div>`;
 }
-window.theme = t => { if (t) document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme; localSet("theme", t); };
+window.theme = t => { document.documentElement.dataset.theme = t || "auto"; localSet("theme", t || "auto"); };
 window.testPush = () => {
   const t = $("#topic").value.trim();
   if (!t) { $("#testRes").textContent = "Enter a topic first."; return; }
@@ -656,7 +704,12 @@ window.closeModal = closeModal;
 function render() {
   if (!S.B) return;
   $("#weekLabel").textContent = `NFL Bets · Week ${S.B.week}`;
-  $("#updated").textContent = ago(S.B.generatedAt);
+  const age = (Date.now() - Date.parse(S.B.generatedAt)) / 60000;
+  $("#updated").textContent = `Updated ${ago(S.B.generatedAt)}`;
+  $("#dot").classList.toggle("stale", age > 30);
+  const nLive = S.B.games.filter(g => g.state === "in").length;
+  const bdg = document.querySelector('[data-tab=live] .badge'); bdg.hidden = !nLive; bdg.textContent = nLive;
+  $("#gear").classList.toggle("on", S.tab === "setup");
   const fn = S.B.feedNotes || [];
   $("#feedNote").hidden = !fn.length; $("#feedNote").textContent = fn.join(" · ");
   const wb = S.B.banners?.weekly;
@@ -665,7 +718,9 @@ function render() {
   document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === S.tab));
   const views = { pregame, live, combos: combosView, learning, setup };
   const y = window.scrollY;
-  $("#view").innerHTML = views[S.tab]() + `<button class="sysbtn" onclick="systemModal()">⚙ System / Details</button>`;
+  const v = $("#view");
+  v.innerHTML = views[S.tab]() + `<button class="sysbtn" onclick="systemModal()">System / Details</button>`;
+  if (S._lastTab !== S.tab) { v.classList.remove("enter"); void v.offsetWidth; v.classList.add("enter"); S._lastTab = S.tab; }
   window.scrollTo(0, y);
   const q = $("#q");
   if (q) { q.oninput = e => { S.q = e.target.value; const pos = e.target.selectionStart; render(); const n = $("#q"); n.focus(); n.setSelectionRange(pos, pos); }; }
@@ -691,7 +746,7 @@ document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => { S.tab
 $("#gear").onclick = () => { S.tab = "setup"; document.querySelectorAll("#tabs button").forEach(b => b.classList.remove("on")); window.scrollTo(0, 0); render(); };
 $("#modalClose").onclick = closeModal;
 $("#modal").onclick = e => { if (e.target.id === "modal") closeModal(); };
-const th = localGet("theme"); if (th) document.documentElement.dataset.theme = th;
+const th = localGet("theme"); if (th) document.documentElement.dataset.theme = th;   // default: dark
 load();
 setInterval(() => { if (document.visibilityState === "visible") load(); }, 60000);
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") load(); });

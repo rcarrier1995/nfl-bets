@@ -38,7 +38,8 @@ GOOD_COMBO = 15
 LOOK_DONT_BUY = 2
 SHOE_IN = 70            # a shoe-in leg needs fair >= 70c
 LOPSIDED_SPREAD = 7.0
-COMBO_SIZES = (4, 6, 8, 10)
+COMBO_MIN = 2           # combos can be any size from 2 legs up
+COMBO_MAX = 16          # one leg per game; a full NFL week is at most 16 games
 PTS_TO_CENTS = 2.5      # 1 pt ~ 2-3c of win prob near 50%
 
 # Baseline backtest totals from Rick's original backtest files (Weeks 1-11, 151 games)
