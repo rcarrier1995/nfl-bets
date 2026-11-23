@@ -375,7 +375,8 @@ function live() {
   const lv = S.B.games.filter(g => g.state === "in");
   const fin = S.B.games.filter(g => g.state === "post");
   const al = S.B.alerts || [];
-  let h = `<div class="ptitle">Live</div><div class="psub">${lv.length ? `${lv.length} game${lv.length > 1 ? "s" : ""} in progress` : esc(nextKick() || "No games in progress")}</div>` + banners();
+  let h = `<div class="ptitle">Live</div><div class="row"><div class="psub">${lv.length ? `${lv.length} game${lv.length > 1 ? "s" : ""} in progress` : esc(nextKick() || "No games in progress")}</div><span class="sp"></span><button class="btn" onclick="refreshNow(this)">↻ Refresh</button></div>
+    ${lv.length ? `<div class="tiny muted" style="margin:-4px 0 8px">${S.scoreAt ? "Score: live from ESPN · " : ""}Prices &amp; calls: ${esc(ago(S.B.generatedAt))}, checked every 6 min</div>` : ""}` + banners();
   h += `<h2>Live dip alerts</h2>${al.length ? al.map(a => `<div class="card bg-Value"><div class="row"><b>${esc(a.team)}</b><span class="small muted">${esc(a.game)}</span><span class="sp"></span><span class="hero" style="font-size:26px">${ct(a.price)}</span></div><div class="small"><b>+${ct(a.profit)} if it wins</b> · ${esc(a.confidence)}</div><div class="why">${esc(a.why)}</div></div>`).join("") : NOREC(lv.length ? "" : S.B.nextCheck)}`;
   h += `<h2>Live games</h2>${lv.length ? lv.map(liveCard).join("") : NOREC(nextKick())}`;
   h += `<h2>Final <span class="cnt">${fin.length}</span></h2>${fin.length ? `<div class="glist">${fin.map(finalLine).join("")}</div>` : NOREC()}`;
@@ -919,12 +920,42 @@ function weekPnl(week) {
   return ` · bets ${money(betStats(wk).pnl)}`;
 }
 
+// score, clock and ball straight from ESPN on the phone (prices and calls still come from the
+// cloud check, every 6 minutes during games: Kalshi blocks price requests from a browser)
+async function liveScores() {
+  try {
+    const sb = await fetch("https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?t=" + Date.now()).then(r => r.json());
+    for (const ev of sb.events || []) {
+      const g = S.B.games.find(x => x.id === ev.id);
+      const comp = ev.competitions?.[0];
+      if (!g || !comp || g.state === "post") continue;
+      const by = {}, ids = {};
+      for (const c of comp.competitors || []) { by[c.homeAway] = c; ids[c.team?.id] = c.team?.abbreviation; }
+      const st = ev.status || comp.status || {};
+      if (st.type?.state === "pre") continue;
+      g.score = { away: +(by.away?.score ?? g.score?.away ?? 0), home: +(by.home?.score ?? g.score?.home ?? 0) };
+      if (st.type?.completed) { g.state = "post"; g.detail = "Final"; continue; }
+      g.state = "in";
+      g.period = st.period ?? g.period; g.clock = st.displayClock ?? g.clock;
+      const sit = comp.situation || {};
+      g.possession = ids[sit.possession] || null;
+      g.downDist = sit.shortDownDistanceText || sit.downDistanceText || "";
+    }
+    S.scoreAt = Date.now();
+  } catch (e) { S.scoreAt = null; }
+}
+async function refreshNow(btn) {
+  if (btn) { btn.disabled = true; btn.textContent = "Refreshing…"; }
+  await load();
+}
 async function load() {
   try {
     const [b, l] = await Promise.all([
       fetch("data/board.json?t=" + Date.now()).then(r => r.json()),
       fetch("data/learning.json?t=" + Date.now()).then(r => r.json()).catch(() => null)]);
-    S.B = b; S.L = l; render();
+    S.B = b; S.L = l;
+    if (b.games.some(g => g.state === "in")) await liveScores();
+    render();
   } catch (e) {
     if (!S.B) $("#view").innerHTML = `<div class="empty">Couldn't load data. Pull to refresh.</div>`;
   }
