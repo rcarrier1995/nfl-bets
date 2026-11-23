@@ -329,8 +329,13 @@ def build_game(ev, tables, kidx, wx_all, pt_idx, live_state, snaps, prev_calls, 
         adj_h, adj_detail = M.epa_adjustment(home, away, True, neutral, margin_home, tables.get("teams", {}))
         w_h, w_why_h = M.weather_pts(home, away, wx, tables.get("teams", {}), indoor)
         w_a, w_why_a = M.weather_pts(away, home, wx, tables.get("teams", {}), indoor)
-        i_h, n_h = M.injury_pts(inj[home])
-        i_a, n_a = M.injury_pts(inj[away])
+        th = snap.get("thursday") or {}
+        b_inj = th.get("inj") if th else None
+        move = None
+        if th and th.get("spreadHome") is not None and spread_home is not None:
+            move = spread_home - th["spreadHome"]
+        i_h, n_h = M.injury_pts(inj[home], b_inj, move)
+        i_a, n_a = M.injury_pts(inj[away], b_inj, move)
         pts_home = margin_home + adj_h + (w_h - w_a) + (i_h - i_a)
         f_h, f_a, shrink = M.fair_pair(pts_home, extra_shrink)
         pre_fair = {home: f_h, away: f_a}
@@ -506,6 +511,7 @@ def set_thursday_baseline(board):
             continue
         s = snaps[g["key"]]
         s["thursday"] = {"at": board["generatedAt"], "inj": [i for i in g["injuries"] if i["starter"]],
+                         "spreadHome": g.get("spreadHome"),
                          "wxLine": g.get("weatherLine"),
                          "teams": {g["teams"][x]["team"]: {k: g["teams"][x].get(k) for k in ("fair", "price", "call")}
                                    for x in ("away", "home")}}

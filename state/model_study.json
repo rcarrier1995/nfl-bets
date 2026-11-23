@@ -1,0 +1,16 @@
+{"builtAt": "2026-11-23", "trainSeasons": "2021-2025", "trainGames": 1359, "testSeason": "2026 W1-11", "testGames": 160,
+ "rows": [
+  {"model": "Market (devigged moneyline)", "trainLogLoss": 0.6114, "testLogLoss": 0.6023, "testAcc": 68.1, "betPnl": null},
+  {"model": "Old: shrink x0.85/x0.80 + EPA x0.5", "trainLogLoss": 0.6296, "testLogLoss": 0.6303, "testAcc": 66.3, "betPnl": "-2.2c/bet train (281), -8.0c/bet 2026 (42)"},
+  {"model": "Spread only, no shrink (k=1.0)", "trainLogLoss": 0.6126, "testLogLoss": 0.6070, "testAcc": 68.8, "betPnl": null},
+  {"model": "New: spread, k=1.15, no EPA in price", "trainLogLoss": 0.6107, "testLogLoss": 0.6031, "testAcc": 68.8, "betPnl": null},
+  {"model": "Spread k=1.0 + EPA x0.25", "trainLogLoss": 0.6193, "testLogLoss": 0.6160, "testAcc": 67.5, "betPnl": "-20.7c/bet train (20)"}
+ ],
+ "calibrationNew": [{"bucket": "50–60", "pred": 56.5, "actual": 54.6, "n": 325}, {"bucket": "60–70", "pred": 63.3, "actual": 64.0, "n": 586}, {"bucket": "70–80", "pred": 73.8, "actual": 73.8, "n": 280}, {"bucket": "80–100", "pred": 85.2, "actual": 86.9, "n": 168}],
+ "findings": [
+  "The x0.85/x0.80 shrink was the biggest error: it priced favourites too cheap, so the model kept 'finding' underdog value that lost (-8c per bet in 2026).",
+  "Adding EPA on top of the line made every season worse. The line already knows it. EPA stays on screen as a check, not in the price.",
+  "The 'favourites 80%+ only won 66.7%' result was 12 games. Over 1,359 games, 80%+ favourites won 86.9% vs 85.2% predicted.",
+  "Pregame injuries were double counted: the line moves on QB news. Now only fresh news the line hasn't moved for (<2 pts) is added.",
+  "The free model matches the sportsbook; it doesn't beat it. Real edges come from Kalshi lagging the sportsbook line and from late news — that's what Value/Wait now flags."
+ ]}

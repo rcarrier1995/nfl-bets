@@ -196,12 +196,13 @@ def update_shrink(L):
     pred = sum(r["pickFair"] for r in recs) / len(recs)
     act = 100 * sum(r["right"] for r in recs) / len(recs)
     gap = pred - act
-    if gap > 3:
+    se = 100 * ((pred / 100) * (1 - pred / 100) / len(recs)) ** 0.5
+    if gap > 3 and gap > 2 * se:   # only a real, statistically clear miss (n=12 noise fooled the old rule)
         f = max(0.85, round(1 - gap / 100 * 1.5, 3))
         L["shrink"] = {"factor": f, "note": f"Favourites 65¢+ hit {act:.0f}% vs {pred:.0f}% predicted — fairs shrunk ×{f}",
                        "n": len(recs), "at": iso()}
     else:
-        L["shrink"] = {"factor": 1.0, "note": f"Favourites calibrated ({act:.0f}% vs {pred:.0f}%) — no extra shrink",
+        L["shrink"] = {"factor": 1.0, "note": f"Favourites {act:.0f}% vs {pred:.0f}% predicted (n={len(recs)}) — within noise, no extra shrink",
                        "n": len(recs), "at": iso()}
     return L["shrink"]
 

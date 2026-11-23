@@ -363,6 +363,13 @@ function learning() {
     h += `<h2>Injury research</h2><div class="line u" onclick="toggle('${id}')">${hd.out} exits · ${hd.pctReturned}% back (~${hd.medianMinOut} min) · ${hd.keyNonQB} key non-QB</div>`;
     if (S.open.has(id)) h += `<table class="qt"><tr><th>Pos</th><th>Exits</th><th>Back</th><th>Key</th><th>Key rest Q</th><th>Key next Q</th><th>Key rest of game</th></tr>${Object.entries(ir.byPosition).map(([k, v]) => `<tr><td>${k}</td><td>${v.all.n}</td><td>${v.all.returned}</td><td>${v.key.n}</td><td>${sg(v.key.restQDelta)}</td><td>${sg(v.key.nextQDelta)}</td><td>${sg(v.key.swing)}</td></tr>`).join("")}</table><div class="tiny muted">Through week ${ir.throughWeek}. Key = starter who didn't return. Points vs team's normal pace. Small samples — direction, not proof.</div>`;
   }
+  // model study
+  const ms = L.modelStudy;
+  if (ms) {
+    const id = "ms";
+    h += `<h2>Model check</h2><div class="line u" onclick="toggle('${id}')">Tested on ${ms.trainGames + ms.testGames} games · new model ≈ market</div>`;
+    if (S.open.has(id)) h += `<table class="qt"><tr><th>Model</th><th>Log loss 21–25</th><th>2026</th><th>Bets</th></tr>${ms.rows.map(r => `<tr><td>${esc(r.model)}</td><td>${r.trainLogLoss}</td><td>${r.testLogLoss}</td><td>${esc(r.betPnl || "")}</td></tr>`).join("")}</table><div class="tiny muted">Lower log loss = better.</div><div class="small">${ms.findings.map(f => "• " + esc(f)).join("<br>")}</div>${tile("New model calibration, 1,359 games", calibChart(ms.calibrationNew))}`;
+  }
   // patterns by call
   const bc = L.byCall || {};
   if (Object.keys(bc).length) h += `<h2>By call type</h2><div class="line">${Object.entries(bc).map(([k, v]) => `${k}: ${v.won}/${v.n} won`).join(" · ")}</div>`;
@@ -598,8 +605,9 @@ function setup() {
    <div class="tiny muted" style="margin-top:4px">Opens GitHub → tap “Run workflow”, pick <code>inactives</code>.</div></div>
   <div class="card"><h3>Install on your phone</h3><div class="small">iPhone: open this page in Safari → Share → <b>Add to Home Screen</b>. Mac: bookmark it or Safari → File → Add to Dock.</div></div>
   <div class="card doc"><h3>How pricing works</h3>
-   <p><code>fair = Φ((spread + EPA adj, capped ±3) × shrink ÷ 13.5)</code>. Shrink ×0.85 (×0.80 past 65%). Weather/run +1.0–1.5 pts to the run-heavy team in open air if wind ≥15 mph or ≤35°F. QB out −3.5 pts. 2+ WR/CB out −1 pt.</p>
-   <p>EPA adj = half the gap between the nflverse EPA-implied margin (prior weeks, ~62 plays, 1.5 pt home field) and the sportsbook margin, capped ±3.</p>
+   <p><code>fair = Φ((spread + weather + fresh injury news) × 1.15 ÷ 13.5)</code>. The 1.15 scale was fitted on 1,359 games (2021–25) and checked on 2026: calibrated in every bucket. The old ×0.85/×0.80 shrink priced favourites too cheap and lost money in testing, so it's gone.</p>
+   <p>Weather/run +1.0–1.5 pts to the run-heavy team in open air if wind ≥15 mph or ≤35°F. QB out −3.5, 2+ WR/CB out −1 — only when the news is fresh (not out Thursday, line moved &lt;2 pts); otherwise the line already priced it.</p>
+   <p>EPA is shown (matchup bars, breakdown) but not added to the price: every EPA weight tested made the fairs worse.</p>
    <p>Edge = fair − price − fee (fee 2¢: Robinhood commission ≤1¢ + exchange fee ≤1¢). <b>Value now</b> ≥15¢. <b>Wait for a dip</b> 8–15¢, buy-at = fair − 15¢ − fee. Else <b>Pass</b>.</p>
    <p>Confidence 0–100 = fair strength (30) + edge (30) + calibration (20) + data completeness (20). High ≥65, Med ≥40.</p>
    <p>Combos: every game set, every side (2^N). Hit % = product of fairs. Max pay = fair − 2¢. One leg per game (same-game legs are correlated). Shoe-in = fair ≥70¢ only.</p></div>
@@ -614,7 +622,7 @@ function setup() {
    <li>Stats, EPA, depth charts, rosters, snaps: nflverse (weekly).</li><li>Weather: Open-Meteo forecast, hourly kickoff −1h to +5h, gusts included.</li>
    <li>Final inactives only at T-90 min. QB change inferred from play-by-play, with lag. No free backup grade — derived from nflverse.</li>
    <li>Bet log lives on this device only. Use Export/Import CSV to move it between phone and computer.</li></ul></div>
-  <div class="card doc"><h3>Honest edge</h3><ul class="small"><li>Realistic edge 1–3¢. Model error ±3–5 pts pregame, ±5–8 live. Markets are efficient.</li><li>Backtest market price was devigged moneyline — Kalshi history isn't free (biggest gap).</li><li>Weather rule never fired in Weeks 1–11. Live backtest estimated, not traded. 10-leg combos are essentially unplayable at a 1¢ tick after fees.</li><li>Backtest P&L was driven by Week 9 — not an edge.</li></ul></div>
+  <div class="card doc"><h3>Honest edge</h3><ul class="small"><li>Realistic edge 1–3¢. Model error ±3–5 pts pregame (the free model matches the sportsbook; edge = Kalshi lagging the line or late news), ±5–8 live. Markets are efficient.</li><li>Backtest market price was devigged moneyline — Kalshi history isn't free (biggest gap).</li><li>Weather rule never fired in Weeks 1–11. Live backtest estimated, not traded. 10-leg combos are essentially unplayable at a 1¢ tick after fees.</li><li>Backtest P&L was driven by Week 9 — not an edge.</li></ul></div>
   <div class="card"><h3>Feed health</h3>${healthTable(h)}</div>
   <div class="card"><h3>Display</h3><div class="row"><button class="btn" onclick="theme('light')">Light</button><button class="btn" onclick="theme('dark')">Dark</button><button class="btn" onclick="theme('')">Auto</button></div></div>`;
 }

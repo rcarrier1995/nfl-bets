@@ -258,6 +258,9 @@ def tick(force=()):
     save_json(TOP_FILE, board, compact=True)
     pub = LR.public(L, backtest)
     ih = load_json(os.path.join(C.STATE, "injury_history.json"), {}) or {}
+    ms = load_json(os.path.join(C.STATE, "model_study.json"))
+    if ms:
+        pub["modelStudy"] = ms
     if ih:
         pub["injuryResearch"] = {k: ih.get(k) for k in ("headline", "byQuarter", "byPosition", "throughWeek", "builtAt")}
     save_json(LEARN_PUB, pub, compact=True)

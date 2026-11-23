@@ -27,8 +27,15 @@ def test_fee_is_two_cents_inside_range():
 
 
 def test_spread_to_fair():
-    fa, fb, _ = M.fair_pair(6.0)       # CIN -6 -> ~64-65c, WSH ~35-36c
-    assert 63 <= fa <= 66 and abs(fa + fb - 100) < 0.01
+    fa, fb, _ = M.fair_pair(6.0)       # 6-pt favourite -> ~69-70c with the fitted k=1.15
+    assert 68 <= fa <= 71 and abs(fa + fb - 100) < 0.01
+
+
+def test_injury_not_double_counted():
+    qb = [{"team": "X", "player": "Q B", "short": "Q.B", "pos": "QB", "status": "Out", "starter": True}]
+    assert M.injury_pts(qb, baseline_inj=[], line_move=0.5)[0] == -3.5      # fresh news, line hasn't moved
+    assert M.injury_pts(qb, baseline_inj=[], line_move=3.0)[0] == 0.0       # line already moved
+    assert M.injury_pts(qb, baseline_inj=qb, line_move=0.0)[0] == 0.0       # already out Thursday
 
 
 def test_combo_exhaustive_16_and_picks_cheap_side():
@@ -84,11 +91,14 @@ def test_replay_live_plus_upcoming_combo():
     b = replay()
     r = b["combos"]["standard"]["4"]
     assert b["combos"]["poolGames"] == 4               # 2 live + 2 scheduled, no finals
-    assert r["checked"] == 16 and "combo" in r
-    assert {l["team"] for l in r["combo"]["legs"]} == {"DEN", "NYG", "SF", "WSH"}
-    for g in b["games"]:
-        for s in ("away", "home"):
-            pass
+    assert r["checked"] == 16
+    best = r.get("combo") or r.get("closest")
+    assert best and len(best["legs"]) == 4
+    assert {l["state"] for l in best["legs"]} == {"in", "pre"}   # live + upcoming mixed
+    if r.get("combo"):
+        assert r["combo"]["edge"] > 0
+    else:
+        assert r["none"] is True                         # never forced
     assert all(l["state"] != "post" for l in b["combos"]["pool"])
 
 

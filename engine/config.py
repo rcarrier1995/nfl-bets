@@ -18,10 +18,13 @@ NFLVERSE = "https://github.com/nflverse/nflverse-data/releases/download"
 # ---- Pricing model (Version B, the one unified algorithm) ----
 SIGMA = 13.5            # points -> probability scale
 EPA_ADJ_CAP = 3.0       # +/- pts
-EPA_ADJ_WEIGHT = 0.5    # how much of the EPA-vs-spread gap we take (builder's choice, noted in Setup)
+EPA_ADJ_WEIGHT = 0.0    # tested 0-0.75 on 2021-2026 (1,519 games): any weight made fairs worse -> 0 (EPA shown, not priced)
 HOME_FIELD = 1.5        # pts, used only inside the EPA-implied margin
-SHRINK = 0.85
-SHRINK_FAV = 0.80       # used when the team would be a >65% favourite
+# Spread-to-probability scale. Fitted on 2021-2025 (1,359 games, log loss), checked on 2026 W1-11:
+# k=1.15 is calibrated in every bucket; the old x0.85 / x0.80 shrink made favourites too cheap.
+SHRINK = 1.15
+SHRINK_FAV = 1.15
+LINE_MOVE_PRICED = 2.0  # pts: if the line moved this much since the injury news, the book already priced it
 WEATHER_WIND = 15.0     # mph sustained, open-air
 WEATHER_TEMP = 35.0     # F
 QB_OUT_PTS = -3.5

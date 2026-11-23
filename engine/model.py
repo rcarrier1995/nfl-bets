@@ -57,17 +57,31 @@ def weather_pts(team, opp, wx, teams, indoor):
     return pts, why
 
 
-def injury_pts(team_inj):
-    """Pregame: QB Out -3.5; >=2 WR/CB Out -1. Current injuries only, starters only."""
+def injury_pts(team_inj, baseline_inj=None, line_move=None):
+    """Pregame: QB Out -3.5; >=2 WR/CB Out -1. Current injuries only, starters only.
+    The sportsbook line already moves on injury news, so the points are applied ONLY when the
+    news is fresh: the player wasn't out at the Thursday baseline AND the line hasn't moved
+    >= 2 pts since. Otherwise it's shown as 'priced in' (no double counting)."""
     pts, notes = 0.0, []
+    base = {(i.get("team"), i.get("player")) for i in (baseline_inj or []) if i.get("status") == "Out"}
+    moved = line_move is not None and abs(line_move) >= C.LINE_MOVE_PRICED
+
+    def fresh(i):
+        return baseline_inj is not None and (i.get("team"), i.get("player")) not in base and not moved
     qb = [i for i in team_inj if i["pos"] == "QB" and i["status"] == "Out" and i.get("starter")]
     if qb:
-        pts += C.QB_OUT_PTS
-        notes.append(f"QB {qb[0]['short']} out")
+        if fresh(qb[0]):
+            pts += C.QB_OUT_PTS
+            notes.append(f"QB {qb[0]['short']} out")
+        else:
+            notes.append(f"QB {qb[0]['short']} out (priced in)")
     wrcb = [i for i in team_inj if i["pos"] in ("WR", "CB") and i["status"] == "Out" and i.get("starter")]
     if len(wrcb) >= 2:
-        pts += C.WRCB_OUT_PTS
-        notes.append(f"{len(wrcb)} WR/CB out")
+        if any(fresh(i) for i in wrcb):
+            pts += C.WRCB_OUT_PTS
+            notes.append(f"{len(wrcb)} WR/CB out")
+        else:
+            notes.append(f"{len(wrcb)} WR/CB out (priced in)")
     return pts, notes
 
 
@@ -95,7 +109,7 @@ def classify(fair, price, fee=None):
     return {"call": "Pass", "edge": edge, "buyAt": None, "fee": fee}
 
 
-CAL_DEFAULT = {"50": 1.0, "60": 1.0, "70": 0.6, "80": 0.3, "90": 0.3}
+CAL_DEFAULT = {"50": 1.0, "60": 1.0, "70": 1.0, "80": 1.0, "90": 1.0}  # 5-season check: calibrated
 
 
 def confidence(fair, edge, completeness, calib=None):
@@ -125,10 +139,10 @@ def why_line(c):
     if c.get("price") is None:
         return "Price unavailable"
     for n in c.get("injNotes", []):
-        if n.startswith("QB"):
+        if n.startswith("QB") and "priced in" not in n:
             return f"{n} — {abs(C.QB_OUT_PTS):g} pts"
     for n in c.get("oppInjNotes", []):
-        if n.startswith("QB"):
+        if n.startswith("QB") and "priced in" not in n:
             return f"Opp {n} — +{abs(C.QB_OUT_PTS):g} pts"
     if c.get("weatherWhy"):
         return c["weatherWhy"] if "favors" in c["weatherWhy"] else f"{c['weatherWhy']} — run game edge"
