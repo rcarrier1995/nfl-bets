@@ -133,7 +133,7 @@ def history_view(rec, pos_tbl):
 def history_line(v):
     bits = []
     if v.get("exits"):
-        bits.append(f"past exits {v['exits']}, back {v['back']}" + (f" (~{v['medMinOut']:g} min)" if v.get("medMinOut") else ""))
+        bits.append(f"past exits {v['exits']}, back {v['back']}" + (f" (about {v['medMinOut']:g} min)" if v.get("medMinOut") else ""))
         if v.get("nextQDelta") is not None:
             bits.append(f"team next Q {v['nextQDelta']:+.1f} pts")
     w = v.get("without")

@@ -388,9 +388,9 @@ function winLine(g) {
 }
 function tagBar(g, id) {
   const items = { [g.away]: [], [g.home]: [] };
-  const short = { "QB + WR1 beat their secondary": "QB + WR1 > their pass D", "Hot streak overpriced": "Hot streak · priced ~4¢ high" };
+  const short = { "QB + WR1 beat their secondary": "QB + WR1 > their pass D", "Hot streak overpriced": "Hot streak · priced about 4¢ too high" };
   for (const w of g.watch || []) if (items[w.team]) items[w.team].push([w.kind === "fade" ? "fade" : "good",
-    (short[w.tag] || w.tag) + (w.est != null ? ` · wins ~${Math.round(w.est)}% · costs ${Math.round(w.price)}¢` : "") + (w.inGame ? " · now" : "") + (w.early ? " · early" : "")]);
+    (short[w.tag] || w.tag) + (w.est != null ? ` · wins about ${Math.round(w.est)}% · costs ${Math.round(w.price)}¢` : "") + (w.inGame ? " · now" : "") + (w.early ? " · early" : "")]);
   const e = g.experts;
   if (e?.agree && items[e.agree]) items[e.agree].push(["exp", `All ${e.n} experts pick`]);
   if (e?.dogPicks?.length && items[e.dog]) items[e.dog].push(["exp", `Underdog pick: ${e.dogPicks.map(n => n.split(" ").slice(-1)[0]).join(", ")}`]);
@@ -610,7 +610,7 @@ function comboCard(cat, k, res, safe) {
     ${stake5(t.est)}
     <div class="row" style="margin-top:12px;align-items:flex-end"><span class="hero">${t.mk > 1 ? "≈" : ""}${ct1(t.est)}</span><span class="sp"></span><span class="small" style="text-align:right"><b class="c-Value">+${ct1(100 - t.est)}</b> if it wins</span></div>
     <div class="mpbar"><div class="cost ${t.est > t.maxPay ? "over" : ""}" style="width:${w}%"></div><div class="max" style="left:calc(${mx}% - 1px)"></div></div>
-    <div class="small" style="margin-top:8px"><b>Pay no more than ${ct1(t.maxPay)} for the combo.</b> ${t.mk > 1 ? `<span class="muted">Estimated quote: legs multiplied ${ct1(t.cost)} + ~${Math.round((t.mk - 1) * 100)}% combo markup. Estimate — check the real price in Robinhood.</span>` : `<span class="muted">Legs multiplied: ${ct1(t.cost)}. Check the real price in Robinhood.</span>`}</div>
+    <div class="small" style="margin-top:8px"><b>Pay no more than ${ct1(t.maxPay)} for the combo.</b> ${t.mk > 1 ? `<span class="muted">Estimated quote: legs multiplied ${ct1(t.cost)} + about ${Math.round((t.mk - 1) * 100)}% combo markup. Estimate — check the real price in Robinhood.</span>` : `<span class="muted">Legs multiplied: ${ct1(t.cost)}. Check the real price in Robinhood.</span>`}</div>
     <div class="kpis"><div><b>${pct(t.hit)}</b><span>Hits</span></div><div><b>${ct1(t.maxPay)}</b><span>Max pay</span></div><div><b class="${t.edge >= 0 ? "c-Value" : "bad"}">${t.edge >= 0 ? "+" : ""}${ct1(t.edge)}</b><span>Edge</span></div></div>
     <div style="margin-top:8px">${legs.map((l, i) => `<div class="leg" onclick="swapLeg('${ek}',${i})">${badge(l.team, "sm")}<div style="min-width:0"><b>${esc(l.team)}</b> <span class="small muted">vs ${esc(l.opp)}${l.state === "in" ? " · live" : ""}</span><br>${(l.tags || []).map(x => `<span class="tag ${x === "Shoe-in" ? "shoe" : ""}">${esc(x)}</span>`).join("")}</div><span class="sp"></span><span class="small muted">${pct(l.fair)}</span><span class="p">${ct(l.price)}</span>${edit && legs.length > 2 ? `<button class="x" onclick="event.stopPropagation();dropLeg('${ek}',${i})" aria-label="Remove">✕</button>` : ""}</div>`).join("")}</div>
     <div class="row" style="margin-top:10px"><button class="btn" onclick="toggle('${id}')">${edit ? "Done" : "Edit"}</button>${edit ? `<button class="btn" onclick="addLeg('${ek}')">+ Add leg</button>` : ""}${S.comboEdits[ek] ? `<button class="btn" onclick="resetCombo('${ek}')">Reset</button>` : ""}</div>
@@ -650,10 +650,10 @@ function watchCombo(k) {
   const W = S.B.combos.watch || {};
   const wk = W[String(k)] ? String(k) : Object.keys(W).filter(x => W[x]?.combo).sort((a, b) => b - a)[0];
   let h = `<h2>Watch-tag combo${wk ? ` — ${wk} legs` : ""}</h2><div class="small muted" style="margin:-4px 0 8px">Only legs whose tested win % beats their price by ${W.gap || 5}¢+ (watch tags), most likely to win first. Tags are info only — check the call on each leg.</div>`;
-  h += wk ? `<div class="safehit"><b>~${W[wk].est}%</b><span>tested chance every leg wins · costs ~${W[wk].cost}¢</span></div>${comboCard("watch", wk, W[wk], true)}` : NOREC(`${W.legs || 0} leg${W.legs === 1 ? "" : "s"} win 5¢+ more than their price right now — need 2`);
+  h += wk ? `<div class="safehit"><b>${W[wk].est}%</b><span>tested chance every leg wins · costs about ${W[wk].cost}¢</span></div>${comboCard("watch", wk, W[wk], true)}` : NOREC(`${W.legs || 0} leg${W.legs === 1 ? "" : "s"} win 5¢+ more than their price right now — need 2`);
   const N = S.B.combos.watchNext || {};
   const nk = Object.keys(N).filter(x => N[x]?.combo).sort((a, b) => b - a)[0];
-  if (nk) h += `<h2>Next week · early watch-tag combo — ${nk} legs</h2><div class="small muted" style="margin:-4px 0 8px">Same rule on next week's early prices and injury reports. Early: news can still change these.</div><div class="safehit"><b>~${N[nk].est}%</b><span>tested chance every leg wins · costs ~${N[nk].cost}¢</span></div>${comboCard("watchNext", nk, N[nk], true)}`;
+  if (nk) h += `<h2>Next week · early watch-tag combo — ${nk} legs</h2><div class="small muted" style="margin:-4px 0 8px">Same rule on next week's early prices and injury reports. Early: news can still change these.</div><div class="safehit"><b>${N[nk].est}%</b><span>tested chance every leg wins · costs about ${N[nk].cost}¢</span></div>${comboCard("watchNext", nk, N[nk], true)}`;
   return h;
 }
 const ctabTop = () => `<button class="${(S.ccat || "top") === "top" ? "on" : ""}" onclick="setCombo('top')">Top picks</button>`;
@@ -666,12 +666,12 @@ function comboConfJS(hit, cost, legs) {
 function stake5(cost) {
   if (!cost || cost <= 0) return "";
   const n = Math.floor(500 / cost), back = n * 1, profit = back - n * cost / 100;
-  return `<div class="small"><b>$5 → about ${n} contracts → wins ~$${back.toFixed(0)}</b> <span class="muted">(profit ~$${profit.toFixed(0)} before fees)${cost > 10 ? " · over 10¢: not a bonus bet" : ""}</span></div>`;
+  return `<div class="small"><b>$5 → about ${n} contracts → wins about $${back.toFixed(0)}</b> <span class="muted">(profit about $${profit.toFixed(0)} before fees)${cost > 10 ? " · over 10¢: not a bonus bet" : ""}</span></div>`;
 }
 function topCard(c, i) {
   return `<div class="card">
     <div class="row"><b>#${i + 1} · ${c.size} legs</b><span class="sp"></span>${confChip(c.conf)}</div>
-    <div class="safehit"><b>~${c.hit}%</b><span>our chance every leg wins (about 1 in ${c.oneIn}) · costs ~${c.cost}¢</span></div>
+    <div class="safehit"><b>${c.hit}%</b><span>our chance every leg wins (about 1 in ${c.oneIn}) · costs about ${c.cost}¢</span></div>
     ${stake5(c.cost)}
     <div class="tiny muted">${c.hit >= c.cost + 2 ? `Our chance beats the cost by ${(c.hit - c.cost).toFixed(1)}¢` : c.hit >= c.cost ? "About a fair price" : `Costs ${(c.cost - c.hit).toFixed(1)}¢ more than our chance`} · legs multiplied ${c.legsCost}¢. Skip if Robinhood's combo price is 10%+ above that.${c.reused ? ` Shares ${c.reused} game${c.reused > 1 ? "s" : ""} with a pick above (strongest legs).` : ""}</div>
     <div style="margin-top:8px">${c.legs.map(l => `<div class="leg">${badge(l.team, "sm")}<div style="min-width:0"><b>${esc(l.team)}</b> <span class="small muted">vs ${esc(l.opp)}</span>${l.dog ? ` <span class="tag look">underdog</span>` : ""}<br>${(l.why || []).map(x => `<span class="tag good">${esc(x)}</span>`).join("")}</div><span class="sp"></span><span class="small muted">${Math.round(l.est)}%</span><span class="p">${ct(l.price)}</span></div>`).join("")}</div>
@@ -787,7 +787,7 @@ function learning() {
   const ir = L.injuryResearch;
   if (ir?.headline) {
     const id = "ir", hd = ir.headline;
-    h += `<h2>Injury research</h2><div class="line u" onclick="toggle('${id}')">${hd.out} exits · ${hd.pctReturned}% back (~${hd.medianMinOut} min) · ${hd.keyNonQB} key non-QB</div>`;
+    h += `<h2>Injury research</h2><div class="line u" onclick="toggle('${id}')">${hd.out} exits · ${hd.pctReturned}% back (about ${hd.medianMinOut} min) · ${hd.keyNonQB} key non-QB</div>`;
     if (S.open.has(id)) h += `<table class="qt"><tr><th>Pos</th><th>Exits</th><th>Back</th><th>Key</th><th>Key rest Q</th><th>Key next Q</th><th>Key rest of game</th></tr>${Object.entries(ir.byPosition).map(([k, v]) => `<tr><td>${k}</td><td>${v.all.n}</td><td>${v.all.returned}</td><td>${v.key.n}</td><td>${sg(v.key.restQDelta)}</td><td>${sg(v.key.nextQDelta)}</td><td>${sg(v.key.swing)}</td></tr>`).join("")}</table><div class="tiny muted">Through week ${ir.throughWeek}. Key = starter who didn't return. Points vs team's normal pace. Small samples — direction, not proof.</div>`;
   }
   // model study
