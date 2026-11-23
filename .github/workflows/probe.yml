@@ -17,24 +17,32 @@ jobs:
           while read -r u; do
             i=$((i+1))
             code=$(curl -sL -m 25 -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36" -o probe/out/$i.html -w '%{http_code} %{size_download}' "$u")
-            echo "$i $code $u" | tee -a probe/out/index.txt
+            echo "$i $code $u" | tee -a probe/out/index.txt; sleep 2
           done <<'URLS'
-          https://nflpickwatch.com/terms
-          https://nflpickwatch.com/terms-of-service
-          https://nflpickwatch.com/nfl/picks/su/experts
-          https://www.cbssports.com/nfl/picks/
-          https://www.cbssports.com/nfl/expert-picks/
-          https://www.cbssports.com/nfl/picks/experts/
-          https://www.oddsshark.com/nfl/expert-picks
-          https://www.oddsshark.com/nfl/picks
-          https://www.covers.com/picks/nfl
-          https://www.covers.com/terms-of-use
-          https://www.oddsshark.com/terms-of-use
-          https://www.cbssports.com/terms-of-use/
-          https://www.espn.com/nfl/story/_/page/nflpicks/nfl-expert-picks
-          https://sports.yahoo.com/nfl/
-          https://www.nbcsports.com/nfl/picks
-          https://www.pff.com/nfl/picks
+          https://www.cbssports.com/nfl/picks/experts/straight-up/1/
+          https://www.cbssports.com/nfl/picks/experts/straight-up/2/
+          https://www.cbssports.com/nfl/picks/experts/straight-up/3/
+          https://www.cbssports.com/nfl/picks/experts/straight-up/4/
+          https://www.cbssports.com/nfl/picks/experts/straight-up/5/
+          https://www.cbssports.com/nfl/picks/experts/straight-up/6/
+          https://www.cbssports.com/nfl/picks/experts/straight-up/7/
+          https://www.cbssports.com/nfl/picks/experts/straight-up/8/
+          https://www.cbssports.com/nfl/picks/experts/straight-up/9/
+          https://www.cbssports.com/nfl/picks/experts/straight-up/10/
+          https://www.cbssports.com/nfl/picks/experts/straight-up/11/
+          https://www.cbssports.com/nfl/picks/experts/straight-up/12/
+          https://www.cbssports.com/nfl/picks/experts/against-the-spread/1/
+          https://www.cbssports.com/nfl/picks/experts/against-the-spread/2/
+          https://www.cbssports.com/nfl/picks/experts/against-the-spread/3/
+          https://www.cbssports.com/nfl/picks/experts/against-the-spread/4/
+          https://www.cbssports.com/nfl/picks/experts/against-the-spread/5/
+          https://www.cbssports.com/nfl/picks/experts/against-the-spread/6/
+          https://www.cbssports.com/nfl/picks/experts/against-the-spread/7/
+          https://www.cbssports.com/nfl/picks/experts/against-the-spread/8/
+          https://www.cbssports.com/nfl/picks/experts/against-the-spread/9/
+          https://www.cbssports.com/nfl/picks/experts/against-the-spread/10/
+          https://www.cbssports.com/nfl/picks/experts/against-the-spread/11/
+          https://www.cbssports.com/nfl/picks/experts/against-the-spread/12/
           URLS
           sed -i 's/^ *//' probe/out/index.txt
       - run: |
