@@ -27,8 +27,12 @@ const callOf = c => c.state === "in" && c.liveCall ? c.liveCall : c.call;
 const callsBy = () => Object.fromEntries((S.B?.calls || []).map(c => [c.key, c]));
 const gameBy = () => Object.fromEntries((S.B?.games || []).map(g => [g.id, g]));
 const COLORS = () => Object.assign({}, ...(S.B?.games || []).map(g => g.colors || {}));
+const LOGOS = () => Object.assign({}, ...(S.B?.games || []).map(g => g.logos || {}));
 function badge(team, size = "") {
   const c = COLORS()[team] || "#334155";
+  const lg = LOGOS()[team];
+  // real team logo; if it can't load, the colour badge with the abbreviation shows instead
+  if (lg && /^https:\/\/a\.espncdn\.com\//.test(lg)) return `<span class="tb lg-wrap ${size}" style="--c:${esc(c)}"><img src="${esc(lg)}" alt="${esc(team)}" loading="lazy" onerror="this.parentNode.classList.remove('lg-wrap');this.replaceWith(document.createTextNode('${esc(team)}'))"></span>`;
   return `<span class="tb ${size}" style="--c:${esc(c)}">${esc(team)}</span>`;
 }
 const ICON = {
