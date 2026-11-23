@@ -492,7 +492,7 @@ function tierTag(cost) {
   if (cost <= 20) return "";
   return `<span class="tag above">above your usual range</span>`;
 }
-function comboCard(cat, k, res) {
+function comboCard(cat, k, res, safe) {
   const ek = `${cat}-${k}`;
   const legs = S.comboEdits[ek] || res?.combo?.legs;
   if (!legs || !legs.length) {
@@ -506,9 +506,11 @@ function comboCard(cat, k, res) {
   const w = Math.min(100, t.est / Math.max(t.maxPay, t.est, 0.01) * 100), mx = Math.min(100, t.maxPay / Math.max(t.maxPay, t.est, 0.01) * 100);
   const vc = t.edge >= 3 ? "Value" : t.edge >= 0 ? "Wait" : "Pass";
   const vt = vc === "Value" ? `Buy if the combo costs ${ct1(t.maxPay)} or less` : vc === "Wait" ? `Skip: only ${ct1(t.edge)} below fair — about a fair price` : `Don't buy: costs about ${ct1(-t.edge)} more than it's worth`;
+  const vtS = safe && vc === "Wait" ? `About a fair price — OK if you want a likely winner. Pay ${ct1(t.maxPay)} or less` : vt;
   return `<div class="card bg-${vc}">
     <div class="row"><span class="pill c-${vc}">${legs.length}-leg${S.comboEdits[ek] ? " · edited" : ""}</span><span class="sp"></span>${tierTag(t.est)}</div>
-    <div class="verdict v-${vc}">${esc(vt)}</div>
+    <div class="verdict v-${vc}">${esc(vtS)}</div>
+    ${safe ? `<div class="safehit"><b>${pct(t.hit)}</b><span>chance every leg wins</span></div>` : ""}
     <div class="row" style="margin-top:12px;align-items:flex-end"><span class="hero">${t.mk > 1 ? "≈" : ""}${ct1(t.est)}</span><span class="sp"></span><span class="small" style="text-align:right"><b class="c-Value">+${ct1(100 - t.est)}</b> if it wins</span></div>
     <div class="mpbar"><div class="cost ${t.est > t.maxPay ? "over" : ""}" style="width:${w}%"></div><div class="max" style="left:calc(${mx}% - 1px)"></div></div>
     <div class="small" style="margin-top:8px"><b>Pay no more than ${ct1(t.maxPay)} for the combo.</b> ${t.mk > 1 ? `<span class="muted">Estimated quote: legs multiplied ${ct1(t.cost)} + ~${Math.round((t.mk - 1) * 100)}% combo markup. Estimate — check the real price in Robinhood.</span>` : `<span class="muted">Legs multiplied: ${ct1(t.cost)}. Check the real price in Robinhood.</span>`}</div>
@@ -559,6 +561,12 @@ function combosView() {
   if (!sizes.length) return h + NOREC(`${S.B.combos.poolGames || 0} games with prices — need 2`);
   h += `<div class="sizes">${sizes.map(x => `<button class="${x === k ? "on" : ""} ${r[x].combo ? "has" : ""}" onclick="setCombo('${cat}',${x})"><b>${x}</b><span>${r[x].combo ? "+" + ct1(r[x].combo.edge) : "legs"}</span></button>`).join("")}</div>`;
   h += comboCard(cat, String(k), r[k]);
+  if (cat === "standard") {
+    const sr = (S.B.combos.safer || {})[String(k)];
+    const mf = sr?.minFair || 60;
+    h += `<h2>Safer ${k}-leg combo — every leg ${mf}%+ to win</h2><div class="small muted" style="margin:-4px 0 8px">Most likely to hit while still costing no more than max pay. One loss loses the combo, so this favours winners over value.</div>`;
+    h += sr ? comboCard("safer", String(k), sr, true) : NOREC(`Not enough teams at ${mf}%+ for ${k} legs`);
+  }
   return h;
 }
 

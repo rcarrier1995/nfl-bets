@@ -211,8 +211,8 @@ def log_combos(board, L):
     """Store each week's recommended combos before kickoff so they can be graded."""
     wk = f"{board['season']}-w{board['week']}"
     log = L["comboLog"].setdefault(wk, {})
-    for cat in ("standard", "combined"):
-        for k, res in board["combos"][cat].items():
+    for cat in ("standard", "combined", "safer"):
+        for k, res in (board["combos"].get(cat) or {}).items():
             c = res.get("combo")
             if not c:
                 continue

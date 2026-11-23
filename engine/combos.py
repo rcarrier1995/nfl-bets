@@ -159,3 +159,49 @@ def search_legs(legs, sizes=None):
                 res["closest"] = card
         out[str(k)] = res
     return out
+
+
+def search_safe(pool_games, min_fair=None, sizes=None):
+    """Safer combos: only legs with a healthy win chance (fair >= SAFE_LEG), and among the combos
+    that still cost no more than max pay, the one most likely to hit (not the biggest edge).
+    One side per game can qualify (both can't be >= 60%)."""
+    min_fair = C.SAFE_LEG if min_fair is None else min_fair
+    legs = []
+    for g in pool_games:
+        for l in g:
+            if l.get("fair") is not None and l.get("price") and l["fair"] >= min_fair:
+                legs.append(l)
+    legs.sort(key=lambda l: -l["fair"])
+    n = len(legs)
+    out = {}
+    for k in (sizes or list(range(C.COMBO_MIN, min(n, C.COMBO_MAX) + 1))):
+        best, closest, checked = None, None, 0
+        for sub in itertools.combinations(range(n), k):
+            hit = math.prod(legs[i]["fair"] / 100 for i in sub) * 100
+            if best is not None and hit <= best[0]:
+                continue   # can't beat the safest one already found
+            cost = math.prod(legs[i]["price"] / 100 for i in sub) * 100 * C.combo_markup(k)
+            checked += 1
+            gap = hit - C.FEE_BUFFER_COMBO - cost
+            if gap >= 0:
+                best = (hit, sub)
+            elif closest is None or gap > closest[0]:
+                closest = (gap, sub)
+            if checked > 2_000_000:
+                break
+        res = {"size": k, "checked": checked, "games": n, "minFair": min_fair}
+        pick = best or closest
+        if pick is None:
+            res["none"] = True
+            res["note"] = f"{n} legs at {min_fair}%+ — need {k}"
+        else:
+            sel = [sanitize(dict(legs[i])) for i in pick[1]]
+            card = card_from(sel, math.prod(l["fair"] / 100 for l in sel) * 100,
+                             math.prod(l["price"] / 100 for l in sel) * 100)
+            if best:
+                res["combo"] = card
+            else:
+                res["none"] = True
+                res["closest"] = card
+        out[str(k)] = res
+    return out

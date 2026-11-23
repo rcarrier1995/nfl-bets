@@ -297,3 +297,5 @@ input:focus,select:focus{border-color:color-mix(in srgb,var(--accent) 55%,var(--
 .wl{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0 4px}
 .wl ul{margin:4px 0 0;padding-left:16px;font-size:12.5px;line-height:1.4}
 .wl li{margin:2px 0}
+
+.safehit{display:flex;align-items:baseline;gap:8px;margin-top:10px}.safehit b{font-size:28px;font-weight:800;color:var(--good)}.safehit span{font-size:13px;color:var(--muted)}

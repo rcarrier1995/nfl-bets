@@ -239,6 +239,7 @@ def build(now=None, extra_shrink=1.0, calib=None, sb_override=None):
     combined_legs = [l for pair in pool for l in pair
                      if (l.get("fair") or 0) >= C.SHOE_IN or l.get("lopsided") or l.get("tdDip")]
     comb = CB.search_legs(combined_legs)
+    safer = CB.search_safe(pool)
 
     # next week: early prices as soon as Kalshi lists them (no pushes, no combos, flagged early)
     next_games = []
@@ -267,7 +268,7 @@ def build(now=None, extra_shrink=1.0, calib=None, sb_override=None):
     return {
         "generatedAt": iso(now), "season": season, "week": week,
         "games": games, "calls": calls, "top3": top3,
-        "combos": {"standard": std, "combined": comb, "pool": [l for pair in pool for l in pair],
+        "combos": {"standard": std, "combined": comb, "safer": safer, "pool": [l for pair in pool for l in pair],
                    "poolGames": len(pool)},
         "alerts": alerts, "feedsStale": feeds_stale, "tablesBuiltAt": tables.get("builtAt"),
         "nextWeek": next_games, "earlyStudy": early,

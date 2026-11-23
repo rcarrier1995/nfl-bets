@@ -231,3 +231,17 @@ def test_sell_check():
     assert M.sell_check(60, 80)["edge"] == 18.0      # 80 - 60 - 2c fee
     assert M.sell_check(60, 75) is None               # 13c, under the 15c bar
     assert M.sell_check(None, 80) is None and M.sell_check(60, None) is None
+
+
+def test_search_safe_prefers_winners():
+    from engine import combos as CB
+    mk = lambda gid, t, f, p: {"gameId": gid, "team": t, "opp": "X", "fair": f, "price": p, "state": "pre"}
+    pool = [(mk(1, "A", 80, 78), mk(1, "a", 20, 22)),
+            (mk(2, "B", 62, 50), mk(2, "b", 38, 50)),   # big value but less likely
+            (mk(3, "C", 75, 74), mk(3, "c", 25, 26)),
+            (mk(4, "D", 45, 30), mk(4, "d", 55, 70))]   # nothing at 60%+
+    r = CB.search_safe(pool)
+    c = r["2"]["combo"]
+    assert {l["team"] for l in c["legs"]} == {"A", "C"}      # highest hit that still fits max pay
+    assert all(l["fair"] >= 60 for l in c["legs"])
+    assert c["est"] <= c["maxPay"]

@@ -37,6 +37,7 @@ PREF_COMBO = 20
 GOOD_COMBO = 15
 LOOK_DONT_BUY = 2
 SHOE_IN = 70            # a shoe-in leg needs fair >= 70c
+SAFE_LEG = 60           # safer combos: every leg needs a fair win chance of 60%+
 LOPSIDED_SPREAD = 7.0
 COMBO_MIN = 2           # combos can be any size from 2 legs up
 COMBO_MAX = 16          # one leg per game; a full NFL week is at most 16 games
