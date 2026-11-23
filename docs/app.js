@@ -410,13 +410,13 @@ function tagBar(g, id) {
     const fade = w.kind === "fade";
     const odds = !fade && w.est != null ? ` · wins about ${Math.round(w.est)}% · costs ${Math.round(w.price)}¢`
       : fade && w.oppPrice != null ? ` · costs ${w.oppPrice}¢` : "";
-    items[pickT].push([fade ? "fade" : "good", pickT, why + odds + (w.inGame ? " · now" : "") + (w.early ? " · early" : "")]);
+    items[pickT].push([fade ? "fade" : "good", pickT, why + odds + (w.inGame ? " · now" : ""), w.early]);
   }
   const e = g.experts;
   if (e?.agree && items[e.agree]) items[e.agree].push(["exp", e.agree, `all ${e.n} experts agree`]);
   if (e?.dogPicks?.length && items[e.dog]) items[e.dog].push(["exp", e.dog, `underdog pick by ${e.dogPicks.map(lastName).join(", ")}`]);
   if (!items[g.away].length && !items[g.home].length) return "";
-  const col = (t, al) => `<div class="wcol ${al}">${items[t].map(([k, p, x]) => `<span class="wchip ${k}"><b>Pick ${esc(p)}</b> · ${esc(x)}</span>`).join("")}</div>`;
+  const col = (t, al) => `<div class="wcol ${al}">${items[t].map(([k, p, x, early]) => `<span class="wchip ${k}"><b>${early ? "Early pick" : "Pick"} ${esc(p)}</b> · ${esc(x)}</span>`).join("")}</div>`;
   return `<div class="wban"${id ? ` onclick="toggle('${id}')"` : ""}>${col(g.away, "l")}${col(g.home, "r")}</div>`;
 }
 function watchLine(g) {
