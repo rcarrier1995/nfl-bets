@@ -1,0 +1,64 @@
+name: loop
+# The heartbeat. GitHub's own 10-minute schedule turned out not to fire reliably on this repo,
+# so one long job runs the tick in a loop: every 6 minutes while a game is on or about to start
+# (Pages allows ~10 site builds an hour), every 10 minutes otherwise. After ~5h45m it starts a
+# fresh copy of itself and exits. The hourly schedule only restarts it if the chain ever breaks;
+# a second copy just waits in the queue (concurrency) and takes over when the first ends.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "7 * * * *"
+concurrency:
+  group: nfl-loop
+  cancel-in-progress: false
+permissions:
+  contents: write
+  actions: write
+jobs:
+  loop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - run: pip install -r requirements.txt
+      - name: Restore feed cache (last good data)
+        uses: actions/cache/restore@v4
+        with:
+          path: state/cache
+          key: feeds-${{ github.run_id }}
+          restore-keys: feeds-
+      - name: Tick in a loop
+        env:
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+        run: |
+          git config user.name "nfl-bets-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          end=$(( $(date +%s) + 345*60 ))
+          while [ "$(date +%s)" -lt "$end" ]; do
+            git pull -q --rebase -X theirs || true
+            python -m engine.run tick || echo "tick failed"
+            git add docs/data state config.json
+            if ! git diff --cached --quiet; then
+              git commit -q -m "data: $(date -u +%Y-%m-%dT%H:%MZ)"
+              for i in 1 2 3 4; do git pull -q --rebase -X theirs && git push -q && break; sleep $((i*5)); done
+            fi
+            wait_s=$(python -m engine.loop_wait)
+            echo "next tick in ${wait_s}s"
+            sleep "$wait_s"
+          done
+      - name: Save feed cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: state/cache
+          key: feeds-${{ github.run_id }}
+      - name: Start the next loop
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run loop.yml --ref main -R ${{ github.repository }}

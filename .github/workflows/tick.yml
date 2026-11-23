@@ -1,11 +1,10 @@
 name: tick
-# Runs every 10 minutes. The tick decides (in Central time) what's due:
+# One tick on demand. The regular heartbeat is loop.yml (GitHub's 10-minute schedule never fired
+# on this repo). The tick decides (in Central time) what's due:
 # Thu 12:00 pregame refresh, Sun 10:30 inactives, Thu/Sun 8:00 Top 3 push,
 # live checks while games are on, Sun 15:35/18:50/23:00 window reviews,
 # Mon 23:45 weekly learning review, hourly board refresh otherwise.
 on:
-  schedule:
-    - cron: "*/10 * * * *"
   workflow_dispatch:
 concurrency:
   group: nfl-state
