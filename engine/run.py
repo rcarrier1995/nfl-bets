@@ -326,6 +326,14 @@ def tick(force=()):
     board["banners"] = {"weekly": weekly_banner(board, L),
                         "windows": [w for w in L["windows"] if w["season"] == season and w["week"] == week]}
     board["learningShrink"] = L["shrink"]
+    try:   # form, coach style, backup-QB profiles: context only
+        from . import form as FM
+        fp = load_json(FM.PROF, {}) or {}
+        if "pregame" in jobs or not fp.get("teams") or (now - B.parse_dt(fp.get("at"))).days >= 6:
+            FM.build(season)
+        FM.for_board(board, load_tables())
+    except Exception as e:
+        print("form failed:", e)
     try:   # expert picks: context only, never blocks the board
         from . import experts as EX
         est = EX.update(season, week, now, rs)
@@ -351,6 +359,9 @@ def tick(force=()):
     ps = load_json(os.path.join(C.STATE, "profiles_study.json"))
     if ps:
         pub["profilesStudy"] = ps
+    fs = load_json(os.path.join(C.STATE, "form_study.json"))
+    if fs:
+        pub["formStudy"] = fs
     if board.get("clv"):
         pub["clv"] = board["clv"]
     rw = load_json(os.path.join(C.STATE, "retest_log.json"))

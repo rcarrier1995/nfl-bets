@@ -183,6 +183,24 @@ function teamInfo(c) {
     : `<div class="small muted" style="margin:4px 0">Rankings unavailable</div>`;
   const ch = teamChips(g, t);
   if (ch) h += `<div class="small" style="margin:6px 0 2px"><b>Grades</b> <span class="muted">· last 17 games · #1 best, #32 worst</span></div>${ch}`;
+  h += formInfo(g, t);
+  return h;
+}
+// form, coach style and backup QB (context only: none beat the price in testing)
+function formInfo(g, t) {
+  const f = g.form?.[t];
+  if (!f) return "";
+  let h = `<div class="small" style="margin:4px 0"><b>Form:</b> ${esc(f.record)}${f.last5 ? ` · last 5 ${esc(f.last5.split("").join(" "))}` : ""}${f.lines.length ? ` · ${esc(f.lines.join(" · "))}` : ""}</div>`;
+  if (f.coach.length) h += `<div class="small" style="margin:4px 0"><b>Coach${f.coachName ? ` ${esc(f.coachName)}` : ""}:</b> ${esc(f.coach.join(" · "))} <span class="muted">· #1 = most</span></div>`;
+  const b = f.backupQB;
+  if (b) {
+    const id = "bqb:" + g.id + t, p = b.profile;
+    h += `<div class="note small"><span class="u" onclick="toggle('${id}')"><b>Backup QB:</b> ${esc(b.text)}${b.drop != null ? ` · about ${b.drop > 0 ? b.drop : 0} pts worse than ${esc(b.starter)}` : ""}</span>`;
+    if (S.open.has(id) && p) {
+      h += `<div style="margin-top:4px">${b.oppRush ? `${esc(b.oppRush)}<br>` : ""}By season: ${(p.bySeason || []).map(r => `${r[0]} ${r[2] >= 0 ? "+" : ""}${r[2].toFixed(2)} (${r[1]} db)`).join(" · ") || "—"}<br>INT rate ${p.intRate ?? "–"}%${p.byQ ? ` · by quarter ${Object.entries(p.byQ).map(([q, v]) => `Q${q} ${v[0] >= 0 ? "+" : ""}${v[0].toFixed(2)}`).join(" ")} <span class="muted">(quarter splits don't repeat year to year — noise)</span>` : ""}</div>`;
+    }
+    h += `<div class="tiny muted">EPA per dropback, 2021+ play-by-play. "Pts worse" is an estimate (EPA gap × 36 dropbacks); the line already prices it in tests.</div></div>`;
+  }
   return h;
 }
 // "Why it could win / lose today": 2-3 short reasons each, only from data on the board
@@ -224,6 +242,12 @@ function winLose(c) {
   const best = gs.filter(x => x.r <= 5).sort((a, b) => a.r - b.r)[0], worst = gs.filter(x => x.r >= 28).sort((a, b) => b.r - a.r)[0];
   if (best) W.push([3, `${best.k} #${best.r} in the NFL`]);
   if (worst) L.push([3, `${worst.k} #${worst.r} in the NFL`]);
+  const fm = g.form?.[t], fo = g.form?.[o];
+  if (fm?.backupQB?.drop >= 3) DM.push([55, `${t} starting backup QB ${fm.backupQB.backup} — about ${fm.backupQB.drop} pts worse than ${fm.backupQB.starter}`]);
+  if (fo?.backupQB?.drop >= 3) DM.push([55, `${o} starting backup QB ${fo.backupQB.backup} — about ${fo.backupQB.drop} pts worse than ${fo.backupQB.starter}`]);
+  if (fm?.backupQB) L.push([6, `Backup QB ${fm.backupQB.backup} starting`]);
+  if (fo?.backupQB) W.push([6, `${o} on backup QB ${fo.backupQB.backup}`]);
+  for (const x of fm?.lines || []) (/^(Won|Lost) \d+ straight/.test(x) ? (x.startsWith("Won") ? W : L) : L).push([1, x]);
   const ex = g.experts?.top || [];
   if (ex.length >= 3) {
     const k = ex.filter(r => r.team === t).length;
@@ -687,6 +711,20 @@ function learning() {
       <div class="tiny muted">Per one standard step of the grade: points vs the closing line (pre-game) or cents vs the live win price at half time / after Q3 (in-game). A grade is used only if it holds in both columns. Re-tested every week after Monday night.</div>
       ${ps.wpModel ? `<div class="small" style="margin-top:8px"><b>Our own live win %</b>: accuracy (Brier) ${ps.wpModel.brier} vs ${ps.wpModel.brierRef} for the reference model on ${ps.wpModel.nTest.toLocaleString()} 2026 plays; usually within ${ps.wpModel.medianGap}¢. Used as a second opinion: a live Buy needs both models to agree.</div>` : ""}
       ${ps.sigma ? `<div class="small" style="margin-top:6px"><b>Game total and upsets</b>: ${ps.sigma.holds ? "holds — used in the price." : "low/high totals don't change upset odds beyond the line. Not used."} <span class="muted">${esc(ps.sigma.note)}</span></div>` : ""}`;
+  }
+  const fs = L.formStudy;
+  if (fs?.rows) {
+    const id = "fs";
+    const n = fs.rows.length + (fs.coach || []).length, held = (fs.held || []).length;
+    const pc = x => x == null ? "—" : `${x > 0 ? "+" : ""}${x}`;
+    h += `<h2>Streaks, turnovers, coaches, backup QBs</h2><div class="line u" onclick="toggle('${id}')">${held} of ${n} beat the price · context only${fs.at ? ` · tested ${ago(fs.at)}` : ""}</div>`;
+    if (S.open.has(id)) {
+      h += `<table class="qt"><tr><th>Spot</th><th>Older years</th><th>Recent years</th></tr>${fs.rows.map(r => `<tr><td>${esc(r.spot)}${r.note && /line/.test(r.note) ? `<br><span class="tiny muted">${esc(r.note)}</span>` : ""}</td><td>${r.fit ? `won ${r.fit.won}% vs price ${r.fit.price}% (${pc(r.fit.diff)}, ±${r.fit.se}) <span class="muted">n ${r.fit.n}</span>` : "—"}</td><td>${r.check ? `${pc(r.check.diff)} (±${r.check.se}) <span class="muted">n ${r.check.n}</span>` : "—"}</td></tr>`).join("")}</table>`;
+      h += `<div class="small" style="margin-top:6px"><b>Coach style</b> vs the line (pts per 1 SD, 2021-24 / 2025-26): ${(fs.coach || []).map(c => `${esc(c.label)} ${pc(c.per1sd)} / ${pc(c.per1sdTest)}`).join(" · ")}</div>`;
+      const q = fs.qbTraits || {};
+      h += `<div class="small" style="margin-top:6px"><b>Do QB traits repeat next season?</b> ${Object.entries(q).filter(([k]) => k !== "n").map(([k, v]) => `${esc(k)} ${v}`).join(" · ")} <span class="muted">(1 = always, 0 = random). EPA and sack rate are real traits; INT rate and quarter splits (slow starter, strong Q3) are mostly noise.</span></div>`;
+      h += `<div class="tiny muted">"vs price" = how often they won minus what the moneyline said. A spot counts only if it's 2.5+ SE in older years and holds in recent years. Older years: 2006–20 (2021–24 for turnovers).</div>`;
+    }
   }
   const cv = L.clv;
   h += `<h2>Beat the kickoff price?</h2>${cv && cv.n ? `<div class="line">${cv.beat} of ${cv.n} calls got a better price than kickoff · avg ${cv.avg > 0 ? "+" : ""}${cv.avg}¢</div><div class="small">${cv.recent.slice().reverse().map(r => `${esc(r.team)} ${esc(LBL(r.call))} at ${ct(r.entry)} → kickoff ${ct(r.close)} (${r.clv > 0 ? "+" : ""}${r.clv}¢)`).join("<br>")}</div><div class="tiny muted">Getting in cheaper than the kickoff price over many calls is the earliest sign the calls are sharp.</div>` : `<div class="line muted">Tracking started. Each Buy/Wait call is compared with the price at kickoff once its game starts.</div>`}`;
