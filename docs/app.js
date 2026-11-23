@@ -115,7 +115,7 @@ function injLine(g) {
   if (!key.length && !q.length) return "";
   const id = "inj:" + g.id;
   let h = `<div class="line u" onclick="toggle('${id}')">${ic("inj")}${key.length} key injur${key.length === 1 ? "y" : "ies"}${q.length ? ` · ${q.length} questionable` : ""}</div>`;
-  if (S.open.has(id)) h += `<div class="kv small">${key.concat(q).map(i => `<span><b>${esc(i.team)}</b> ${esc(i.pos)}</span><span>${esc(i.player)} — ${esc(i.status)}${i.top10 ? ` ⭐ top-10` : ""}${i.grade != null ? ` <span class="muted">· grade ${i.grade}</span>` : ""}</span>`).join("")}</div>`;
+  if (S.open.has(id)) h += `<div class="kv small">${key.concat(q).map(i => `<span><b>${esc(i.team)}</b> ${esc(i.pos)}</span><span>${esc(i.player)} — ${esc(i.status)}${i.top10 ? ` ⭐ top-10` : ""}${i.grade != null ? pgrade(i.grade) : ""}</span>`).join("")}</div>`;
   return h;
 }
 function wxLine(g) {
@@ -139,18 +139,20 @@ function sitLine(g) {
   if (!g.situation?.length) return "";
   return `<div class="line">${ic("ch")}<span>${g.situation.map(esc).join(" · ")} <span class="muted">— already in the line</span></span></div>`;
 }
-// 0-100 grade chips: green = good, red = bad
-const chip = (k, v, tip) => `<span class="gchip" title="${esc(tip || "")}" style="--h:${Math.round(v * 1.2)}"><b>${v}</b>${esc(k)}</span>`;
+// rank chips: #1 green ... #32 red
+const chip = (k, r, tip) => `<span class="gchip" title="${esc(tip || "")}" style="--h:${Math.round((32 - r) / 31 * 120)}"><b>#${r}</b>${esc(k)}</span>`;
+// player grade 1-10 (from the 0-100 percentile), coloured the same way
+const pgrade = g => { const v = Math.max(1, Math.min(10, Math.ceil(g / 10))); return `<span class="gchip" style="--h:${Math.round((v - 1) / 9 * 120)};margin-left:4px"><b>${v}</b>/10</span>`; };
 function teamChips(g, team, keys) {
   const gs = (g.grades || {})[team] || [];
   const list = keys ? keys.map(k => gs.find(x => x.k === k)).filter(Boolean) : gs;
-  return list.length ? `<div class="gchips">${list.map(x => chip(x.k, x.s, x.tip)).join("")}</div>` : "";
+  return list.length ? `<div class="gchips">${list.map(x => chip(x.k, x.r, x.tip)).join("")}</div>` : "";
 }
 function gradesBlock(g) {
   if (!g.grades || !(g.grades[g.away] || []).length) return "";
   const id = "gr:" + g.id;
   let h = `<div class="line u" onclick="toggle('${id}')">${ic("mu")}<span>Team grades <span class="muted">· green good, red bad</span></span></div>`;
-  if (S.open.has(id)) h += `<div style="margin:2px 0 8px">${[g.away, g.home].map(t => `<div class="row" style="align-items:flex-start;gap:8px;margin:6px 0">${badge(t, "sm")}${teamChips(g, t)}</div>`).join("")}<div class="tiny muted">100 = best, 0 = worst. Info only, doesn't change the price.</div></div>`;
+  if (S.open.has(id)) h += `<div style="margin:2px 0 8px">${[g.away, g.home].map(t => `<div class="row" style="align-items:flex-start;gap:8px;margin:6px 0">${badge(t, "sm")}${teamChips(g, t)}</div>`).join("")}<div class="tiny muted">NFL rank: #1 best, #32 worst. Info only.</div></div>`;
   return h;
 }
 function gradeLines(g) {

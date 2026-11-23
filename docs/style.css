@@ -270,9 +270,9 @@ input:focus,select:focus{border-color:color-mix(in srgb,var(--accent) 55%,var(--
 .tb.lg-wrap{background:transparent;box-shadow:none;text-shadow:none}
 .tb.lg-wrap img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 1px 2px rgba(0,0,0,.35))}
 
-/* 0-100 grade chips: hue 0 (red) .. 120 (green) */
+/* grade chips: hue 0 (red) .. 120 (green) */
 .gchips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 2px}
 .gchip{display:inline-flex;align-items:center;gap:6px;padding:3px 9px 3px 3px;border-radius:999px;font-size:12px;font-weight:600;
   background:hsl(var(--h) 70% 45% / .14);color:hsl(var(--h) 75% 62%);border:1px solid hsl(var(--h) 70% 45% / .35)}
-.gchip b{min-width:26px;height:22px;display:inline-grid;place-items:center;border-radius:999px;background:hsl(var(--h) 70% 42%);color:#fff;font-size:12px}
+.gchip b{min-width:30px;padding:0 5px;height:22px;display:inline-grid;place-items:center;border-radius:999px;background:hsl(var(--h) 70% 42%);color:#fff;font-size:12px}
 :root[data-theme="light"] .gchip{color:hsl(var(--h) 70% 30%)}

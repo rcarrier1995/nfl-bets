@@ -705,12 +705,12 @@ SCORES = [("Comeback", "comeback", "Comes back when behind"),
 
 
 def scores(team):
-    """0-100 score per grade (100 = best in the league, 0 = worst), from the 1-32 rank."""
+    """League rank per grade, 1 = best in the NFL, 32 = worst."""
     P, _ = _load()
     t = P.get(team)
     if not t or not t.get("rank"):
         return []
-    return [{"k": k, "s": round(100 * (32 - t["rank"][f]) / 31), "tip": tip} for k, f, tip in SCORES if f in t["rank"]]
+    return [{"k": k, "r": int(t["rank"][f]), "tip": tip} for k, f, tip in SCORES if f in t["rank"]]
 
 
 def half_line(team):
