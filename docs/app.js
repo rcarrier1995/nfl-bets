@@ -381,7 +381,9 @@ function expertsLine(g) {
 // Tags only — they never change the call. Tap the card for the why.
 function tagBar(g, id) {
   const items = { [g.away]: [], [g.home]: [] };
-  for (const w of g.watch || []) if (items[w.team]) items[w.team].push([w.kind === "fade" ? "fade" : "good", ({ "QB + WR1 beat their secondary": "QB + WR1 > their pass D" }[w.tag] || w.tag) + (w.inGame ? " · now" : "")]);
+  const short = { "QB + WR1 beat their secondary": "QB + WR1 > their pass D", "Hot streak overpriced": "Hot streak · priced ~6¢ high" };
+  for (const w of g.watch || []) if (items[w.team]) items[w.team].push([w.kind === "fade" ? "fade" : "good",
+    (short[w.tag] || w.tag) + (w.est != null ? ` · wins ~${Math.round(w.est)}% · costs ${Math.round(w.price)}¢` : "") + (w.inGame ? " · now" : "")]);
   const e = g.experts;
   if (e?.agree && items[e.agree]) items[e.agree].push(["exp", `All ${e.n} experts pick`]);
   if (e?.dogPicks?.length && items[e.dog]) items[e.dog].push(["exp", `Underdog pick: ${e.dogPicks.map(n => n.split(" ").slice(-1)[0]).join(", ")}`]);
@@ -635,6 +637,14 @@ function bestSize(cat) {
   return found.sort((a, b) => r[b].combo.edge - r[a].combo.edge)[0];
 }
 window.setCombo = (cat, k) => { S.ccat = cat; if (k != null) S.csize[cat] = k; render(); };
+// combo from watch-tag legs only: tested win % beats the price by 5c+ (info only, calls unchanged)
+function watchCombo(k) {
+  const W = S.B.combos.watch || {};
+  const wk = W[String(k)] ? String(k) : Object.keys(W).filter(x => W[x]?.combo).sort((a, b) => b - a)[0];
+  let h = `<h2>Watch-tag combo${wk ? ` — ${wk} legs` : ""}</h2><div class="small muted" style="margin:-4px 0 8px">Only legs whose tested win % beats their price by ${W.gap || 5}¢+ (watch tags), most likely to win first. Tags are info only — check the call on each leg.</div>`;
+  h += wk ? `<div class="safehit"><b>~${W[wk].est}%</b><span>tested chance every leg wins · costs ~${W[wk].cost}¢</span></div>${comboCard("watch", wk, W[wk], true)}` : NOREC(`${W.legs || 0} leg${W.legs === 1 ? "" : "s"} win 5¢+ more than their price right now — need 2`);
+  return h;
+}
 function combosView() {
   S.csize = S.csize || {};
   const cat = S.ccat || "standard";
@@ -645,7 +655,7 @@ function combosView() {
   let h = `<div class="ptitle">Combos</div><div class="psub">${found ? `${found} size${found > 1 ? "s" : ""} clear the bar` : "Nothing clears the bar right now"} · live + upcoming games</div>
     <div class="ctabs"><button class="${cat === "standard" ? "on" : ""}" onclick="setCombo('standard')">All games</button><button class="${cat === "combined" ? "on" : ""}" onclick="setCombo('combined')">Shoe-in + dips</button></div>`;
   h += `<h2>${cat === "standard" ? "Weekly combos — live + upcoming" : "Combined combos — lopsided + TD dip + shoe-in"}</h2>`;
-  if (!sizes.length) return h + NOREC(`${S.B.combos.poolGames || 0} games with prices — need 2`);
+  if (!sizes.length) return h + NOREC(`${S.B.combos.poolGames || 0} games with prices — need 2`) + (cat === "standard" ? watchCombo() : "");
   h += `<div class="sizes">${sizes.map(x => `<button class="${x === k ? "on" : ""} ${r[x].combo ? "has" : ""}" onclick="setCombo('${cat}',${x})"><b>${x}</b><span>${r[x].combo ? "+" + ct1(r[x].combo.edge) : "legs"}</span></button>`).join("")}</div>`;
   h += comboCard(cat, String(k), r[k]);
   if (cat === "standard") {
@@ -653,6 +663,7 @@ function combosView() {
     const mf = sr?.minFair || 60;
     h += `<h2>Safer ${k}-leg combo — every leg ${mf}%+ to win</h2><div class="small muted" style="margin:-4px 0 8px">Most likely to hit while still costing no more than max pay. One loss loses the combo, so this favours winners over value.</div>`;
     h += sr ? comboCard("safer", String(k), sr, true) : NOREC(`Not enough teams at ${mf}%+ for ${k} legs`);
+    h += watchCombo(k);
   }
   return h;
 }

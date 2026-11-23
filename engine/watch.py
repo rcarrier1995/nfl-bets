@@ -166,6 +166,13 @@ def _key_defenders(season, team, week):
     return out
 
 
+# Tested edge before fee in recent years (win % minus price, 2021-26), from the combo study.
+EDGE = {"eqwd": 10, "dbu": 6, "qbwr": 8}
+HOT_PENALTY = 6    # hot-streak teams were priced 4-9c too high
+FADE_EDGE = 3      # the other side of a hot streak: +1 to +5c, small
+GAP = 5            # a leg counts for the watch-tag combo when the tested win % beats its price by 5c+
+
+
 def _pct_rank(vals, higher_better=True):
     """{team: value} -> {team: 0-32 percentile rank, 32 = best} (as in the study: rank within the week)."""
     xs = {t: v for t, v in vals.items() if v is not None}
@@ -256,25 +263,99 @@ def for_board(board):
             if hot:
                 tags.append({"team": t, "tag": TAGS["hot"], "kind": "fade",
                              "why": f"{'; '.join(hot)}. Hot teams have been priced 4–9¢ too high, so {o} is slightly better value"})
+        for x in tags:
+            k = next(k for k, v in TAGS.items() if v == x["tag"])
+            c = g["teams"]["away" if x["team"] == a else "home"]
+            if g.get("state") == "pre" and k in EDGE and info[x["team"]]["price"] is not None:
+                x["price"] = round(info[x["team"]]["price"])
+                x["est"] = min(97, x["price"] + EDGE[k])
+            if k == "hot" and g.get("state") == "pre":
+                o = h if x["team"] == a else a
+                if info[o]["price"] is not None:
+                    x["oppPrice"] = round(info[o]["price"])
+        hot_teams = {x["team"] for x in tags if x["tag"] == TAGS["hot"]}
+        for x in tags:
+            if x.get("est") is not None and x["team"] in hot_teams:
+                x["est"] -= HOT_PENALTY          # the same team is on a hot streak: priced a bit high
+                x["netOfHot"] = True
         if tags:
             g["watch"] = tags
         else:
             g.pop("watch", None)
 
 
+def leg_estimates(board):
+    """{(gameId, team): (tested win %, price, [tags])} for pregame legs: tag edge added to the price.
+    Several tags on one leg: the biggest edge only (not added up)."""
+    out = {}
+    for g in board.get("games", []):
+        if g.get("state") != "pre":
+            continue
+        for x in g.get("watch") or []:
+            if x.get("est") is not None:
+                k = (g["id"], x["team"])
+                e = out.get(k)
+                tags = (e[2] if e else []) + [x["tag"]]
+                out[k] = (max(x["est"], e[0] if e else 0), x["price"], tags)
+            elif x.get("oppPrice") is not None:
+                o = next(t for t in (g["teams"]["away"]["team"], g["teams"]["home"]["team"]) if t != x["team"])
+                k = (g["id"], o)
+                e = out.get(k)
+                out[k] = (max(min(97, x["oppPrice"] + FADE_EDGE), e[0] if e else 0), x["oppPrice"], (e[2] if e else []) + [f"Other side of {x['team']} hot streak"])
+    return out
+
+
+def watch_combos(board):
+    """Combos built only from legs whose tested win % beats their price by GAP+ (most likely to win first).
+    Info only: shows the combined tested win % next to the combined price."""
+    import math
+    from . import config as CC
+    from .combos import sanitize
+    est = leg_estimates(board)
+    pool = (board.get("combos") or {}).get("pool") or []
+    legs = []
+    for l in pool:
+        e = est.get((l.get("gameId"), l.get("team")))
+        if e and l.get("price") and e[0] - e[1] >= GAP:
+            x = sanitize(dict(l))
+            x["est"] = min(97, l["price"] + (e[0] - e[1]))      # edge applied to the live leg price
+            x["watchTags"] = e[2]
+            legs.append(x)
+    legs.sort(key=lambda l: -l["est"])
+    seen, one = set(), []
+    for l in legs:                      # one side per game
+        if l["gameId"] not in seen:
+            seen.add(l["gameId"])
+            one.append(l)
+    legs = one
+    out = {"legs": len(legs), "gap": GAP}
+    for k in range(2, min(len(legs), 6) + 1):
+        sel = legs[:k]
+        hit = math.prod(l["est"] / 100 for l in sel) * 100
+        cost = math.prod(l["price"] / 100 for l in sel) * 100 * CC.combo_markup(k)
+        out[str(k)] = {"size": k, "combo": {"size": k, "legs": sel, "hit": round(math.prod(l["fair"] / 100 for l in sel) * 100, 2)},
+                       "est": round(hit, 1), "cost": round(cost, 1)}
+    return out
+
+
 def tag_legs(board):
-    w = {(g["id"], x["team"]): x["tag"] for g in board.get("games", []) for x in g.get("watch") or []}
-    if not w:
+    cb = board.get("combos")
+    if cb is None:
         return
-    cb = board.get("combos") or {}
+    cb["watch"] = watch_combos(board)
+    w = {}
+    for g in board.get("games", []):
+        for x in g.get("watch") or []:
+            w.setdefault((g["id"], x["team"]), []).append(x["tag"])
     legs = list(cb.get("pool") or [])
-    for cat in ("standard", "combined", "safer"):
+    for cat in ("standard", "combined", "safer", "watch"):
         for r in (cb.get(cat) or {}).values():
-            for k in ("combo", "closest"):
-                legs += (r.get(k) or {}).get("legs", [])
+            if isinstance(r, dict):
+                for k in ("combo", "closest"):
+                    legs += (r.get(k) or {}).get("legs", [])
     for l in legs:
-        for (gid, t), tag in w.items():
-            if l.get("gameId") == gid and l.get("team") == t and tag not in l.setdefault("tags", []):
+        for tag in w.get((l.get("gameId"), l.get("team")), []):
+            if tag not in l.setdefault("tags", []):
                 l["tags"].append(tag)
 
 
