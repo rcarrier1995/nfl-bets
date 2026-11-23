@@ -1,25 +1,25 @@
 {
  "espn": {
   "ok": true,
-  "lastOk": "2026-11-23T19:04:23Z",
+  "lastOk": "2026-11-23T19:14:40Z",
   "note": "",
   "fails": 0
  },
  "kalshi": {
   "ok": true,
-  "lastOk": "2026-11-23T19:04:19Z",
+  "lastOk": "2026-11-23T19:14:27Z",
   "note": "",
   "fails": 0,
   "lastFail": "2026-11-23T02:19:30Z",
   "error": "HTTP Error 429: Too Many Requests"
  },
  "weather": {
-  "ok": true,
+  "ok": false,
   "lastOk": "2026-11-23T19:04:19Z",
   "note": "",
-  "fails": 0,
-  "lastFail": "2026-11-23T03:06:43Z",
-  "error": "<urlopen error _ssl.c:994: The handshake operation timed out>"
+  "fails": 1,
+  "lastFail": "2026-11-23T19:14:37Z",
+  "error": "HTTP Error 503: Service Unavailable"
  },
  "nflverse": {
   "ok": true,
