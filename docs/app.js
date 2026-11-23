@@ -607,6 +607,7 @@ function comboCard(cat, k, res, safe) {
     <div class="row"><span class="pill c-${vc}">${legs.length}-leg${S.comboEdits[ek] ? " · edited" : ""}</span><span class="sp"></span>${tierTag(t.est)}${confChip(comboConfJS(t.hit, t.est, legs))}</div>
     <div class="verdict v-${vc}">${esc(vtS)}</div>
     ${safe ? `<div class="safehit"><b>${pct(t.hit)}</b><span>chance every leg wins</span></div>` : ""}
+    ${stake5(t.est)}
     <div class="row" style="margin-top:12px;align-items:flex-end"><span class="hero">${t.mk > 1 ? "≈" : ""}${ct1(t.est)}</span><span class="sp"></span><span class="small" style="text-align:right"><b class="c-Value">+${ct1(100 - t.est)}</b> if it wins</span></div>
     <div class="mpbar"><div class="cost ${t.est > t.maxPay ? "over" : ""}" style="width:${w}%"></div><div class="max" style="left:calc(${mx}% - 1px)"></div></div>
     <div class="small" style="margin-top:8px"><b>Pay no more than ${ct1(t.maxPay)} for the combo.</b> ${t.mk > 1 ? `<span class="muted">Estimated quote: legs multiplied ${ct1(t.cost)} + ~${Math.round((t.mk - 1) * 100)}% combo markup. Estimate — check the real price in Robinhood.</span>` : `<span class="muted">Legs multiplied: ${ct1(t.cost)}. Check the real price in Robinhood.</span>`}</div>
@@ -661,10 +662,17 @@ function comboConfJS(hit, cost, legs) {
   const weak = legs.some(l => (l.est ?? l.fair) < 45), strong = legs.filter(l => (l.est ?? l.fair) >= 65).length >= legs.length / 2;
   return !weak && strong && hit >= cost + 2 ? "High" : !weak && hit >= cost ? "Med" : "Low";
 }
+// Rick's combo habit: a $5 bonus bet (never more than $10)
+function stake5(cost) {
+  if (!cost || cost <= 0) return "";
+  const n = Math.floor(500 / cost), back = n * 1, profit = back - n * cost / 100;
+  return `<div class="small"><b>$5 → about ${n} contracts → wins ~$${back.toFixed(0)}</b> <span class="muted">(profit ~$${profit.toFixed(0)} before fees)${cost > 10 ? " · over 10¢: not a bonus bet" : ""}</span></div>`;
+}
 function topCard(c, i) {
   return `<div class="card">
     <div class="row"><b>#${i + 1} · ${c.size} legs</b><span class="sp"></span>${confChip(c.conf)}</div>
     <div class="safehit"><b>~${c.hit}%</b><span>our chance every leg wins (about 1 in ${c.oneIn}) · costs ~${c.cost}¢</span></div>
+    ${stake5(c.cost)}
     <div class="tiny muted">${c.hit >= c.cost + 2 ? `Our chance beats the cost by ${(c.hit - c.cost).toFixed(1)}¢` : c.hit >= c.cost ? "About a fair price" : `Costs ${(c.cost - c.hit).toFixed(1)}¢ more than our chance`} · legs multiplied ${c.legsCost}¢. Skip if Robinhood's combo price is 10%+ above that.${c.reused ? ` Shares ${c.reused} game${c.reused > 1 ? "s" : ""} with a pick above (strongest legs).` : ""}</div>
     <div style="margin-top:8px">${c.legs.map(l => `<div class="leg">${badge(l.team, "sm")}<div style="min-width:0"><b>${esc(l.team)}</b> <span class="small muted">vs ${esc(l.opp)}</span>${l.dog ? ` <span class="tag look">underdog</span>` : ""}<br>${(l.why || []).map(x => `<span class="tag good">${esc(x)}</span>`).join("")}</div><span class="sp"></span><span class="small muted">${Math.round(l.est)}%</span><span class="p">${ct(l.price)}</span></div>`).join("")}</div>
   </div>`;
