@@ -4,7 +4,7 @@
  "pregameAt": "2026-11-23T00:48:37Z",
  "window-early": "2026-11-22",
  "alertsSent": [],
- "light": "2026-11-23T05:21:25Z",
+ "light": "2026-11-23T05:31:30Z",
  "window-late": "2026-11-22",
  "inactives": "2026-11-22",
  "valueSent": {},
@@ -15,5 +15,8 @@
   "401873077|SF|QB B.Purdy out \u2014 impact -1.2 pt": "2026-11-23T04:21:38Z"
  },
  "newsSeeded": true,
- "window-snf": "2026-11-22"
+ "window-snf": "2026-11-22",
+ "expertsAt": {
+  "2026-w11": 1795411890.178677
+ }
 }
