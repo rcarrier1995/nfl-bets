@@ -159,7 +159,8 @@ def matchup(team, tables):
     t = (tables.get("teams") or {}).get(team)
     if not t:
         return None   # UI shows "Rankings unavailable"
-    return {k: t.get(k) for k in ("passOff", "runOff", "passDef", "runDef")} | {"runShare": t.get("runShare")}
+    return {k: t.get(k) for k in ("passOff", "runOff", "passDef", "runDef")} | {"runShare": t.get("runShare"),
+            "players": (tables.get("keyPlayers") or {}).get(team)}
 
 
 # ---------------- Build ----------------

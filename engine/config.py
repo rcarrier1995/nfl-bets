@@ -101,3 +101,11 @@ RELIANCE_MEDIAN = {"WR": 0.23, "TE": 0.23, "RB": 0.49, "QB": 1.0,
 def espn_abbr(a):
     a = (a or "").upper()
     return NFLVERSE_TO_ESPN.get(a, a)
+
+OVERRIDES = os.path.join(STATE, "overrides.json")
+try:
+    import json as _json
+    with open(OVERRIDES) as _f:
+        BASE_POS.update((_json.load(_f) or {}).get("basePos", {}))
+except Exception:
+    pass

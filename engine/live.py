@@ -171,6 +171,21 @@ def live_update(g, summary, ev, tables, live_state, snap, now):
         for im in impacts[tm]:
             tag = "QB" if im.get("isQB") else im["pos"]
             lines_.append({"text": f"{tag} {im['name']} out — impact {im['impact']:+.1f} pt", "detail": im, "kind": "inj"})
+        # every other injured player: watch / back / non-starter, with his own history
+        for im in inj_live:
+            if im["team"] != tm or (im["state"] == "confirmed" and im["starter"]):
+                continue
+            hl = (im.get("history") or {}).get("line", "")
+            if im["state"] == "watch":
+                txt = f"👀 {im['pos']} {im['name']} hurt Q{im['q']} — {hl}"
+            elif im["state"] == "returned":
+                txt = f"↩ {im['pos']} {im['name']} back in"
+                h = im.get("history") or {}
+                if h.get("afterRetNextQDelta") is not None:
+                    txt += f" — after past returns team next Q {h['afterRetNextQDelta']:+.1f} pts"
+            else:
+                txt = f"{im['pos']} {im['name']} out — not a starter, no downgrade"
+            lines_.append({"text": txt, "detail": im, "kind": "watch"})
         if impacts[tm]:
             if abs(imp) >= 1.5:
                 cut += abs(imp) * C.PTS_TO_CENTS

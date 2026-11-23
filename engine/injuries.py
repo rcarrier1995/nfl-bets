@@ -74,14 +74,24 @@ def impact(ev, tables, secs_left_at_event):
            "top10": prior.get("top10")}
     rel = prior.get("reliance")
     out["relianceText"] = _rel_text(prior)
+    hist = tables.get("_injHist")
+    rec = None
+    if hist:
+        from .injury_history import lookup, player_factor
+        rec = lookup(hist, team, name)
+        out["history"] = history_view(rec, (hist.get("byPosition") or {}).get(pos))
+        pf, src = player_factor(rec, secs_left_at_event)
+        out["pf"], out["pfSrc"] = pf, src
     if pos == "QB":
         pts = C.QB_OUT_PTS * tf
         if gate.get("halve"):
             pts /= 2
-        out.update({"base": C.QB_OUT_PTS, "rf": 1.0, "mf": 1.0, "impact": round(max(pts, -4.0), 2), "isQB": True})
+        out.update({"base": C.QB_OUT_PTS, "rf": 1.0, "mf": 1.0, "impact": round(max(pts, -4.0), 2), "isQB": True,
+                    "pf": 0.0})
         return out
     if not starter:
-        out.update({"base": 0.0, "rf": 1.0, "mf": 1.0, "impact": 0.0, "note": "not a starter — no downgrade"})
+        out.update({"base": 0.0, "rf": 1.0, "mf": 1.0, "impact": 0.0, "pf": 0.0, "pfSrc": None,
+                    "note": "not a starter — no downgrade"})
         return out
     base = C.BASE_POS.get(pos, 0.0)
     rf = reliance_factor(pos, rel if rel is not None else C.RELIANCE_MEDIAN.get(pos))
@@ -90,8 +100,48 @@ def impact(ev, tables, secs_left_at_event):
     pts = base * rf * mf * tf
     if gate.get("halve"):
         pts /= 2
-    out.update({"base": base, "rf": rf, "mf": mf, "impact": round(pts, 2)})
+    # player-specific layer (his own measured history), shrunk 50%, capped -1.0, never a reward
+    pf = out.get("pf") or 0.0
+    out.update({"base": base, "rf": rf, "mf": mf, "formula": round(pts, 2), "impact": round(pts + pf, 2)})
     return out
+
+
+def history_view(rec, pos_tbl):
+    """Short, real numbers about THIS player's past exits, return pattern and games missed."""
+    v = {}
+    if rec:
+        s = rec.get("summary") or {}
+        if s.get("n"):
+            v["exits"] = s["n"]
+            v["back"] = s["returned"]
+            v["medMinOut"] = s.get("medMinOut")
+            v["restQDelta"] = s.get("restQDelta")
+            v["nextQDelta"] = s.get("nextQDeltaAll")
+            v["afterRetNextQDelta"] = s.get("afterRetNextQDelta")
+            v["epaDelta"] = s.get("epaDelta")
+            v["epaPlays"] = s.get("epaPlays")
+            v["events"] = [{k: e.get(k) for k in ("week", "opp", "q", "clock", "returned", "minOut", "restQDelta", "nextQDelta",
+                                                   "afterRetNextQDelta", "epaDelta", "swing")} for e in rec.get("events", [])][-6:]
+        if rec.get("without"):
+            v["without"] = rec["without"]
+    if pos_tbl:
+        v["pos"] = {"all": pos_tbl.get("all"), "key": pos_tbl.get("key")}
+    v["line"] = history_line(v)
+    return v
+
+
+def history_line(v):
+    bits = []
+    if v.get("exits"):
+        bits.append(f"past exits {v['exits']}, back {v['back']}" + (f" (~{v['medMinOut']:g} min)" if v.get("medMinOut") else ""))
+        if v.get("nextQDelta") is not None:
+            bits.append(f"team next Q {v['nextQDelta']:+.1f} pts")
+    w = v.get("without")
+    if w:
+        bits.append(f"without him {w['missed']}g EPA/play {w['epaDelta']:+.2f}")
+    if not bits:
+        return "No past exits or missed games this season"
+    return " · ".join(bits)
 
 
 def _rel_text(p):

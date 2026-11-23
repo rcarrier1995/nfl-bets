@@ -166,6 +166,57 @@ def player_prior(p, snaps, before_week):
     return out, top
 
 
+def key_players(p, before_week):
+    """By-player matchup context per team (real nflverse numbers, rank among league peers)."""
+    if p is None or len(p) == 0:
+        return {}
+    p = p[(p.season_type == "REG") & (p.week < before_week)].copy()
+    p["team"] = p["team"].map(C.espn_abbr)
+    for c in DEF_COLS + ["targets", "carries", "attempts", "sacks_suffered", "passing_epa", "receiving_epa",
+                         "rushing_epa", "receiving_yards", "rushing_yards", "passing_yards"]:
+        if c in p:
+            p[c] = p[c].fillna(0)
+    a = p.groupby(["team", "player_name"]).agg(
+        pos=("position", "last"), g=("week", "nunique"), att=("attempts", "sum"), sk=("sacks_suffered", "sum"),
+        pepa=("passing_epa", "sum"), pyd=("passing_yards", "sum"), tg=("targets", "sum"), repa=("receiving_epa", "sum"),
+        ryd=("receiving_yards", "sum"), car=("carries", "sum"), ruepa=("rushing_epa", "sum"), ruyd=("rushing_yards", "sum"),
+        sacks=("def_sacks", "sum"), hits=("def_qb_hits", "sum"), pd=("def_pass_defended", "sum"),
+        ints=("def_interceptions", "sum"), tfl=("def_tackles_for_loss", "sum")).reset_index()
+    a["grp"] = a["pos"].map(lambda x: C.POS_GROUP.get(str(x), str(x)))
+    qb = a[(a.grp == "QB") & (a.att >= 100)].copy()
+    qb["v"] = qb.pepa / (qb.att + qb.sk)
+    rc = a[a.grp.isin(["WR", "TE"]) & (a.tg >= 20)].copy()
+    rc["v"] = rc.repa / rc.tg
+    rb = a[(a.grp == "RB") & (a.car >= 40)].copy()
+    rb["v"] = rb.ruepa / rb.car
+    pr = a[a.grp.isin(["DL", "LB"])].copy()
+    pr["v"] = pr.sacks + 0.5 * pr.hits
+    cv = a[a.grp.isin(["CB", "S"])].copy()
+    cv["v"] = cv.pd + 2 * cv.ints
+    for df in (qb, rc, rb, pr, cv):
+        df["rank"] = df["v"].rank(ascending=False, method="min").astype(int)
+    out = {}
+    def put(team, key, row, txt):
+        out.setdefault(team, {})[key] = {"name": row.player_name, "rank": int(row["rank"]), "of": None, "txt": txt}
+    for team in a.team.unique():
+        t = qb[qb.team == team].sort_values("att", ascending=False)
+        if len(t):
+            r = t.iloc[0]; put(team, "QB", r, f"{r.v:+.2f} EPA/db · {r.pyd / max(1, r.g):.0f} yds/g"); out[team]["QB"]["of"] = len(qb)
+        t = rc[rc.team == team].sort_values("tg", ascending=False)
+        if len(t):
+            r = t.iloc[0]; put(team, "WR1", r, f"{int(r.tg)} tgt · {r.v:+.2f} EPA/tgt · {r.ryd / max(1, r.g):.0f} yds/g"); out[team]["WR1"]["of"] = len(rc)
+        t = rb[rb.team == team].sort_values("car", ascending=False)
+        if len(t):
+            r = t.iloc[0]; put(team, "RB1", r, f"{int(r.car)} car · {r.v:+.2f} EPA/car · {r.ruyd / max(1, r.g):.0f} yds/g"); out[team]["RB1"]["of"] = len(rb)
+        t = pr[pr.team == team].sort_values("v", ascending=False)
+        if len(t):
+            r = t.iloc[0]; put(team, "Rush", r, f"{r.sacks:.1f} sacks · {int(r.hits)} QB hits"); out[team]["Rush"]["of"] = len(pr)
+        t = cv[cv.team == team].sort_values("v", ascending=False)
+        if len(t):
+            r = t.iloc[0]; put(team, "Cover", r, f"{int(r.pd)} PD · {int(r.ints)} INT"); out[team]["Cover"]["of"] = len(cv)
+    return out
+
+
 def backup_map(depth, prior, kickoff_iso=None):
     """Starter (pos_rank 1) -> backup (next pos_rank, same team/group/slot) from the depth
     snapshot closest BEFORE kickoff. Gate info only (proven / unproven)."""
@@ -249,7 +300,11 @@ def build_tables(season, week, kickoff_iso=None, rebuild_backup_only=False):
         for x in rr.itertuples():
             pos = C.POS_GROUP.get(str(x.depth_chart_position), C.POS_GROUP.get(str(x.position), str(x.position)))
             roster[f"{x.team}|{abbrev(x.full_name)}"] = {"pos": pos, "full": x.full_name, "espn": str(x.espn_id).split(".")[0]}
-    tables = {"season": season, "week": week, "builtAt": iso(), "teams": teams, "player_prior": prior,
+    try:
+        kp = key_players(p, week) if p is not None else old.get("keyPlayers", {})
+    except Exception:
+        kp = old.get("keyPlayers", {})
+    tables = {"season": season, "week": week, "builtAt": iso(), "teams": teams, "player_prior": prior, "keyPlayers": kp,
               "top10": top, "backup_map": bmap, "roster": roster,
               "ok": bool(teams) and bool(prior)}
     if not tables["ok"] and old.get("ok"):
@@ -260,4 +315,6 @@ def build_tables(season, week, kickoff_iso=None, rebuild_backup_only=False):
 
 
 def load_tables():
-    return load_json(TABLES, {}) or {}
+    t = load_json(TABLES, {}) or {}
+    t["_injHist"] = load_json(os.path.join(C.STATE, "injury_history.json"), {}) or {}
+    return t

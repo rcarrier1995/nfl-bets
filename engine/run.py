@@ -133,6 +133,24 @@ def weekly_banner(board, L):
     return None
 
 
+def retest_rules(season, week):
+    """Section 9/10 re-test rules: if key WR rest-of-game swing stays <= -3.0 with n>=16, raise the
+    WR base to -2.5. Otherwise keep the shrunk bases. Logged in state/overrides.json."""
+    from .injury_history import build as build_hist
+    h = build_hist(season, week + 1) or {}
+    wr = ((h.get("byPosition") or {}).get("WR") or {}).get("key") or {}
+    ov = load_json(C.OVERRIDES, {}) or {}
+    note = f"Week {week} re-test: key WR n={wr.get('n')}, rest-of-game {wr.get('swing')}"
+    if (wr.get("n") or 0) >= 16 and wr.get("swing") is not None and wr["swing"] <= -3.0:
+        ov.setdefault("basePos", {})["WR"] = -2.5
+        note += " -> WR base raised to -2.5"
+    else:
+        note += " -> bases unchanged"
+    ov["note"] = note
+    ov["at"] = iso()
+    save_json(C.OVERRIDES, ov)
+
+
 def tick(force=()):
     now = now_utc()
     rs = load_json(RUN, {}) or {}
@@ -152,6 +170,11 @@ def tick(force=()):
     if "pregame" in jobs:
         first = min((e.get("date") for e in sb.get("events", []) if e["status"]["type"]["state"] == "pre"), default=None)
         build_tables(season, week, kickoff_iso=first)
+        try:
+            from .injury_history import build as build_hist
+            build_hist(season, week)
+        except Exception as e:  # never block the board on research
+            print("injury history failed:", e)
         if not os.path.exists(BT_FILE) or rs.get("backtestWeek") != wk:
             run_backtest(season, max(1, week - 1))
             rs["backtestWeek"] = wk
@@ -197,6 +220,7 @@ def tick(force=()):
                 if wkn >= 14 and not rs.get("retest14"):
                     # auto re-test after Weeks 12-14 with the same scripts
                     run_backtest(season, wkn)
+                    retest_rules(season, wkn)
                     rs["retest14"] = iso(now)
                 break
     # pushes
@@ -213,6 +237,15 @@ def tick(force=()):
         P.send(f"Dip: {a['team']} {a['price']:.0f}c", f"{a['team']} now {a['price']:.0f}c -> +{a['profit']:.0f}c if it wins · {a['confidence']}\n{a['why']}", priority="high")
         sent.add(k)
     rs["alertsSent"] = sorted(sent)[-300:]
+    # pregame: a team turning Value now (e.g. a Wait price got hit) -> one push
+    vsent = rs.setdefault("valueSent", {})
+    for c in board["calls"]:
+        if c.get("state") == "pre" and c.get("call") == "Value" and vsent.get(c["key"]) != round(c["price"] or 0):
+            P.send(f"Value now: {c['team']} {c['price']:.0f}c",
+                   f"{c['team']} vs {c['opp']} {c['price']:.0f}c -> win {100 - c['price']:.0f}c · {c['confidence']['level']}\n{c['why']}")
+            vsent[c["key"]] = round(c["price"] or 0)
+    if len(vsent) > 400:
+        rs["valueSent"] = dict(list(vsent.items())[-400:])
     board["nextCheck"] = next_check(now)
     board["feedNotes"] = feed_notes(board, HEALTH.data)
     board["health"] = HEALTH.data
@@ -223,7 +256,11 @@ def tick(force=()):
     board["schedule"] = {"pregameAt": rs.get("pregameAt"), "thursdayBaseline": rs.get("pregame") == wk}
     LR.save(L)
     save_json(TOP_FILE, board, compact=True)
-    save_json(LEARN_PUB, LR.public(L, backtest), compact=True)
+    pub = LR.public(L, backtest)
+    ih = load_json(os.path.join(C.STATE, "injury_history.json"), {}) or {}
+    if ih:
+        pub["injuryResearch"] = {k: ih.get(k) for k in ("headline", "byQuarter", "byPosition", "throughWeek", "builtAt")}
+    save_json(LEARN_PUB, pub, compact=True)
     rs["light"] = iso(now)
     save_json(RUN, rs)
     HEALTH.save()

@@ -49,7 +49,8 @@ function move(c) {
   const p = c.price, pp = c.prevPrice;
   if (p == null) return "";
   let a = "";
-  if (pp != null && pp !== p) a = p < pp ? `<span class="mv-down">▼ ${ct(pp - p)}</span>` : `<span class="mv-up">▲ ${ct(p - pp)}</span>`;
+  const fresh = c.priceChangedAt && Date.now() - Date.parse(c.priceChangedAt) < 10 * 60000 ? " flash" : "";
+  if (pp != null && pp !== p) a = p < pp ? `<span class="mv-down${fresh}">▼ ${ct(pp - p)}</span>` : `<span class="mv-up${fresh}">▲ ${ct(p - pp)}</span>`;
   return `${a} <span class="tiny muted">updated ${ago(S.B.generatedAt)}</span>`;
 }
 function profitLine(buy) { return buy == null ? "" : `Buy ${ct(buy)} → +${ct(100 - buy)} if it wins`; }
@@ -355,6 +356,13 @@ function learning() {
     h += `<h2>Backtest</h2><div class="line u" onclick="toggle('${id}')">${bt.original.right}/${bt.original.games} · ${bt.original.pct}% (Weeks 1–11)</div>`;
     if (S.open.has(id)) h += `<div class="ig">${tile("By week (rebuilt)", weekBars(bt.byWeek))}${tile("Calls", `<div class="kv"><span>Value</span><span>${bt.value}</span><span>Wait</span><span>${bt.wait}</span><span>Max edge</span><span>${bt.maxEdge}¢</span><span>≤65¢ favs</span><span>${bt.prefSingles.won}/${bt.prefSingles.n}</span><span>>65¢ favs</span><span>${bt.aboveSingles.won}/${bt.aboveSingles.n}</span><span>Brier</span><span>${bt.brier}</span></div><div class="tiny muted" style="margin-top:4px">Rebuilt ${bt.right}/${bt.games}. Combos hit 10–30%; P&L was Week 9 — not an edge.</div>`)}</div>`;
   }
+  // injury research (every player)
+  const ir = L.injuryResearch;
+  if (ir?.headline) {
+    const id = "ir", hd = ir.headline;
+    h += `<h2>Injury research</h2><div class="line u" onclick="toggle('${id}')">${hd.out} exits · ${hd.pctReturned}% back (~${hd.medianMinOut} min) · ${hd.keyNonQB} key non-QB</div>`;
+    if (S.open.has(id)) h += `<table class="qt"><tr><th>Pos</th><th>Exits</th><th>Back</th><th>Key</th><th>Key rest Q</th><th>Key next Q</th><th>Key rest of game</th></tr>${Object.entries(ir.byPosition).map(([k, v]) => `<tr><td>${k}</td><td>${v.all.n}</td><td>${v.all.returned}</td><td>${v.key.n}</td><td>${sg(v.key.restQDelta)}</td><td>${sg(v.key.nextQDelta)}</td><td>${sg(v.key.swing)}</td></tr>`).join("")}</table><div class="tiny muted">Through week ${ir.throughWeek}. Key = starter who didn't return. Points vs team's normal pace. Small samples — direction, not proof.</div>`;
+  }
   // patterns by call
   const bc = L.byCall || {};
   if (Object.keys(bc).length) h += `<h2>By call type</h2><div class="line">${Object.entries(bc).map(([k, v]) => `${k}: ${v.won}/${v.n} won`).join(" · ")}</div>`;
@@ -489,17 +497,36 @@ function matchupBars(g) {
   const row = (lab, t, k) => t?.[k] ? hbar(`${lab}`, 33 - (t[k].rank || 32), 32, `#${t[k].rank} · ${(t[k].epa >= 0 ? "+" : "") + t[k].epa.toFixed(3)} · ${Math.round(t[k].ypg)}y`, k.endsWith("Def")) : `<div class="hb small muted">${lab} — Rankings unavailable</div>`;
   return `<div class="tiny muted">rank of 32 · EPA/play · yds/g</div>
     <div class="small"><b>${esc(g.away)} offense vs ${esc(g.home)} defense</b></div>${row("Pass off", a, "passOff")}${row("Pass def", h, "passDef")}${row("Run off", a, "runOff")}${row("Run def", h, "runDef")}
-    <div class="small" style="margin-top:6px"><b>${esc(g.home)} offense vs ${esc(g.away)} defense</b></div>${row("Pass off", h, "passOff")}${row("Pass def", a, "passDef")}${row("Run off", h, "runOff")}${row("Run def", a, "runDef")}`;
+    <div class="small" style="margin-top:6px"><b>${esc(g.home)} offense vs ${esc(g.away)} defense</b></div>${row("Pass off", h, "passOff")}${row("Pass def", a, "passDef")}${row("Run off", h, "runOff")}${row("Run def", a, "runDef")}
+    ${keyPl(g.away, a, g.home, h)}${keyPl(g.home, h, g.away, a)}`;
+}
+function keyPl(tn, t, on, o) {
+  const P = t.players, Q = o.players;
+  if (!P && !Q) return "";
+  const one = (x, lab) => x ? hbar(lab + " " + x.name, (x.of || 32) + 1 - x.rank, x.of || 32, `#${x.rank}/${x.of}`) + `<div class="tiny muted" style="margin:-2px 0 4px 78px">${esc(x.txt)}</div>` : "";
+  return `<div class="small" style="margin-top:8px"><b>${esc(tn)} players vs ${esc(on)} defenders</b></div>${one(P?.QB, "QB")}${one(Q?.Rush, "vs")}${one(P?.WR1, "WR")}${one(Q?.Cover, "vs")}${one(P?.RB1, "RB")}`;
 }
 function injTile(d) {
   if (!d) return "";
   if (d.pts != null) return `<div class="small">⭐ Next quarter only: ${d.pts} pt (≈${Math.abs(d.pts * 2.5).toFixed(1)}¢), dip alerts paused, then reverts.</div>`;
-  const chips = [`base ${d.base}`, `reliance ×${d.rf}`, `matchup ×${d.mf}`, `time ×${d.tf}`, d.gate?.halve ? "backup ×0.5" : "backup ×1", "confirmed ✓"];
+  const chips = d.starter || d.isQB ? [`base ${d.base}`, `reliance ×${d.rf}`, `matchup ×${d.mf}`, `time ×${d.tf}`, d.gate?.halve ? "backup ×0.5" : "backup ×1", d.state === "confirmed" ? "confirmed ✓" : d.state === "returned" ? "returned" : "watching"] : [d.state === "returned" ? "returned" : d.state === "watch" ? "watching" : "not a starter"];
+  if (d.pf) chips.push(`his history ${d.pf} pt`);
   const w = Math.min(100, Math.abs(d.impact) / 4 * 100);
   return `<div class="tile" style="margin:4px 0"><div class="row"><b>${esc(d.full || d.name)}</b><span class="small muted">${esc(d.pos)} · Q${d.q} ${esc(d.clock || "")}</span><span class="sp"></span><b class="${Math.abs(d.impact) >= 1.5 ? "bad" : ""}">${d.impact} pt</b></div>
    <div class="hb"><span class="lab">impact</span><span class="trk"><i class="alt" style="width:${w}%"></i></span><span class="val">${Math.abs(d.impact) >= 1.5 ? "cut " + (Math.abs(d.impact) * 2.5).toFixed(1) + "¢" : "watch"}</span></div>
    ${chips.map(c => `<span class="chipf">${esc(c)}</span>`).join("")}
-   <div class="tiny muted" style="margin-top:4px">${esc(d.relianceText || "")}${d.gate?.note ? " · " + esc(d.gate.note) : ""}${(d.flags || []).length ? " · " + esc(d.flags.join(", ")) : ""}</div></div>`;
+   <div class="tiny muted" style="margin-top:4px">${esc(d.relianceText || "")}${d.gate?.note ? " · " + esc(d.gate.note) : ""}${(d.flags || []).length ? " · " + esc(d.flags.join(", ")) : ""}</div>${histBlock(d.history, d.pfSrc)}</div>`;
+}
+const sg = v => v == null ? "—" : (v >= 0 ? "+" : "") + v.toFixed(1);
+function histBlock(h, pfSrc) {
+  if (!h) return "";
+  let o = `<div style="margin-top:6px"><div class="small"><b>His history</b> · ${esc(h.line || "")}</div>`;
+  if (h.events?.length) o += `<table class="qt"><tr><th>Wk</th><th>Q</th><th>Back</th><th>Rest Q</th><th>Next Q</th><th>After back</th><th>EPA/pl</th></tr>${h.events.map(e => `<tr><td>${e.week} ${esc(e.opp || "")}</td><td>${e.q}${e.clock ? " " + e.clock : ""}</td><td>${e.returned ? (e.minOut != null ? e.minOut + "m" : "yes") : "no"}</td><td>${sg(e.restQDelta)}</td><td>${sg(e.nextQDelta)}</td><td>${e.returned ? sg(e.afterRetNextQDelta) : "—"}</td><td>${e.epaDelta == null ? "—" : sg(e.epaDelta * 10) + "/10"}</td></tr>`).join("")}</table><div class="tiny muted">pts vs team's normal pace · EPA per 10 plays while out</div>`;
+  if (h.without) o += `<div class="small">Games without him: ${h.without.missed} (wk ${h.without.weeksMissed.join(", ")}) · team EPA/play ${sg(h.without.epaDelta * 10)}/10 vs with him (${h.without.played}g)</div>`;
+  const p = h.pos;
+  if (p?.all?.n) o += `<div class="small muted">All ${p.all.n} ${esc(Object.keys(h).length ? "" : "")}league exits at his position: back ${p.all.returned}/${p.all.n}, next Q ${sg(p.all.nextQDeltaAll)} pts · starters who didn't return (n=${p.key.n}): next Q ${sg(p.key.nextQDelta)}, rest of game ${sg(p.key.swing)}</div>`;
+  if (pfSrc) o += `<div class="tiny muted">His own number used: ${esc(pfSrc)} — shrunk 50%, capped −1 pt.</div>`;
+  return o + `</div>`;
 }
 function partsTile(c) {
   const p = c.parts || {};
@@ -530,7 +557,7 @@ window.openBreakdown = key => {
   const useRev = (L.totals?.reviewed || 0) >= 20;
   const calRows = (useRev ? L.calibration : L.backtest?.calibration) || [];
   const calC = (useRev ? L.calibConf : L.backtest?.calibConf) || [];
-  const inj = (g.injLive || []).filter(i => i.team === c.team && i.state === "confirmed" && i.starter);
+  const inj = (g.injLive || []).filter(i => i.team === c.team);
   const curInj = (g.injuries || []).filter(i => i.team === c.team && i.starter);
   const combos = [];
   for (const cat of ["standard", "combined"]) for (const [k, r] of Object.entries(S.B.combos[cat] || {})) if (r.combo?.legs.some(l => l.team === c.team && l.gameId === c.gameId)) combos.push({ k, cat, r });

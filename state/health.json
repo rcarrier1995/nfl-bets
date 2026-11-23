@@ -1,26 +1,26 @@
 {
  "espn": {
   "ok": true,
-  "lastOk": "2026-11-23T00:57:59Z",
+  "lastOk": "2026-11-23T01:03:48Z",
   "note": "",
   "fails": 0
  },
  "kalshi": {
   "ok": true,
-  "lastOk": "2026-11-23T00:57:59Z",
+  "lastOk": "2026-11-23T01:03:47Z",
   "note": "",
   "fails": 0
  },
  "weather": {
   "ok": true,
-  "lastOk": "2026-11-23T00:57:59Z",
+  "lastOk": "2026-11-23T01:03:47Z",
   "note": "",
   "fails": 0
  },
  "nflverse": {
   "ok": true,
-  "lastOk": "2026-11-23T00:54:23Z",
-  "note": "roster_2026.csv",
+  "lastOk": "2026-11-23T01:03:27Z",
+  "note": "snap_counts_2026.csv.gz",
   "fails": 0
  }
 }
