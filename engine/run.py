@@ -303,6 +303,19 @@ def tick(force=()):
             P.send(f"Buy now (live): {c['team']} {c['price']:.0f}c",
                    f"{c['team']} vs {c['opp']} {c['price']:.0f}c -> win {100 - c['price']:.0f}c · fair {c.get('liveFair')}c", priority="high")
             vsent[c["key"] + ":live"] = round(c["price"])
+    # Sell (if you own it): one push per team per price; same pause / stale / late-Q4 rules as buys
+    for c in board["calls"]:
+        sl = c.get("sell")
+        if not sl or c.get("priceStale") or c.get("paused") or c.get("alertsOff") or c.get("state") == "post":
+            continue
+        k = c["key"] + ":sell"
+        if vsent.get(k) == round(sl["bid"]):
+            continue
+        fair = c.get("liveFair") if c.get("state") == "in" else c.get("fair")
+        P.send(f"Sell{' (live)' if c.get('state') == 'in' else ''}: {c['team']} {sl['bid']:.0f}c",
+               f"If you own {c['team']}, selling now at {sl['bid']:.0f}c beats holding · fair {fair:.0f}c ({sl['edge']:.0f}c above after fees)",
+               priority="high")
+        vsent[k] = round(sl["bid"])
     news_alerts(board, rs, now)
     if len(vsent) > 400:
         rs["valueSent"] = dict(list(vsent.items())[-400:])

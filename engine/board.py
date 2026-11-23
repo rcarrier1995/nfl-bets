@@ -4,6 +4,8 @@ import os
 from datetime import datetime, timedelta, timezone
 
 from . import config as C
+from zoneinfo import ZoneInfo
+CT_TZ = ZoneInfo("America/Chicago")
 from . import combos as CB
 from . import injuries as I
 from . import model as M
@@ -218,6 +220,7 @@ def build(now=None, extra_shrink=1.0, calib=None, sb_override=None):
             alerts = []
             for c in calls:
                 c["priceStale"] = round(age)
+                c["sell"] = None
                 if c.get("state") == "in" and c.get("liveCall") in ("Value", "Wait"):
                     c["liveCall"] = "Pass"
                     c.setdefault("liveLines", []).insert(0, {"text": f"⏸ Price feed delayed {age:.0f} min — no live calls until it's back", "kind": "pause"})
@@ -397,6 +400,8 @@ def build_game(ev, tables, kidx, wx_all, pt_idx, live_state, snaps, prev_calls, 
         pr = prices.get(team) or {}
         price = pr.get("ask")
         c["price"] = price
+        c["bid"] = pr.get("bid")
+        c["sell"] = None
         c["tick"] = pr.get("tick", 1.0)
         c["fair"] = pre_fair.get(team)
         p = parts.get(team, {})
@@ -409,6 +414,8 @@ def build_game(ev, tables, kidx, wx_all, pt_idx, live_state, snaps, prev_calls, 
         if state == "pre":
             cl = M.classify(c["fair"], price)
             c.update(cl)
+            if cl["call"] == "Pass":
+                c["sell"] = M.sell_check(c["fair"], c["bid"])
         else:
             # pregame call is frozen at kickoff: use the last pregame snapshot
             s = (snap.get("teams") or {}).get(team, {})
@@ -431,6 +438,13 @@ def build_game(ev, tables, kidx, wx_all, pt_idx, live_state, snaps, prev_calls, 
         c["prevPrice"] = pc.get("price") if pc.get("price") != price else pc.get("prevPrice")
         c["priceAt"] = iso(now)
         c["priceChangedAt"] = iso(now) if pc.get("price") != price else pc.get("priceChangedAt", iso(now))
+        # today's low / high price (Central day), from our own checks
+        day = now.astimezone(CT_TZ).strftime("%Y-%m-%d")
+        c["dayDate"], c["dayLo"], c["dayHi"] = day, price, price
+        if pc.get("dayDate") == day:
+            vals = [v for v in (pc.get("dayLo"), pc.get("dayHi"), price) if v is not None]
+            if vals:
+                c["dayLo"], c["dayHi"] = min(vals), max(vals)
     g["teams"] = teams
 
     # snapshot every pregame fair/price/call before kickoff

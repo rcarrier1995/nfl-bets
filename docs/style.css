@@ -2,7 +2,7 @@
 :root{
   --bg:#05070a; --bg2:#0a0e13; --card:#0f141a; --card2:#151b23; --ink:#f3f6f9; --muted:#8a95a3; --faint:#5b6572;
   --line:rgba(255,255,255,.07); --line2:rgba(255,255,255,.12); --soft:rgba(255,255,255,.05);
-  --good:#00d47e; --bad:#ff5c5c; --wait:#ffb020; --pass:#7d8896; --accent:#00d47e; --gold:#f5c542; --fair:#59a8ff;
+  --good:#00d47e; --bad:#ff5c5c; --wait:#ffb020; --pass:#7d8896; --accent:#00d47e; --gold:#f5c542; --fair:#59a8ff; --sell:#b48cff;
   --bar:rgba(255,255,255,.09); --glass:rgba(10,14,19,.72); --shadow:0 1px 0 rgba(255,255,255,.04) inset,0 8px 24px rgba(0,0,0,.35);
   --r:18px; --r2:12px;
   color-scheme:dark;
@@ -10,7 +10,7 @@
 :root[data-theme="light"]{
   --bg:#f3f5f8; --bg2:#eaeef3; --card:#ffffff; --card2:#f7f9fb; --ink:#0c1218; --muted:#5d6876; --faint:#8b95a1;
   --line:rgba(12,18,24,.08); --line2:rgba(12,18,24,.14); --soft:rgba(12,18,24,.045);
-  --good:#00a85e; --bad:#e0373b; --wait:#c77d00; --pass:#7a8591; --accent:#00a85e; --gold:#b38600; --fair:#1d6fe0;
+  --good:#00a85e; --bad:#e0373b; --wait:#c77d00; --pass:#7a8591; --accent:#00a85e; --gold:#b38600; --fair:#1d6fe0; --sell:#7b4fe0;
   --bar:rgba(12,18,24,.08); --glass:rgba(243,245,248,.8); --shadow:0 1px 2px rgba(12,18,24,.05),0 6px 20px rgba(12,18,24,.06);
   color-scheme:light;
 }
@@ -18,7 +18,7 @@
   :root[data-theme="auto"]{
     --bg:#f3f5f8; --bg2:#eaeef3; --card:#ffffff; --card2:#f7f9fb; --ink:#0c1218; --muted:#5d6876; --faint:#8b95a1;
     --line:rgba(12,18,24,.08); --line2:rgba(12,18,24,.14); --soft:rgba(12,18,24,.045);
-    --good:#00a85e; --bad:#e0373b; --wait:#c77d00; --pass:#7a8591; --accent:#00a85e; --gold:#b38600; --fair:#1d6fe0;
+    --good:#00a85e; --bad:#e0373b; --wait:#c77d00; --pass:#7a8591; --accent:#00a85e; --gold:#b38600; --fair:#1d6fe0; --sell:#7b4fe0;
     --bar:rgba(12,18,24,.08); --glass:rgba(243,245,248,.8); --shadow:0 1px 2px rgba(12,18,24,.05),0 6px 20px rgba(12,18,24,.06);
     color-scheme:light;
   }
@@ -91,6 +91,9 @@ h3{font-size:11.5px;font-weight:700;margin:12px 0 8px;color:var(--muted);text-tr
 .pill.c-Value{background:color-mix(in srgb,var(--good) 16%,transparent)}
 .pill.c-Wait{background:color-mix(in srgb,var(--wait) 16%,transparent)}
 .pill.c-Pass{background:color-mix(in srgb,var(--bad) 14%,transparent)}
+.pill.c-Sell{background:color-mix(in srgb,var(--sell) 16%,transparent)} .c-Sell{color:var(--sell)}
+.card.bg-Sell{border-color:color-mix(in srgb,var(--sell) 35%,var(--line));background:linear-gradient(180deg,color-mix(in srgb,var(--sell) 9%,var(--card2)),var(--card))}
+.verdict.v-Sell{background:color-mix(in srgb,var(--sell) 16%,transparent);color:var(--sell)}
 .c-Value{color:var(--good)} .c-Wait{color:var(--wait)} .c-Pass{color:var(--bad)}
 .card.bg-Value{border-color:color-mix(in srgb,var(--good) 35%,var(--line));background:linear-gradient(180deg,color-mix(in srgb,var(--good) 9%,var(--card2)),var(--card))}
 .card.bg-Wait{border-color:color-mix(in srgb,var(--wait) 28%,var(--line));background:linear-gradient(180deg,color-mix(in srgb,var(--wait) 6%,var(--card2)),var(--card))}
@@ -116,6 +119,9 @@ h3{font-size:11.5px;font-weight:700;margin:12px 0 8px;color:var(--muted);text-tr
 .pbar .gap.neg{background:color-mix(in srgb,var(--bad) 45%,transparent)}
 .pbar .mk{position:absolute;top:-4px;width:3px;height:14px;border-radius:2px;background:var(--ink)}
 .pbar .mk.f{background:var(--fair)}
+.pbar.hasrng{margin-bottom:18px}
+.pbar .rng{position:absolute;top:-3px;bottom:-3px;border-radius:5px;border:1.5px solid color-mix(in srgb,var(--muted) 70%,transparent);background:color-mix(in srgb,var(--muted) 14%,transparent)}
+.pbar .rb{position:absolute;top:11px;font-size:10px;line-height:1;color:var(--muted);transform:translateX(-50%);white-space:nowrap}
 .legend{display:flex;gap:12px;font-size:10.5px;color:var(--faint)}
 .legend i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px;vertical-align:-1px}
 

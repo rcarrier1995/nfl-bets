@@ -224,3 +224,10 @@ def test_matchup_lines_use_real_ranks():
     assert any("AAA pass attack (2nd) vs BBB pass D (30th)" in x for x in out)
     assert PF.adjust_pts("AAA", "BBB") == (0.0, [])
     PF._prof = PF._stud = None
+
+
+def test_sell_check():
+    from engine import model as M
+    assert M.sell_check(60, 80)["edge"] == 18.0      # 80 - 60 - 2c fee
+    assert M.sell_check(60, 75) is None               # 13c, under the 15c bar
+    assert M.sell_check(None, 80) is None and M.sell_check(60, None) is None

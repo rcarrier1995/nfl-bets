@@ -280,6 +280,12 @@ def live_update(g, summary, ev, tables, live_state, snap, now):
             live_call = "Pass"
             lines_.append({"text": "⏸ Big injury — Value/Wait paused rest of game", "kind": "pause"})
         c["liveCall"], c["liveEdge"], c["liveBuyAt"] = live_call, cl["edge"], cl["buyAt"]
+        # Sell (if you own it): bid well above fair on ESPN and not cheap on our own model; paused like buys
+        c["sell"] = None
+        if live_call == "Pass" and not (pause_dip or pause_vw):
+            sl = M.sell_check(c["liveFair"], c.get("bid"))
+            if sl and (c["ourLive"] is None or c["bid"] - c["ourLive"] - M.fee_cents(c["bid"]) >= C.WAIT_EDGE):
+                c["sell"] = sl
         if live_call == "Wait":
             c["liveBuyAt"] = cl["buyAt"]
         # TD dip line + 20% payout rule
