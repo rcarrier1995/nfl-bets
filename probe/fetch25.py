@@ -37,8 +37,8 @@ else:
         except Exception as e:
             log(f"cbs {kind} {w} cdx err {e}"); continue
         ok = False
-        for ts in tss[:6]:
-            time.sleep(6)
+        for ts in tss[::-1][:8]:
+            time.sleep(12)
             try:
                 b = get(f"https://web.archive.org/web/{ts}id_/https://www.cbssports.com/nfl/picks/experts/{kind}/{w}/", t=60)
                 if b"TableBase-bodyTr" in b and (b"NFL_2025" in b or b"NFL_2026010" in b):
