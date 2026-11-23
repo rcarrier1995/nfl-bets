@@ -144,8 +144,8 @@ function gradeLines(g) {
   const mk = [g.lineMoveLine, g.bookRangeLine].filter(Boolean);
   if (!ml.length && !mk.length) return "";
   const id = "gl:" + g.id;
-  let h = ml.length ? `<div class="line u" onclick="toggle('${id}')">${ic("mu")}<span>${esc(ml[0])}${ml.length > 1 ? ` <span class="muted">+${ml.length - 1} more</span>` : ""}</span></div>` : "";
-  if (ml.length && S.open.has(id)) h += `<div class="small" style="margin:2px 0 6px 26px">${ml.map(esc).join("<br>")}<br><span class="muted">Matchup grades are tested every week: none beat the line yet, so they don't change the price.</span></div>`;
+  let h = ml.length ? `<div class="line u" onclick="toggle('${id}')">${ic("mu")}<span>${esc(ml[0])} <span class="muted">· last 17 games${ml.length > 1 ? ` · +${ml.length - 1} more` : ""}</span></span></div>` : "";
+  if (ml.length && S.open.has(id)) h += `<div class="small" style="margin:2px 0 6px 26px">${ml.map(esc).join("<br>")}<br><span class="muted">Ranks use EPA per play over each team's last 17 games, so they can differ from the season ranks above. Tested every week; they change the price only if they beat the line.</span></div>`;
   for (const m of mk) h += `<div class="line muted">${ic("line")}${esc(m)}</div>`;
   return h;
 }
