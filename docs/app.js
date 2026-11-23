@@ -111,10 +111,10 @@ function verdict(c) {
 function moreInfo(c, lines, grades = true) {
   const g = (S.B.games || []).find(x => x.id === c.gameId);
   const hasGrades = grades && (g?.grades?.[c.team] || []).length;
-  if (!lines.length && !hasGrades) return "";
+  if (!lines.length && !hasGrades && grades) return "";
   const id = "mi:" + c.key;
   let h = `<div class="line u muted" onclick="toggle('${esc(id)}')">More info${lines.length ? ` (${lines.length})` : ""}</div>`;
-  if (S.open.has(id)) h += liveInjLines({ ...c, liveLines: lines }) + (hasGrades ? teamChips(g, c.team) : "");
+  if (S.open.has(id)) h += liveInjLines({ ...c, liveLines: lines }) + (grades ? (hasGrades ? teamChips(g, c.team) : "") : teamInfo(c));
   return h;
 }
 function gradesToggle(c) {
@@ -152,9 +152,27 @@ function betCard(c, opts = {}) {
     ${open ? cardMore(c) : ""}
   </div>`;
 }
+// this team's own info only: its injuries, its side of the matchup, its grades
+function teamInfo(c) {
+  const g = (S.B.games || []).find(x => x.id === c.gameId);
+  if (!g) return "";
+  const t = c.team, o = c.opp, mu = g.matchup?.[t], mo = g.matchup?.[o];
+  const inj = (g.injuries || []).filter(i => i.team === t && i.starter && ["Out", "Doubtful", "Questionable"].includes(i.status));
+  let h = `<div class="small" style="margin:4px 0"><b>Injuries:</b> ${inj.length ? inj.map(i => `${esc(i.pos)} ${esc(i.player)} — ${esc(i.status)}${i.top10 ? " ⭐" : ""}${i.grade != null ? pgrade(i.grade) : ""}`).join("<br>") : "no starters out"}</div>`;
+  h += mu && mo ? `<div class="small" style="margin:4px 0"><b>This season:</b> pass #${mu.passOff?.rank ?? "–"} vs ${esc(o)} pass D #${mo.passDef?.rank ?? "–"} · run #${mu.runOff?.rank ?? "–"} vs run D #${mo.runDef?.rank ?? "–"}</div>`
+    : `<div class="small muted" style="margin:4px 0">Rankings unavailable</div>`;
+  const ch = teamChips(g, t);
+  if (ch) h += `<div class="small" style="margin:6px 0 2px"><b>Grades</b> <span class="muted">· last 17 games · #1 best, #32 worst</span></div>${ch}`;
+  return h;
+}
+function h2hDetails(g, inner) {
+  const id = "h2h:" + g.id;
+  return `<div class="line u" onclick="toggle('${id}')">${ic("mu")}Head-to-head details</div>${S.open.has(id) ? `<div style="margin-left:4px">${inner}</div>` : ""}`;
+}
 function cardMore(c) {
   const r = (c.reasons || []).map(x => `<span class="chipf">${esc(x)}</span>`).join("");
-  return `<div class="gdet">${c.why ? `<div class="small" style="margin-bottom:6px">${esc(c.why)}</div>` : ""}${r || ""}<div style="margin-top:8px"><button class="btn pri" onclick="openBreakdown('${esc(c.key)}')">Full breakdown</button></div></div>`;
+  const why = c.why && !/fair|edge/i.test(c.why) ? c.why : "";
+  return `<div class="gdet">${why ? `<div class="small" style="margin-bottom:6px">${esc(why)}</div>` : ""}${r || ""}${teamInfo(c)}<div style="margin-top:8px"><button class="btn pri" onclick="openBreakdown('${esc(c.key)}')">Full breakdown</button></div></div>`;
 }
 
 // ---------- game sections ----------
@@ -272,7 +290,7 @@ function gameRow(g) {
 const rank = c => ({ Value: 3, Wait: 2, Sell: 2, Pass: 1 }[c] || 0);
 function gameDetail(g) {
   return `<div class="teams2">${betCard(g.teams.away)}${betCard(g.teams.home)}</div>
-    ${injLine(g)}${wxLine(g)}${muLine(g)}${gradesBlock(g)}${gradeLines(g)}${sitLine(g)}${toLine(g)}${changesLine(g)}${gameCombosLine(g)}`;
+    ${h2hDetails(g, `${injLine(g)}${wxLine(g)}${muLine(g)}${gradesBlock(g)}${gradeLines(g)}${sitLine(g)}${toLine(g)}${changesLine(g)}${gameCombosLine(g)}`)}`;
 }
 function finalLine(g) {
   const id = "f:" + g.id;
@@ -320,7 +338,7 @@ function liveCard(g) {
     <div class="teams2">${tc(g.teams.away)}${tc(g.teams.home)}</div>
     <div class="line u" onclick="toggle('${id}')">Quarters · ${(g.quarters || []).map(q => `Q${q.q} ${q.cumAway}-${q.cumHome}`).join(" · ") || "—"}</div>
     ${S.open.has(id) ? quarterTable(g) : ""}
-    ${injLine(g)}${gradesBlock(g)}${gradeLines(g)}${toLine(g)}${wxLine(g)}</div>`;
+    ${h2hDetails(g, `${injLine(g)}${muLine(g)}${gradesBlock(g)}${gradeLines(g)}${toLine(g)}${wxLine(g)}`)}</div>`;
 }
 
 // ---------- tabs ----------
@@ -894,11 +912,12 @@ function render() {
   $("#weekLabel").textContent = `NFL Bets · Week ${S.B.week}`;
   const age = (Date.now() - Date.parse(S.B.generatedAt)) / 60000;
   $("#updated").textContent = `Updated ${ago(S.B.generatedAt)}`;
-  $("#dot").classList.toggle("stale", age > 30);
+  $("#dot").classList.toggle("stale", age > 12);
+  S.stale = age > 12 ? Math.round(age) : 0;
   const nLive = S.B.games.filter(g => g.state === "in").length;
   const bdg = document.querySelector('[data-tab=live] .badge'); bdg.hidden = !nLive; bdg.textContent = nLive;
   $("#gear").classList.toggle("on", S.tab === "setup");
-  const fn = S.B.feedNotes || [];
+  const fn = (S.stale ? [`Prices are ${S.stale} min old — calls may be out of date. Check the price in Robinhood.`] : []).concat(S.B.feedNotes || []);
   $("#feedNote").hidden = !fn.length; $("#feedNote").textContent = fn.join(" · ");
   const wb = S.B.banners?.weekly;
   const wid = "weeklyban";

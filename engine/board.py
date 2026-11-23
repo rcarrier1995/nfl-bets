@@ -508,22 +508,13 @@ def reasons(c, g, tables):
     r = []
     p = c.get("parts") or {}
     if p.get("spread") is not None:
-        r.append(f"Line {c['team']} {p['spread']:+.1f}")
+        r.append(f"Line {c['team']} {-p['spread']:+.1f}" if p["spread"] else f"Line {c['team']} PK")
     if p.get("epa"):
         r.append(f"EPA adj {p['epa']:+.1f} pts")
     if p.get("weather"):
         r.append(f"Weather {p['weather']:+.1f} pts")
     if p.get("inj"):
         r.append(f"Injuries {p['inj']:+.1f} pts")
-    mu, mo = (g.get("matchup") or {}).get(c["team"]), (g.get("matchup") or {}).get(c["opp"])
-    if mu and mo:
-        try:
-            if mu["passOff"]["rank"] and mo["passDef"]["rank"]:
-                r.append(f"Pass off #{mu['passOff']['rank']} vs def #{mo['passDef']['rank']}")
-            if mu["runOff"]["rank"] and mo["runDef"]["rank"]:
-                r.append(f"Run off #{mu['runOff']['rank']} vs def #{mo['runDef']['rank']}")
-        except Exception:
-            pass
     return r
 
 

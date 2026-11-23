@@ -51,9 +51,7 @@ def due_jobs(now, rs, sb_live, week_key, force=()):
     prev_key = f"{season}-w{int(wk) - 1}"
     if ((wd == 0 and hm >= 23 * 60 + 45) or wd in (1, 2)) and rs.get("weekly") not in (week_key, prev_key):
         jobs.add("weekly-check")
-    last = rs.get("light")
-    if sb_live or not last or now - datetime.fromisoformat(last.replace("Z", "+00:00")) >= timedelta(minutes=55):
-        jobs.add("board")
+    jobs.add("board")   # every tick: prices and calls are never more than one loop (6-10 min) old
     return jobs
 
 
