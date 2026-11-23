@@ -1045,7 +1045,7 @@ function betForm() {
     <input id="bQty" type="number" min="1" step="1" placeholder="Contracts" value="1">
     <input id="bDate" type="date" value="${new Date().toISOString().slice(0, 10)}">
     <select id="bRes"><option value="open">Open</option><option value="win">Win</option><option value="loss">Loss</option><option value="tie">Tie</option></select>
-    <button class="btn pri full" onclick="addBet()">Add bet</button></div></div>`;
+    <button class="btn pri full" onclick="addBet()">Add bet</button><div id="bMsg" class="small bad"></div></div></div>`;
 }
 function betList(all) {
   if (!all.length) return `<div class="row" style="margin-top:6px"><label class="btn">Import CSV<input type="file" accept=".csv" hidden onchange="importCsv(this)"></label></div>`;
@@ -1063,7 +1063,7 @@ function betList(all) {
 }
 window.addBet = () => {
   const price = Number($("#bPrice").value);
-  if (!(price > 0 && price < 100)) return;
+  if (!(price > 0 && price < 100)) { $("#bMsg").textContent = "Type the price you paid (1–99¢) first."; $("#bPrice").focus(); return; }
   const team = $("#bTeam").value;
   const c = S.B.calls.find(x => x.team === team);
   const all = bets();
@@ -1330,12 +1330,12 @@ function setup() {
    <li>Bet log lives on this device only. Use Export/Import CSV to move it between phone and computer.</li></ul></div>
   <div class="card doc"><h3>Honest edge</h3><ul class="small"><li>Realistic edge 1–3¢. Model error ±3–5 pts pregame (the free model matches the sportsbook; edge = Kalshi lagging the line or late news), ±5–8 live. Markets are efficient.</li><li>Backtest market price was devigged moneyline — Kalshi history isn't free (biggest gap).</li><li>Weather rule never fired in Weeks 1–11. Live backtest estimated, not traded. 10-leg combos are essentially unplayable at a 1¢ tick after fees.</li><li>Backtest P&L was driven by Week 9 — not an edge.</li></ul></div>
   <div class="card"><h3>Feed health</h3>${healthTable(h)}</div>
-  <div class="card"><h3>Display</h3><div class="row"><button class="btn" onclick="theme('light')">Light</button><button class="btn" onclick="theme('dark')">Dark</button><button class="btn" onclick="theme('')">Auto</button></div></div>`;
+  <div class="card"><h3>Display</h3><div class="row">${[["light","Light"],["dark","Dark"],["auto","Auto"]].map(([k,l]) => `<button class="btn${(document.documentElement.dataset.theme || "dark") === k ? " pri" : ""}" onclick="theme('${k}')">${l}</button>`).join("")}</div></div>`;
 }
 function healthTable(h) {
   return `<div class="kv small">${Object.entries(h).map(([k, v]) => `<span><b>${esc(k)}</b></span><span>${v.ok ? `<span class="ok">ok</span>` : `<span class="bad">down</span>`} · last ok ${ago(v.lastOk)}${v.error && !v.ok ? " · " + esc(v.error) : ""}</span>`).join("")}</div>`;
 }
-window.theme = t => { document.documentElement.dataset.theme = t || "auto"; localSet("theme", t || "auto"); };
+window.theme = t => { document.documentElement.dataset.theme = t || "auto"; localSet("theme", t || "auto"); render(); };
 window.testPush = () => {
   const t = $("#topic").value.trim();
   if (!t) { $("#testRes").textContent = "Enter a topic first."; return; }
