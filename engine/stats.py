@@ -155,6 +155,7 @@ def player_prior(p, snaps, before_week):
             "rawEpa": float(r.passing_epa if grp == "QB" else r.receiving_epa if grp in ("WR", "TE")
                             else r.rushing_epa + r.receiving_epa if grp == "RB" else 0),
         }
+    add_grades(out, agg)
     # league top-10 by cumulative EPA before the week (QB min 20 att; WR rec EPA; RB rush+rec EPA)
     top = {}
     for grp, cond in (("QB", lambda v: v["attempts"] >= 20), ("WR", lambda v: True), ("RB", lambda v: True)):
@@ -164,6 +165,38 @@ def player_prior(p, snaps, before_week):
             out[k]["top10"] = i + 1
             top.setdefault(grp, []).append({"key": k, "rank": i + 1, "epa": round(v["rawEpa"], 1)})
     return out, top
+
+
+GRADE_PRIOR = {"QB": 150, "WR": 40, "TE": 40, "RB": 60}
+GRADE_MIN = {"QB": 60, "WR": 15, "TE": 10, "RB": 25, "DL": 3, "LB": 3, "CB": 3, "S": 3}
+
+
+def add_grades(out, agg):
+    """Our own 0-100 player grades from free nflverse data (percentile among same-position peers).
+    Offense: shrunk EPA per play (small samples pulled to the position average).
+    Defense: tackles + impact plays per game (sacks, QB hits, TFL, passes defended, INTs) - playmaking
+    only; coverage and blocking aren't in free data, so OL gets no grade and DBs are partial."""
+    from collections import defaultdict
+    pools = defaultdict(list)
+    for k, v in out.items():
+        g = v["pos"]
+        if g in GRADE_PRIOR and v["plays"] >= GRADE_MIN[g] and v["epaPerPlay"] is not None:
+            pools[g].append((k, v["epaPerPlay"], v["plays"]))
+        elif g in ("DL", "LB", "CB", "S") and v["games"] >= 3:
+            pools[g].append((k, v["plays"] / max(v["games"], 1), v["games"]))
+    for g, rows in pools.items():
+        if len(rows) < 8:
+            continue
+        if g in GRADE_PRIOR:
+            mu = sum(e * n for _, e, n in rows) / sum(n for _, _, n in rows)
+            vals = [(k, (e * n + mu * GRADE_PRIOR[g]) / (n + GRADE_PRIOR[g])) for k, e, n in rows]
+        else:
+            vals = [(k, x) for k, x, _ in rows]
+        vals.sort(key=lambda kv: kv[1])
+        for i, (k, _) in enumerate(vals):
+            out[k]["grade"] = round(100 * (i + 0.5) / len(vals))
+            out[k]["gradeOf"] = len(vals)
+            out[k]["gradeBasis"] = "EPA/play" if g in GRADE_PRIOR else "impact plays/game"
 
 
 def key_players(p, before_week):

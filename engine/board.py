@@ -151,7 +151,7 @@ def current_injuries(summary, team, tables):
             prior = (tables.get("player_prior") or {}).get(key, {})
             out.append({"team": team, "player": full, "short": ab, "pos": pos, "status": status,
                         "starter": starter, "detail": ((inj.get("details") or {}).get("type") or ""),
-                        "top10": prior.get("top10")})
+                        "top10": prior.get("top10"), "grade": prior.get("grade")})
     return out
 
 

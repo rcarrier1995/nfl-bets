@@ -111,7 +111,7 @@ function injLine(g) {
   if (!key.length && !q.length) return "";
   const id = "inj:" + g.id;
   let h = `<div class="line u" onclick="toggle('${id}')">${ic("inj")}${key.length} key injur${key.length === 1 ? "y" : "ies"}${q.length ? ` · ${q.length} questionable` : ""}</div>`;
-  if (S.open.has(id)) h += `<div class="kv small">${key.concat(q).map(i => `<span><b>${esc(i.team)}</b> ${esc(i.pos)}</span><span>${esc(i.player)} — ${esc(i.status)}${i.top10 ? ` ⭐ top-10` : ""}</span>`).join("")}</div>`;
+  if (S.open.has(id)) h += `<div class="kv small">${key.concat(q).map(i => `<span><b>${esc(i.team)}</b> ${esc(i.pos)}</span><span>${esc(i.player)} — ${esc(i.status)}${i.top10 ? ` ⭐ top-10` : ""}${i.grade != null ? ` <span class="muted">· grade ${i.grade}</span>` : ""}</span>`).join("")}</div>`;
   return h;
 }
 function wxLine(g) {
