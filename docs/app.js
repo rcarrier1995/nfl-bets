@@ -378,6 +378,10 @@ function expertsLine(g) {
   const dp = e.dogPicks?.length ? `<div class="tiny" style="margin-top:2px;color:var(--gold)">Underdog pick: <b>${esc(e.dog)}</b> by ${esc(e.dogPicks.map(n => n.split(" ").slice(-1)[0]).join(", "))}</div>` : "";
   return `<div class="tiny muted" style="margin-top:2px">Top ${e.top.length} experts: <b>${esc(txt)}</b>${e.agree ? ` <span class="tag">All ${e.n} agree</span>` : ""}</div>${dp}`;
 }
+// watch tags (combo study): tag only, tracked live
+function watchLine(g) {
+  return (g.watch || []).map(w => `<div class="tiny" style="margin-top:2px;color:var(--gold)"><span class="tag">${esc(w.tag)}</span> <b>${esc(w.team)}</b> · ${esc(w.why)}</div>`).join("");
+}
 function expertsBlock(g) {
   const e = g.experts;
   if (!e || !e.n) return "";
@@ -418,7 +422,7 @@ function gameRow(g) {
   const bc = callOf(best);
   const o = S.open.has(id);
   const tm = c => `<div class="tm">${badge(c.team, "sm")}<span>${esc(c.name || c.team)}</span><span class="sp"></span></div>`;
-  let row = `<div class="grow" onclick="toggle('${id}')"><div class="mt sp">${tm(a)}${tm(h)}${spreadTxt(g) ? `<div class="tiny muted" style="margin-top:2px">${esc(spreadTxt(g))}</div>` : ""}${expertsLine(g)}</div>
+  let row = `<div class="grow" onclick="toggle('${id}')"><div class="mt sp">${tm(a)}${tm(h)}${spreadTxt(g) ? `<div class="tiny muted" style="margin-top:2px">${esc(spreadTxt(g))}</div>` : ""}${expertsLine(g)}${watchLine(g)}</div>
     <div class="rt"><span class="kt">${kick(g.kickoff)}</span><span class="pill c-${bc}">${esc(best.team)} ${LBL(bc)}</span></div>
     <span class="chev ${o ? "open" : ""}">›</span></div>`;
   if (o) row += `<div class="card">${gameDetail(g)}</div>`;
@@ -471,7 +475,7 @@ function liveCard(g) {
   };
   const wa = g.teams.away.liveFair, wh = g.teams.home.liveFair;
   const wp = wa != null && wh != null ? `<div class="wpbar"><i style="width:${wa / (wa + wh) * 100}%;background:${esc(COLORS()[g.away] || "#556")}"></i><i style="flex:1;background:${esc(COLORS()[g.home] || "#889")}"></i></div><div class="row tiny muted" style="margin:-6px 0 8px"><span>${pct(wa)} win</span><span class="sp"></span><span>${pct(wh)} win</span></div>` : "";
-  const spr = spreadTxt(g) ? `<div class="tiny muted" style="text-align:center;margin:-4px 0 8px">Pregame line: ${esc(spreadTxt(g))}${expertsLine(g)}</div>` : "";
+  const spr = spreadTxt(g) ? `<div class="tiny muted" style="text-align:center;margin:-4px 0 8px">Pregame line: ${esc(spreadTxt(g))}${expertsLine(g)}${watchLine(g)}</div>` : "";
   return `<div class="card">${scoreBlock(g)}${spr}${wp}
     <div class="teams2">${tc(g.teams.away)}${tc(g.teams.home)}</div>
     <div class="line u" onclick="toggle('${id}')">Quarters · ${(g.quarters || []).map(q => `Q${q.q} ${q.cumAway}-${q.cumHome}`).join(" · ") || "—"}</div>
@@ -691,6 +695,14 @@ function learning() {
       const b = E.baseline || {}, a = E.agree || {};
       h += `<div class="small muted" style="margin-top:6px">Profit = per 1-unit pick at the moneyline when they picked. Always picking the favourite: ${pc(b.fav?.roi)}. Always the underdog: ${pc(b.dog?.roi)}.${a.all ? ` When every expert agreed: won ${a.all.pct}% vs ${a.all.implied}% the price implied (${a.all.n} games) — no extra edge, so it's a tag only.` : ""} ${E.dogExperts?.length && E.dogGroup?.n ? ` Underdog experts (${esc(E.dogExperts.map(n => n.split(" ").slice(-1)[0]).join(", "))}): their underdog picks won ${E.dogGroup.w} of ${E.dogGroup.n}, ${E.dogGroup.profit >= 0 ? "+" : ""}${E.dogGroup.profit} units — small sample, picked after the fact.` : ""} Ranked by profit, re-ranked every week. Sources: ${esc((E.sources || []).join(", "))}.</div>`;
     }
+  }
+  // watch tags
+  const W = S.B.watch;
+  if (W?.live) {
+    const id = "wt";
+    const sm = Object.entries(W.live).map(([k, v]) => `${k} ${v.n ? `${v.w}/${v.n}` : "0 yet"}`).join(" · ");
+    h += `<h2>Watch tags</h2><div class="line u" onclick="toggle('${id}')">${esc(sm)} · tag only</div>`;
+    if (S.open.has(id)) h += `<table class="qt"><tr><th>Tag</th><th>Live</th><th>Tested</th></tr>${Object.entries(W.live).map(([k, v]) => `<tr><td>${esc(k)}</td><td>${v.n ? `${v.w}/${v.n} won at ${v.price}¢ avg · ${v.netPer >= 0 ? "+" : ""}${v.netPer}¢ each after fee` : "none graded yet"}</td><td class="small">${esc((W.study || {})[k] || "")}</td></tr>`).join("")}</table><div class="tiny muted">Both beat the price in older and recent years, but were found by searching many combinations, so they don't change prices or calls. They're tracked here from now on and only get promoted if they keep winning more than their price.</div>`;
   }
   // backtest
   if (bt) {

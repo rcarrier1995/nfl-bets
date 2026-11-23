@@ -351,6 +351,16 @@ def tick(force=()):
         board["experts"] = EX.public(est)
     except Exception as e:
         print("experts failed:", e)
+    try:   # watch tags from the combo study: tag only, tracked live
+        from . import watch as WT
+        wp = load_json(WT.FILE, {}) or {}
+        if "pregame" in jobs or wp.get("season") != season or (now - B.parse_dt(wp.get("at"))).days >= 6:
+            WT.build(season)
+        WT.for_board(board)
+        WT.tag_legs(board)
+        board["watch"] = WT.track(board)
+    except Exception as e:
+        print("watch failed:", e)
     board["schedule"] = {"pregameAt": rs.get("pregameAt"), "thursdayBaseline": rs.get("pregame") == wk}
     LR.save(L)
     save_json(TOP_FILE, board, compact=True)
