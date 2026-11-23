@@ -125,6 +125,30 @@ def kalshi_events():
 
 
 # ---------- Open-Meteo (no key) ----------
+def kalshi_day_range(ticker, start_ts, end_ts):
+    """(low, high) traded price in cents for one Kalshi market between two unix times, from its
+    public 1-minute candles. None if no trades or the call fails (never guessed)."""
+    series = ticker.split("-")[0]
+    url = (f"{C.KALSHI_BASE}/series/{series}/markets/{ticker}/candlesticks"
+           f"?start_ts={int(start_ts)}&end_ts={int(end_ts)}&period_interval=1")
+    try:
+        d = _get(url, timeout=15, tries=2)
+    except Exception:
+        return None
+    lo = hi = None
+    for c in d.get("candlesticks") or []:
+        p = c.get("price") or {}
+        try:
+            l, h = float(p.get("low_dollars")) * 100, float(p.get("high_dollars")) * 100
+        except (TypeError, ValueError):
+            continue
+        if float(c.get("volume_fp") or 0) <= 0:
+            continue
+        lo = l if lo is None else min(lo, l)
+        hi = h if hi is None else max(hi, h)
+    return None if lo is None else (round(lo, 1), round(hi, 1))
+
+
 def weather_batch(points):
     """points: list of (lat, lon). One call for all stadiums. Forecast API incl. past day."""
     if not points:

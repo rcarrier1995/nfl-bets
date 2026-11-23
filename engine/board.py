@@ -11,7 +11,7 @@ from . import injuries as I
 from . import model as M
 from . import signals as SG
 from . import profiles as PF
-from .fetch import (espn_scoreboard, espn_summary, kalshi_events, weather_batch, load_json,
+from .fetch import (espn_scoreboard, espn_summary, kalshi_events, kalshi_day_range, weather_batch, load_json,
                     save_json, iso, now_utc, HEALTH)
 from .stats import abbrev, load_tables
 
@@ -51,7 +51,7 @@ def kalshi_index(events):
                 step = float(m.get("price_ranges", [{}])[0].get("step", "0.01")) * 100
             except Exception:
                 pass
-            prices[team] = {"ask": ask if ask and ask > 0 else None, "bid": bid, "last": last,
+            prices[team] = {"ask": ask if ask and ask > 0 else None, "bid": bid, "last": last, "ticker": m.get("ticker"),
                             "tick": step, "status": m.get("status"), "result": m.get("result")}
             occ = occ or parse_dt(m.get("occurrence_datetime") or m.get("expected_expiration_time"))
         if len(prices) == 2:
@@ -444,6 +444,14 @@ def build_game(ev, tables, kidx, wx_all, pt_idx, live_state, snaps, prev_calls, 
         if pc.get("dayDate") == day:
             vals = [v for v in (pc.get("dayLo"), pc.get("dayHi"), price) if v is not None]
             if vals:
+                c["dayLo"], c["dayHi"] = min(vals), max(vals)
+        # on game day (and during the game) use Kalshi's own traded low / high since midnight CT
+        kick = parse_dt(ev.get("date"))
+        if pr.get("ticker") and kick and state != "post" and (state == "in" or kick.astimezone(CT_TZ).strftime("%Y-%m-%d") == day):
+            mid = kick.astimezone(CT_TZ).replace(hour=0, minute=0, second=0, microsecond=0)
+            rg = kalshi_day_range(pr["ticker"], mid.timestamp(), now.timestamp())
+            if rg:
+                vals = [v for v in (c["dayLo"], c["dayHi"], rg[0], rg[1]) if v is not None]
                 c["dayLo"], c["dayHi"] = min(vals), max(vals)
     g["teams"] = teams
 
