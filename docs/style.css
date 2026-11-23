@@ -25,7 +25,7 @@
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 "Inter",-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-text-size-adjust:100%;-webkit-font-smoothing:antialiased;font-feature-settings:"tnum" 1,"cv11" 1}
-body{padding-bottom:calc(84px + env(safe-area-inset-bottom));min-height:100vh;
+body{padding-bottom:calc(52px + env(safe-area-inset-bottom) * .6);min-height:100vh;
   background:radial-gradient(1200px 500px at 50% -200px,color-mix(in srgb,var(--accent) 9%,transparent),transparent 70%) no-repeat,var(--bg)}
 button{font:inherit;color:inherit}
 a{color:var(--accent)}
@@ -53,20 +53,19 @@ a{color:var(--accent)}
 main{max-width:780px;margin:0 auto;padding:6px 16px 24px}
 main.enter{animation:enter .22s ease-out}
 @keyframes enter{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-.ptitle{font-size:28px;font-weight:800;letter-spacing:-.8px;margin:14px 0 2px}
+.ptitle{font-size:24px;font-weight:800;letter-spacing:-.6px;margin:10px 0 0}
 .psub{font-size:13px;color:var(--muted);margin-bottom:6px}
 
 /* ---- bottom tab bar ---- */
 .tabs{position:fixed;bottom:0;left:0;right:0;z-index:30;display:flex;justify-content:center;
-  background:var(--glass);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);
-  border-top:1px solid var(--line);padding:6px 8px calc(6px + env(safe-area-inset-bottom))}
-.tabs .in{display:flex;width:100%;max-width:520px}
-.tabs button{flex:1;border:0;background:none;padding:6px 0 4px;font-size:11px;font-weight:600;color:var(--faint);display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;position:relative;transition:color .15s}
-.tabs button .ic{width:44px;height:28px;border-radius:14px;display:grid;place-items:center;transition:background .2s}
-.tabs button svg{width:21px;height:21px}
-.tabs button.on{color:var(--ink)}
-.tabs button.on .ic{background:color-mix(in srgb,var(--accent) 18%,transparent);color:var(--accent)}
-.tabs .badge{position:absolute;top:2px;left:calc(50% + 8px);min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--bad);color:#fff;font-size:10px;line-height:16px;font-weight:700}
+  background:var(--bg2);border-top:1px solid var(--line);padding:0 8px calc(env(safe-area-inset-bottom) * .6)}
+.tabs .in{display:flex;width:100%;max-width:420px}
+.tabs button{flex:1;border:0;background:none;height:40px;padding:0;color:var(--faint);display:grid;place-items:center;cursor:pointer;position:relative;transition:color .15s}
+.tabs button .ic{width:40px;height:28px;border-radius:14px;display:grid;place-items:center;transition:background .2s}
+.tabs button svg{width:19px;height:19px}
+.tabs button.on{color:var(--accent)}
+.tabs button.on .ic{background:color-mix(in srgb,var(--accent) 16%,transparent)}
+.tabs .badge{position:absolute;top:3px;left:calc(50% + 6px);min-width:14px;height:14px;padding:0 3px;border-radius:7px;background:var(--bad);color:#fff;font-size:9px;line-height:14px;font-weight:700;font-style:normal;text-align:center}
 
 /* ---- type ---- */
 h2{font-size:13px;font-weight:700;margin:24px 2px 10px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:8px}
