@@ -27,12 +27,12 @@ def main():
     download(season)
     prev = load_json(LOG, {}) or {}
     out = {"at": iso(), "season": season, "studies": {}}
-    from . import profiles, timing, signals, form
-    for name, fn in (("grades", profiles.study), ("timing", timing.study), ("signals", signals.study), ("form", form.study)):
+    from . import profiles, timing, signals, form, h2h
+    for name, fn in (("grades", profiles.study), ("timing", timing.study), ("signals", signals.study), ("form", form.study), ("h2h", h2h.study)):
         try:
             r = fn()
             held = r.get("held") if name == "grades" else (
-                [e["spot"] for e in r.get("edges", [])] if name == "timing" else r.get("held", []) if name == "form" else [x["signal"] for x in r["rows"] if x["holds"]])
+                [e["spot"] for e in r.get("edges", [])] if name == "timing" else r.get("held", []) if name in ("form", "h2h") else [x["signal"] for x in r["rows"] if x["holds"]])
             out["studies"][name] = {"ok": True, "held": held}
         except Exception as e:  # one broken study never blocks the others
             out["studies"][name] = {"ok": False, "error": str(e)[:200]}

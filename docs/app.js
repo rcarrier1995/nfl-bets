@@ -387,6 +387,27 @@ function expertsBlock(g) {
   for (const r of e.reasons || []) h += `<div class="note small">“${esc(r.text)}” <span class="muted">— ${esc(r.name)}, NFL.com (picked ${esc(r.team || "")})</span></div>`;
   return h + `<div class="tiny muted">Context only. Experts haven't beaten the line yet (see Learning).</div>`;
 }
+// head-to-head history: this season + last
+function h2hHist(g) {
+  const H = g.h2h;
+  if (!H || !H.meetings?.length) return "";
+  const a = g.teams.away.team, h = g.teams.home.team;
+  let out = `<div class="small" style="margin:8px 0 2px"><b>Met before</b> <span class="muted">· this season and last</span></div>`;
+  H.meetings.slice().reverse().forEach((m, i) => {
+    const id = `hh:${g.id}:${i}`;
+    const ld = (m.leaders || []).filter(x => x && x !== "tied");
+    const led = ld.length === 3 && new Set(ld).size === 1 ? `${ld[0]} led after Q1, Q2 and Q3` : m.leaders?.length ? `led after Q1/Q2/Q3: ${m.leaders.join(", ")}` : "";
+    const cov = m.vsLine == null ? "" : m.vsLine === 0 ? "push vs line" : `${m.vsLine > 0 ? a : h} covered`;
+    out += `<div class="small u" onclick="toggle('${id}')">${m.season} Wk ${m.week}: <b>${esc(a)} ${m.score[0]}–${m.score[1]} ${esc(h)}</b> · ${esc(led)}${cov ? ` · ${esc(cov)}` : ""}</div>`;
+    if (S.open.has(id)) {
+      out += `<div class="note small">${m.first ? `First score: ${esc(m.first)}<br>` : ""}${m.quarters?.length ? `By quarter: ${m.quarters.map((q, j) => `Q${j + 1} ${q[0]}–${q[1]}`).join(" · ")}<br>` : ""}${m.favBy != null ? `Line: ${m.favBy > 0 ? `${esc(a)} −${m.favBy}` : m.favBy < 0 ? `${esc(h)} −${-m.favBy}` : "pick'em"}<br>` : ""}Listed starting QBs: ${esc(m.qb?.[0] || "?")} vs ${esc(m.qb?.[1] || "?")}`;
+      for (const t of [a, h]) { const p = m.players?.[t]; if (p) out += `<br><b>${esc(t)}</b> (${p.turnovers} TO): ${esc(p.lines.join(" · "))}`; }
+      out += `</div>`;
+    }
+  });
+  if (H.changes?.length) out += `<div class="small" style="color:var(--gold)">Since then: ${esc(H.changes.join(" · "))}</div>`;
+  return out + `<div class="tiny muted">Context only. Past meetings didn't predict results beyond the line in tests (see Learning).</div>`;
+}
 function gameRow(g) {
   const a = g.teams.away, h = g.teams.home;
   const best = [a, h].sort((x, y) => rank(callOf(y)) - rank(callOf(x)) || (y.edge ?? -99) - (x.edge ?? -99))[0];
@@ -405,7 +426,7 @@ function gameRow(g) {
 const rank = c => ({ Value: 3, Wait: 2, Sell: 2, Pass: 1 }[c] || 0);
 function gameDetail(g) {
   return `<div class="teams2">${betCard(g.teams.away)}${betCard(g.teams.home)}</div>
-    ${h2hDetails(g, `${injLine(g)}${wxLine(g)}${muLine(g)}${gradesBlock(g)}${gradeLines(g)}${sitLine(g)}${toLine(g)}${changesLine(g)}${gameCombosLine(g)}${expertsBlock(g)}`)}`;
+    ${h2hDetails(g, `${injLine(g)}${wxLine(g)}${muLine(g)}${gradesBlock(g)}${gradeLines(g)}${sitLine(g)}${toLine(g)}${changesLine(g)}${gameCombosLine(g)}${h2hHist(g)}${expertsBlock(g)}`)}`;
 }
 function finalLine(g) {
   const id = "f:" + g.id;
@@ -454,7 +475,7 @@ function liveCard(g) {
     <div class="teams2">${tc(g.teams.away)}${tc(g.teams.home)}</div>
     <div class="line u" onclick="toggle('${id}')">Quarters · ${(g.quarters || []).map(q => `Q${q.q} ${q.cumAway}-${q.cumHome}`).join(" · ") || "—"}</div>
     ${S.open.has(id) ? quarterTable(g) : ""}
-    ${h2hDetails(g, `${injLine(g)}${muLine(g)}${gradesBlock(g)}${gradeLines(g)}${toLine(g)}${wxLine(g)}${expertsBlock(g)}`)}</div>`;
+    ${h2hDetails(g, `${injLine(g)}${muLine(g)}${gradesBlock(g)}${gradeLines(g)}${toLine(g)}${wxLine(g)}${h2hHist(g)}${expertsBlock(g)}`)}</div>`;
 }
 
 // ---------- tabs ----------
@@ -725,6 +746,12 @@ function learning() {
       h += `<div class="small" style="margin-top:6px"><b>Do QB traits repeat next season?</b> ${Object.entries(q).filter(([k]) => k !== "n").map(([k, v]) => `${esc(k)} ${v}`).join(" · ")} <span class="muted">(1 = always, 0 = random). EPA and sack rate are real traits; INT rate and quarter splits (slow starter, strong Q3) are mostly noise.</span></div>`;
       h += `<div class="tiny muted">"vs price" = how often they won minus what the moneyline said. A spot counts only if it's 2.5+ SE in older years and holds in recent years. Older years: 2006–20 (2021–24 for turnovers).</div>`;
     }
+  }
+  const hs = L.h2hStudy;
+  if (hs?.rows) {
+    const id = "hs", pc = x => x == null ? "—" : `${x > 0 ? "+" : ""}${x}`;
+    h += `<h2>Head-to-head history tested</h2><div class="line u" onclick="toggle('${id}')">${(hs.held || []).length} of ${hs.rows.length} beat the price · context only</div>`;
+    if (S.open.has(id)) h += `<table class="qt"><tr><th>Last meeting (within 2 seasons)</th><th>2006–20</th><th>2021+</th></tr>${hs.rows.map(r => `<tr><td>${esc(r.spot)}</td><td>${r.fit ? `${pc(r.fit.diff)} (±${r.fit.se}) <span class="muted">n ${r.fit.n}</span>` : "—"}</td><td>${r.check ? `${pc(r.check.diff)} (±${r.check.se}) <span class="muted">n ${r.check.n}</span>` : "—"}</td></tr>`).join("")}</table><div class="tiny muted">Win % minus what the moneyline said. Last meeting's result vs the line explains ${hs.slope ? `${hs.slope.fit[0]} pts per pt (older) and ${hs.slope.check?.[0]} (recent)` : "nothing"} of this game vs the line — about zero.</div>`;
   }
   const cv = L.clv;
   h += `<h2>Beat the kickoff price?</h2>${cv && cv.n ? `<div class="line">${cv.beat} of ${cv.n} calls got a better price than kickoff · avg ${cv.avg > 0 ? "+" : ""}${cv.avg}¢</div><div class="small">${cv.recent.slice().reverse().map(r => `${esc(r.team)} ${esc(LBL(r.call))} at ${ct(r.entry)} → kickoff ${ct(r.close)} (${r.clv > 0 ? "+" : ""}${r.clv}¢)`).join("<br>")}</div><div class="tiny muted">Getting in cheaper than the kickoff price over many calls is the earliest sign the calls are sharp.</div>` : `<div class="line muted">Tracking started. Each Buy/Wait call is compared with the price at kickoff once its game starts.</div>`}`;

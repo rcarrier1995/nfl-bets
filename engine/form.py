@@ -47,6 +47,7 @@ def games():
                f"{side}_qb_name", f"{side}_coach", f"{side}_moneyline", f"{o}_moneyline", f"{side}_score", f"{o}_score"]].copy()
         x.columns = ["game_id", "season", "week", "day", "result", "spread", "team", "opp", "qb", "qbn", "coach", "ml", "oml", "pf", "pa"]
         s = 1 if side == "home" else -1
+        x["home"] = side == "home"
         x["cvr"] = s * (x.result - x.spread)
         x["win"] = np.where(x.result.isna(), np.nan, (s * x.result > 0).astype(float) + 0.5 * (x.result == 0))
         a, b = _imp(x.ml), _imp(x.oml)

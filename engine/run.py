@@ -334,6 +334,15 @@ def tick(force=()):
         FM.for_board(board, load_tables())
     except Exception as e:
         print("form failed:", e)
+    try:   # head-to-head history (this season + last): context only
+        from . import h2h as HH
+        hp = load_json(HH.FILE, {}) or {}
+        if "pregame" in jobs or hp.get("week") != week or hp.get("season") != season:
+            HH.build(season, week)
+        lq = {t: f["backupQB"]["backup"] for g in board["games"] for t, f in (g.get("form") or {}).items() if f.get("backupQB")}
+        HH.for_board({"games": board["games"] + (board.get("nextWeek") or [])}, latest_qb=lq)
+    except Exception as e:
+        print("h2h failed:", e)
     try:   # expert picks: context only, never blocks the board
         from . import experts as EX
         est = EX.update(season, week, now, rs)
@@ -362,6 +371,9 @@ def tick(force=()):
     fs = load_json(os.path.join(C.STATE, "form_study.json"))
     if fs:
         pub["formStudy"] = fs
+    hs = load_json(os.path.join(C.STATE, "h2h_study.json"))
+    if hs:
+        pub["h2hStudy"] = hs
     if board.get("clv"):
         pub["clv"] = board["clv"]
     rw = load_json(os.path.join(C.STATE, "retest_log.json"))
