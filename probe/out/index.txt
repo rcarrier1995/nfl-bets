@@ -1,35 +1,10 @@
-cbs straight-up 1 20250927064635 nomatch 67170
-cbs straight-up 1 20251007062417 nomatch 67464
-cbs straight-up 1 20251011230300 nomatch 66966
-cbs straight-up 1 20260311064136 ok 26s
-cbs straight-up 3 cdx err <urlopen error [Errno 111] Connection refused>
-cbs straight-up 4 20250925230624 nomatch 70005
-cbs straight-up 4 20250926173731 nomatch 70039
-cbs straight-up 4 20250926173809 nomatch 70039
-cbs straight-up 4 20251001155021 nomatch 67375
-cbs straight-up 4 20251106055413 nomatch 66417
-cbs straight-up 4 20251204170408 nomatch 59920
-cbs straight-up 4 MISSING (7 snaps)
-cbs straight-up 5 20251003132544 nomatch 69526
-cbs straight-up 5 20251007062252 nomatch 67083
-cbs straight-up 5 20251007062426 nomatch 67083
-cbs straight-up 5 20260215211147 ok 133s
-cbs straight-up 6 20251011172228 ok 7s
-cbs straight-up 7 20251017145345 err <urlopen error [Errno 111] Connection refused>
-cbs straight-up 7 20251209122722 nomatch 59944
-cbs straight-up 7 20260718142438 ok 123s
-cbs straight-up 8 20251024035131 nomatch 67849
-cbs straight-up 8 20260415064621 err <urlopen error _ssl.c:1063: The handshake operation timed out>
-cbs straight-up 8 MISSING (2 snaps)
+cbs straight-up 3 20251012115011 ok 13s
+cbs straight-up 4 cdx err <urlopen error [Errno 111] Connection refused>
+cbs straight-up 8 cdx err <urlopen error _ssl.c:1063: The handshake operation timed out>
 cbs straight-up 9 20260208221536 nomatch 60932
 cbs straight-up 9 MISSING (1 snaps)
-cbs straight-up 10 20251215171942 err <urlopen error [Errno 111] Connection refused>
-cbs straight-up 10 MISSING (1 snaps)
-cbs straight-up 11 cdx err <urlopen error _ssl.c:1063: The handshake operation timed out>
-cbs straight-up 12 20251121171332 nomatch 61661
-cbs straight-up 12 20251209042057 nomatch 59736
-cbs straight-up 12 20260121132358 err <urlopen error [Errno 111] Connection refused>
-cbs straight-up 12 MISSING (3 snaps)
-cbs straight-up 13 cdx err <urlopen error [Errno 111] Connection refused>
-cbs straight-up 15 20251212145211 nomatch 62480
-cbs straight-up 15 MISSING (1 snaps)
+cbs straight-up 10 cdx err <urlopen error [Errno 111] Connection refused>
+cbs straight-up 11 20251116161757 ok 58s
+cbs straight-up 12 cdx err <urlopen error [Errno 111] Connection refused>
+cbs straight-up 13 20260715082833 ok 58s
+cbs straight-up 15 cdx err <urlopen error [Errno 111] Connection refused>
