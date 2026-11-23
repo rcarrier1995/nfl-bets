@@ -256,18 +256,11 @@ def live_update(g, summary, ev, tables, live_state, snap, now):
         my, their = (g["score"]["home"], g["score"]["away"]) if side == "home" else (g["score"]["away"], g["score"]["home"])
         trailing = (my or 0) < (their or 0)
         if trailing:
-            cb = PF.comeback_line(tm, opp)
-            if cb:
-                lines_.append({"text": cb, "kind": "ctx"})
             bt, bo = box.get(tm), box.get(opp)
             if bt and bo and bt["plays"] >= 15 and bo["plays"] >= 15 and bt["ypp"] - bo["ypp"] > 1.0 \
                     and bt["fdr"] - bo["fdr"] > 0.03:
                 lines_.append({"text": f"Outplaying {opp} but behind: {bt['ypp']:.1f} vs {bo['ypp']:.1f} yds/play, "
                                        f"{bt['fd']} vs {bo['fd']} first downs (tested: not a reliable edge yet)", "kind": "ctx"})
-        if period in (2, 3):
-            hl = PF.half_line(tm)
-            if hl:
-                lines_.append({"text": hl, "kind": "ctx"})
         cl = M.classify(c["liveFair"], c.get("price"))
         live_call = cl["call"]
         price_ = c.get("price")

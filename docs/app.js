@@ -139,6 +139,20 @@ function sitLine(g) {
   if (!g.situation?.length) return "";
   return `<div class="line">${ic("ch")}<span>${g.situation.map(esc).join(" · ")} <span class="muted">— already in the line</span></span></div>`;
 }
+// 0-100 grade chips: green = good, red = bad
+const chip = (k, v, tip) => `<span class="gchip" title="${esc(tip || "")}" style="--h:${Math.round(v * 1.2)}"><b>${v}</b>${esc(k)}</span>`;
+function teamChips(g, team, keys) {
+  const gs = (g.grades || {})[team] || [];
+  const list = keys ? keys.map(k => gs.find(x => x.k === k)).filter(Boolean) : gs;
+  return list.length ? `<div class="gchips">${list.map(x => chip(x.k, x.s, x.tip)).join("")}</div>` : "";
+}
+function gradesBlock(g) {
+  if (!g.grades || !(g.grades[g.away] || []).length) return "";
+  const id = "gr:" + g.id;
+  let h = `<div class="line u" onclick="toggle('${id}')">${ic("mu")}<span>Team grades <span class="muted">· green good, red bad</span></span></div>`;
+  if (S.open.has(id)) h += `<div style="margin:2px 0 8px">${[g.away, g.home].map(t => `<div class="row" style="align-items:flex-start;gap:8px;margin:6px 0">${badge(t, "sm")}${teamChips(g, t)}</div>`).join("")}<div class="tiny muted">100 = best, 0 = worst. Info only, doesn't change the price.</div></div>`;
+  return h;
+}
 function gradeLines(g) {
   const ml = g.matchupLines || [];
   const mk = [g.lineMoveLine, g.bookRangeLine].filter(Boolean);
@@ -197,7 +211,7 @@ function gameRow(g) {
 const rank = c => ({ Value: 3, Wait: 2, Pass: 1 }[c] || 0);
 function gameDetail(g) {
   return `<div class="teams2">${betCard(g.teams.away)}${betCard(g.teams.home)}</div>
-    ${injLine(g)}${wxLine(g)}${muLine(g)}${gradeLines(g)}${sitLine(g)}${toLine(g)}${changesLine(g)}${gameCombosLine(g)}
+    ${injLine(g)}${wxLine(g)}${muLine(g)}${gradesBlock(g)}${gradeLines(g)}${sitLine(g)}${toLine(g)}${changesLine(g)}${gameCombosLine(g)}
     ${g.spreadHome != null ? `<div class="line muted">${ic("line")}${esc(g.home)} ${g.spreadHome > 0 ? "+" : ""}${g.spreadHome} · total ${g.total ?? "—"}</div>` : ""}`;
 }
 function finalLine(g) {
@@ -234,6 +248,7 @@ function liveCard(g) {
       ${c.dipLine ? `<div class="dip">${esc(c.dipLine)}</div>` : ""}
       ${c.bothOff ? `<div class="dip">${esc(c.bothOff)}</div>` : ""}
       ${bestLine(c)}
+      ${teamChips(g, c.team, ["Comeback", "2nd half"])}
       ${liveInjLines(c)}
     </div>`;
   };
@@ -243,7 +258,7 @@ function liveCard(g) {
     <div class="teams2">${tc(g.teams.away)}${tc(g.teams.home)}</div>
     <div class="line u" onclick="toggle('${id}')">Quarters · ${(g.quarters || []).map(q => `Q${q.q} ${q.cumAway}-${q.cumHome}`).join(" · ") || "—"}</div>
     ${S.open.has(id) ? quarterTable(g) : ""}
-    ${injLine(g)}${gradeLines(g)}${toLine(g)}${wxLine(g)}</div>`;
+    ${injLine(g)}${gradesBlock(g)}${gradeLines(g)}${toLine(g)}${wxLine(g)}</div>`;
 }
 
 // ---------- tabs ----------

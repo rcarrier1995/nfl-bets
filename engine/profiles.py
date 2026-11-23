@@ -693,6 +693,26 @@ def comeback_line(team, opp):
     return txt
 
 
+SCORES = [("Comeback", "comeback", "Comes back when behind"),
+          ("2nd half", "h2h1", "Gets better after half time"),
+          ("Pass O", "passOff", "Passing offense"),
+          ("Run O", "rushOff", "Running offense"),
+          ("Pass D", "passDef", "Stops the pass"),
+          ("Run D", "rushDef", "Stops the run"),
+          ("Pass rush", "sackRate", "Gets sacks"),
+          ("Protection", "sackAllowed", "Protects the QB"),
+          ("Q4 scoring", "q4For", "Scores late")]
+
+
+def scores(team):
+    """0-100 score per grade (100 = best in the league, 0 = worst), from the 1-32 rank."""
+    P, _ = _load()
+    t = P.get(team)
+    if not t or not t.get("rank"):
+        return []
+    return [{"k": k, "s": round(100 * (32 - t["rank"][f]) / 31), "tip": tip} for k, f, tip in SCORES if f in t["rank"]]
+
+
 def half_line(team):
     """2nd-half vs 1st-half grade line (context)."""
     P, _ = _load()

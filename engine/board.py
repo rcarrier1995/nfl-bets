@@ -346,7 +346,8 @@ def build_game(ev, tables, kidx, wx_all, pt_idx, live_state, snaps, prev_calls, 
          "injuries": inj[away] + inj[home],
          "keyInjuries": len([i for i in inj[away] + inj[home] if i["starter"] and i["status"] in ("Out", "Doubtful")]),
          "matchup": {away: matchup(away, tables), home: matchup(home, tables)},
-         "matchupLines": PF.matchup_lines(away, home)}
+         "matchupLines": PF.matchup_lines(away, home),
+         "grades": {away: PF.scores(away), home: PF.scores(home)}}
     # line move since we first saw the game, and how far the books disagree (context only)
     first = snap.get("open") if snap.get("open") is not None else espn_spread
     g["openSpread"] = first
