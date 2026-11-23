@@ -182,12 +182,19 @@ function winLose(c) {
   const outs = (g.injuries || []).filter(i => i.starter && ["Out", "Doubtful"].includes(i.status));
   const mine = outs.filter(i => i.team === t), theirs = outs.filter(i => i.team === o);
   const nm = l => l.slice(0, 2).map(i => `${i.pos} ${i.player.split(" ").slice(-1)[0]}`).join(", ") + (l.length > 2 ? ` +${l.length - 2}` : "");
-  if (theirs.length) W.push([4 + theirs.length + (theirs.some(i => i.pos === "QB") ? 5 : 0), `${o} missing ${nm(theirs)}`]);
-  if (mine.length) L.push([4 + mine.length + (mine.some(i => i.pos === "QB") ? 5 : 0), `Missing ${nm(mine)}`]);
+  const DM = [];   // [weight, text] — only factors big enough to tilt a game
+  const qb = l => l.find(i => i.pos === "QB");
+  if (theirs.length) W.push([4 + theirs.length + (qb(theirs) ? 5 : 0), `${o} missing ${nm(theirs)}`]);
+  if (mine.length) L.push([4 + mine.length + (qb(mine) ? 5 : 0), `Missing ${nm(mine)}`]);
+  if (qb(theirs)) DM.push([50, `${o} without starting QB ${qb(theirs).player} (worth about 3.5 pts)`]);
+  if (qb(mine)) DM.push([50, `${t} without starting QB ${qb(mine).player} (worth about 3.5 pts)`]);
+  for (const l of (c.liveLines || [])) if (l.kind === "inj" && l.detail && Math.abs(l.detail.impact ?? 0) >= 1.5) DM.push([40, l.text]);
   if (mu && mo) {
     for (const [off, def, label] of [["passOff", "passDef", "pass"], ["runOff", "runDef", "run"]]) {
       const a = mu[off]?.rank, d = mo[def]?.rank, oa = mo[off]?.rank, md = mu[def]?.rank;
       if (a && d && d - a >= 8) W.push([d - a, `Its ${label} game (#${a}) vs a weak ${label} D (#${d})`]);
+      if (a && d && Math.abs(d - a) >= 20) DM.push([Math.abs(d - a), `${t}'s ${label} game (#${a}) vs ${o}'s ${label} D (#${d})`]);
+      if (oa && md && Math.abs(oa - md) >= 20) DM.push([Math.abs(oa - md), `${o}'s ${label} game (#${oa}) vs ${t}'s ${label} D (#${md})`]);
       if (a && d && a - d >= 8) L.push([a - d, `Its ${label} game (#${a}) vs a strong ${label} D (#${d})`]);
       if (oa && md && oa - md >= 8) W.push([oa - md, `Its ${label} D (#${md}) vs a weak ${label} attack (#${oa})`]);
       if (oa && md && md - oa >= 8) L.push([md - oa, `${o}'s ${label} attack (#${oa}) vs its ${label} D (#${md})`]);
@@ -197,10 +204,11 @@ function winLose(c) {
   const best = gs.filter(x => x.r <= 5).sort((a, b) => a.r - b.r)[0], worst = gs.filter(x => x.r >= 28).sort((a, b) => b.r - a.r)[0];
   if (best) W.push([3, `${best.k} #${best.r} in the NFL`]);
   if (worst) L.push([3, `${worst.k} #${worst.r} in the NFL`]);
-  if (c.weatherWhy) (/favors/.test(c.weatherWhy) && c.weatherWhy.includes(o) ? L : W).push([2, c.weatherWhy]);
+  if (c.weatherWhy) { (/favors/.test(c.weatherWhy) && c.weatherWhy.includes(o) ? L : W).push([2, c.weatherWhy]); DM.push([30, c.weatherWhy]); }
+  const dm = DM.sort((x, y) => y[0] - x[0])[0];
   const top = a => a.sort((x, y) => y[0] - x[0]).slice(0, 3).map(x => `<li>${esc(x[1])}</li>`).join("");
-  if (!W.length && !L.length) return "";
-  return `<div class="wl"><div><b class="ok">Could win</b><ul>${top(W) || "<li class=muted>Nothing stands out</li>"}</ul></div><div><b class="bad">Could lose</b><ul>${top(L) || "<li class=muted>Nothing stands out</li>"}</ul></div></div>
+  if (!W.length && !L.length && !dm) return "";
+  return `${dm ? `<div class="note" style="color:var(--gold)"><b>⚡ Difference maker:</b> ${esc(dm[1])}</div>` : ""}<div class="wl"><div><b class="ok">Could win</b><ul>${top(W) || "<li class=muted>Nothing stands out</li>"}</ul></div><div><b class="bad">Could lose</b><ul>${top(L) || "<li class=muted>Nothing stands out</li>"}</ul></div></div>
     <div class="tiny muted">${fair != null ? `Win chance ${Math.round(fair)}% already counts all of this.` : ""}</div>`;
 }
 function h2hDetails(g, inner) {
