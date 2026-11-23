@@ -90,9 +90,9 @@ def top3_message(board):
     for k in board["top3"]:
         c = by[k]
         if c["call"] == "Value":
-            lines.append(f"{c['team']} Buy {c['price']:.0f}c -> win {100 - c['price']:.0f}c · {c['confidence']['level']}")
+            lines.append(f"{c['team']} Buy {c['price']:.0f}c -> win {100 - c['price']:.0f}c · win chance {c['confidence']['level']}")
         else:
-            lines.append(f"{c['team']} Wait {c['price']:.0f}c, buy at {c['buyAt']}c -> win {100 - c['buyAt']}c · {c['confidence']['level']}")
+            lines.append(f"{c['team']} Wait {c['price']:.0f}c, buy at {c['buyAt']}c -> win {100 - c['buyAt']}c · win chance {c['confidence']['level']}")
     return lines
 
 
@@ -286,7 +286,7 @@ def tick(force=()):
         k = f"{a['key']}|Q{a['q']}"
         if k in sent:
             continue
-        P.send(f"Dip: {a['team']} {a['price']:.0f}c", f"{a['team']} now {a['price']:.0f}c -> +{a['profit']:.0f}c if it wins · {a['confidence']}\n{a['why']}", priority="high")
+        P.send(f"Dip: {a['team']} {a['price']:.0f}c", f"{a['team']} now {a['price']:.0f}c -> +{a['profit']:.0f}c if it wins · win chance {a['confidence']}\n{a['why']}", priority="high")
         sent.add(k)
     rs["alertsSent"] = sorted(sent)[-300:]
     # pregame: a team turning Value now (e.g. a Wait price got hit) -> one push
@@ -294,7 +294,7 @@ def tick(force=()):
     for c in board["calls"]:
         if c.get("state") == "pre" and c.get("call") == "Value" and not c.get("priceStale") and vsent.get(c["key"]) != round(c["price"] or 0):
             P.send(f"{'Slow price' if c.get('lag') else 'Buy now'}: {c['team']} {c['price']:.0f}c",
-                   f"{c['team']} vs {c['opp']} {c['price']:.0f}c -> win {100 - c['price']:.0f}c · {c['confidence']['level']}\n{c['why']}")
+                   f"{c['team']} vs {c['opp']} {c['price']:.0f}c -> win {100 - c['price']:.0f}c · win chance {c['confidence']['level']}\n{c['why']}")
             vsent[c["key"]] = round(c["price"] or 0)
     # live: a Wait price getting hit mid-game -> one push (never paused, never late Q4)
     for c in board["calls"]:

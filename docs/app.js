@@ -50,7 +50,7 @@ window.toggle = toggle;
 // ---------- small visuals ----------
 function meter(conf) {
   const lvl = conf?.level || "Low";
-  return `<span class="meter ${lvl}"><i></i><i></i><i></i></span><span class="small">${lvl === "Med" ? "Med" : lvl}</span>`;
+  return `<span class="meter ${lvl}"><i></i><i></i><i></i></span><span class="small">Win chance ${lvl}</span>`;
 }
 function priceBar(price, fair) {
   if (price == null && fair == null) return "";
@@ -594,7 +594,7 @@ function edgeTile(price, fair, fee) {
 }
 function confTile(conf) {
   if (!conf) return "";
-  return `<div class="row"><span class="big">${conf.score}</span>${meter(conf)}</div>${(conf.drivers || []).map(d => hbar(d.k, d.v, (conf.max || {})[d.k] || 30, `${d.v}/${(conf.max || {})[d.k] || 30}`)).join("")}<div class="tiny muted">Not a guarantee: 80%+ favourites won 66.7% in the backtest.</div>`;
+  return `<div class="row"><span class="big">${conf.score}%</span>${meter(conf)}</div><div class="small">Chance this team wins the game. Buy / Wait / Pass tells you if the price is good.</div><div class="tiny muted">Tested on 1,515 games: High (65%+) won 77%, Med won 59%, Low won 32%.${conf.missing ? " Some data missing for this game." : ""}</div>`;
 }
 function calibChart(rows, title) {
   if (!rows || !rows.length) return `<div class="muted small">No data yet</div>`;
@@ -696,11 +696,11 @@ window.openBreakdown = key => {
    <div class="row" style="margin:6px 0 10px"><span class="hero">${ct(c.price)}</span><span class="pill c-${call}">${LBL(call)}</span><span class="sp"></span><span class="small">${call === "Wait" ? `Buy at ${ct(live ? c.liveBuyAt : c.buyAt)} · ` : ""}Fair ${ct1(fair)}</span></div>
    <div class="ig">
     ${tile("Fair vs market", edgeTile(c.price, fair, c.fee ?? 2), true)}
-    ${tile("Confidence", confTile(c.confidence))}
+    ${tile("Win chance", confTile(c.confidence))}
     ${tile("How fair was built", partsTile(c))}
     ${tile("Spread / total vs market", gaugeTile(g, c))}
     ${tile("Calibration — fair value", calibChart(calRows))}
-    ${tile("Calibration — confidence", calibChart(calC))}
+    ${tile("Calibration — win chance", calibChart(calC))}
     ${tile("Injuries", (inj.length ? inj.map(injTile).join("") : "") + (curInj.length ? curInj.map(i => `<span class="chipf">${esc(i.pos)} ${esc(i.short)} ${esc(i.status)}</span>`).join("") : (inj.length ? "" : `<div class="small muted">No key injuries</div>`)), true)}
     ${tile("Weather by hour", g.indoor ? `<div class="small">Indoors — weather not used</div>` : g.weather?.hours ? wxChart(g.weather.hours) : `<div class="small muted">Weather unavailable</div>`, true)}
     ${tile("Matchups (nflverse)", matchupBars(g), true)}
@@ -782,7 +782,7 @@ function setup() {
    <p>Weather/run +1.0–1.5 pts to the run-heavy team in open air if wind ≥15 mph or ≤35°F. QB out −3.5, 2+ WR/CB out −1 — only when the news is fresh (not out Thursday, line moved &lt;2 pts); otherwise the line already priced it.</p>
    <p>EPA is shown (matchup bars, breakdown) but not added to the price: every EPA weight tested made the fairs worse.</p>
    <p>Edge = fair − price − fee (fee 2¢: Robinhood commission ≤1¢ + exchange fee ≤1¢). <b>Buy</b> ≥15¢. <b>Wait for a dip</b> 8–15¢, buy-at = fair − 15¢ − fee. Else <b>Pass</b>.</p>
-   <p>Confidence 0–100 = fair strength (30) + edge (30) + calibration (20) + data completeness (20). High ≥65, Med ≥40.</p>
+   <p>Win chance = the chance the team wins the game (from the line). High 65%+, Med 45–65%, Low under 45%. It is not a bet rating: Buy / Wait / Pass is.</p>
    <p>Combos: every game set, every side (2^N). Hit % = product of fairs. Max pay = fair − 2¢. One leg per game (same-game legs are correlated). Shoe-in = fair ≥70¢ only.</p></div>
   <div class="card doc"><h3>How it works — rules</h3><ul class="small">
    <li>Live dip alert needs: price ≥15¢ under live fair after fees, AND payout up ≥20% vs the pre-drop price (profit = 100 − price; 60¢→52¢ = 40→48 = +20%), AND a lopsided game (spread ≥7).</li>

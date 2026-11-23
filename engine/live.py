@@ -263,6 +263,8 @@ def live_update(g, summary, ev, tables, live_state, snap, now):
                                        f"{bt['fd']} vs {bo['fd']} first downs (tested: not a reliable edge yet)", "kind": "ctx"})
         cl = M.classify(c["liveFair"], c.get("price"))
         live_call = cl["call"]
+        if c["liveFair"] is not None:
+            c["confidence"] = M.confidence(c["liveFair"])
         price_ = c.get("price")
         if c["ourLive"] is not None and price_ is not None and c["liveFair"] is not None:
             gap_ours = c["ourLive"] - price_
