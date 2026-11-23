@@ -69,12 +69,50 @@ function move(c) {
   let a = "";
   const fresh = c.priceChangedAt && Date.now() - Date.parse(c.priceChangedAt) < 10 * 60000 ? " flash" : "";
   if (pp != null && pp !== p) a = p < pp ? `<span class="mv-down${fresh}">▼ ${ct(pp - p)}</span>` : `<span class="mv-up${fresh}">▲ ${ct(p - pp)}</span>`;
-  return `${a} <span class="tiny muted">updated ${ago(S.B.generatedAt)}</span>`;
+  return `<span style="white-space:nowrap">${a} <span class="tiny muted">${ago(S.B.generatedAt)}</span></span>`;
 }
 function bestLine(c) {
   if (!c.bestTime) return "";
   const now = c.bestTime.startsWith("Now");
   return `<div class="best ${now ? "now" : ""}"><span>⏱ Best time</span><b>${esc(c.bestTime)}</b></div>`;
+}
+// one plain verdict line, first on every card: what to do and the single main reason
+function verdict(c) {
+  const live = c.state === "in";
+  const call = callOf(c);
+  const fair = live ? c.liveFair : c.fair;
+  const edge = live ? c.liveEdge : c.edge;
+  const buyAt = live ? c.liveBuyAt : c.buyAt;
+  const lines = c.liveLines || [];
+  let t;
+  if (c.priceStale && live) t = "Don't buy: prices are delayed right now";
+  else if (live && c.alertsOff) t = "Too late: under 5 minutes left";
+  else if (call === "Value") t = `Buy now: ${ct(edge)} below fair after fees`;
+  else if (call === "Wait") t = `Wait: buy only at ${ct(buyAt)} or less — you'll get an alert`;
+  else if (live && lines.some(l => l.kind === "to")) t = `Don't buy the drop: ${c.team} has ${lines.find(l => l.kind === "to").text.split(" ")[0]} turnovers`;
+  else if (live && lines.some(l => l.kind === "pause")) t = "Don't buy: " + lines.find(l => l.kind === "pause").text.replace(/^⏸\s*/, "").replace(/ — .*/, "");
+  else if (c.price == null) t = "No price yet";
+  else if (fair == null) t = "Don't buy: no fair price yet";
+  else if (c.price > fair) t = `Don't buy: price is ${ct(c.price - fair)} above fair`;
+  else if (fair - c.price < 1) t = "Don't buy: price is about fair";
+  else t = `Don't buy: only ${ct(fair - c.price)} below fair — too small after fees`;
+  return `<div class="verdict v-${call}">${esc(t)}</div>`;
+}
+// signals that don't change the call right now stay behind one tap
+function moreInfo(c, lines) {
+  const g = (S.B.games || []).find(x => x.id === c.gameId);
+  const hasGrades = (g?.grades?.[c.team] || []).length;
+  if (!lines.length && !hasGrades) return "";
+  const id = "mi:" + c.key;
+  let h = `<div class="line u muted" onclick="toggle('${esc(id)}')">More info${lines.length ? ` (${lines.length})` : ""}</div>`;
+  if (S.open.has(id)) h += liveInjLines({ ...c, liveLines: lines }) + (hasGrades ? teamChips(g, c.team) : "");
+  return h;
+}
+function gradesToggle(c) {
+  const g = (S.B.games || []).find(x => x.id === c.gameId);
+  if (!g || !(g.grades?.[c.team] || []).length) return "";
+  const id = "gt:" + c.key;
+  return `<div class="line u muted" onclick="toggle('${esc(id)}')">${ic("mu")}Team grades</div>${S.open.has(id) ? teamChips(g, c.team) : ""}`;
 }
 function profitLine(buy) { return buy == null ? "" : `Buy ${ct(buy)} → +${ct(100 - buy)} if it wins`; }
 
@@ -93,19 +131,20 @@ function betCard(c, opts = {}) {
   const open = S.open.has(id);
   return `<div class="card bg-${call}" data-card="${esc(c.key)}">
     <div class="row">${badge(c.team)}<div style="min-width:0"><b>${esc(c.name || c.team)}</b>${opts.vs ? `<div class="tiny muted">vs ${esc(c.opp)}</div>` : ""}</div><span class="sp"></span><span class="pill c-${call}">${call === "Value" ? "Buy" : call === "Wait" ? "Wait for a dip" : "Pass"}</span></div>
+    ${verdict(c)}
     <div class="row" style="margin-top:12px"><span class="hero">${ct(c.price)}</span><span class="sp"></span><span class="small">${move(c)}</span></div>
     <div class="sub">${call === "Wait" ? `Buy at ${ct(buyAt)} · ` : ""}Fair ${ct1(fair)}${c.edge != null && !live ? ` · Edge ${c.edge > 0 ? "+" : ""}${ct1(live ? c.liveEdge : c.edge)}` : ""}</div>
     ${priceBar(c.price, fair)}
     <div class="row small"><span>${meter(c.confidence)}</span><span class="sp"></span><span>${call !== "Pass" ? profitLine(buy) : (c.price != null ? `+${ct(100 - c.price)} if it wins` : "")}</span></div>
     ${tags.join("")}
-    ${bestLine(c)}
-    <div class="why u" onclick="toggle('${esc(id)}')">${esc(live && c.dipLine ? c.dipLine : c.why)}</div>
+    ${call !== "Pass" ? bestLine(c) : ""}
+    <div class="why u" onclick="toggle('${esc(id)}')">Details</div>
     ${open ? cardMore(c) : ""}
   </div>`;
 }
 function cardMore(c) {
   const r = (c.reasons || []).map(x => `<span class="chipf">${esc(x)}</span>`).join("");
-  return `<div class="gdet">${r || ""}<div style="margin-top:8px"><button class="btn pri" onclick="openBreakdown('${esc(c.key)}')">Full breakdown</button></div></div>`;
+  return `<div class="gdet">${c.why ? `<div class="small" style="margin-bottom:6px">${esc(c.why)}</div>` : ""}${r || ""}<div style="margin-top:8px"><button class="btn pri" onclick="openBreakdown('${esc(c.key)}')">Full breakdown</button></div></div>`;
 }
 
 // ---------- game sections ----------
@@ -243,16 +282,18 @@ function liveCard(g) {
   const id = "q:" + g.id;
   const tc = c => {
     const call = callOf(c);
+    const ctx = (c.liveLines || []).filter(l => l.kind !== "to" && l.kind !== "pause");
     return `<div class="card bg-${call}" style="margin:6px 0">
       <div class="row">${badge(c.team, "sm")}<b>${esc(c.team)}</b><span class="pill c-${call}">${LBL(call)}</span><span class="sp"></span><span class="hero" style="font-size:28px">${ct(c.price)}</span></div>
-      <div class="row small"><span>Fair ${ct1(c.liveFair)}${c.ourLive != null ? ` <span class="muted">· ours ${ct1(c.ourLive)}</span>` : ""}${call === "Wait" ? ` · Buy at ${ct(c.liveBuyAt)}` : ""}</span><span class="sp"></span><span>${move(c)}</span></div>
+      ${verdict(c)}
+      <div class="row small" style="margin-top:8px"><span>Fair ${ct(c.liveFair)}${call === "Wait" ? ` · Buy at ${ct(c.liveBuyAt)}` : ""}</span><span class="sp"></span>${move(c)}</div>
       ${priceBar(c.price, c.liveFair)}
-      <div class="row small"><span>${meter(c.confidence)}</span><span class="sp"></span>${c.price != null ? `<span>+${ct(100 - c.price)} if it wins</span>` : ""}</div>
-      ${c.dipLine ? `<div class="dip">${esc(c.dipLine)}</div>` : ""}
-      ${c.bothOff ? `<div class="dip">${esc(c.bothOff)}</div>` : ""}
-      ${bestLine(c)}
-      ${teamChips(g, c.team, ["Comeback", "Holds leads", "2nd half", "2nd-half D"])}
-      ${liveInjLines(c)}
+      <div class="row small"><span>${meter(c.confidence)}</span><span class="sp"></span>${c.price != null ? `<span style="white-space:nowrap">+${ct(100 - c.price)} if it wins</span>` : ""}</div>
+      ${c.dipLine && call !== "Pass" ? `<div class="note">${esc(c.dipLine.replace("Price dropped: now ", "Price fell to ").replace(", was ", " from "))}</div>` : ""}
+      ${c.bothOff && call === "Value" ? `<div class="note">${esc(c.bothOff)}</div>` : ""}
+      ${call !== "Pass" ? bestLine(c) : ""}
+      ${liveInjLines({ ...c, liveLines: ctx.filter(l => l.kind === "inj" || l.kind === "nextq") })}
+      ${moreInfo(c, ctx.filter(l => l.kind !== "inj" && l.kind !== "nextq"))}
     </div>`;
   };
   const wa = g.teams.away.liveFair, wh = g.teams.home.liveFair;
@@ -354,8 +395,11 @@ function comboCard(cat, k, res) {
   const id = "cb:" + ek;
   const edit = S.open.has(id);
   const w = Math.min(100, t.est / Math.max(t.maxPay, t.est, 0.01) * 100), mx = Math.min(100, t.maxPay / Math.max(t.maxPay, t.est, 0.01) * 100);
-  return `<div class="card ${t.edge >= 0 ? "bg-Value" : ""}">
-    <div class="row"><span class="pill ${t.edge >= 0 ? "c-Value" : "c-Pass"}">${legs.length}-leg${S.comboEdits[ek] ? " · edited" : ""}</span><span class="sp"></span>${tierTag(t.est)}</div>
+  const vc = t.edge >= 3 ? "Value" : t.edge >= 0 ? "Wait" : "Pass";
+  const vt = vc === "Value" ? `Buy if the combo costs ${ct1(t.maxPay)} or less` : vc === "Wait" ? `Skip: only ${ct1(t.edge)} below fair — about a fair price` : `Don't buy: costs about ${ct1(-t.edge)} more than it's worth`;
+  return `<div class="card bg-${vc}">
+    <div class="row"><span class="pill c-${vc}">${legs.length}-leg${S.comboEdits[ek] ? " · edited" : ""}</span><span class="sp"></span>${tierTag(t.est)}</div>
+    <div class="verdict v-${vc}">${esc(vt)}</div>
     <div class="row" style="margin-top:12px;align-items:flex-end"><span class="hero">${t.mk > 1 ? "≈" : ""}${ct1(t.est)}</span><span class="sp"></span><span class="small" style="text-align:right"><b class="c-Value">+${ct1(100 - t.est)}</b> if it wins</span></div>
     <div class="mpbar"><div class="cost ${t.est > t.maxPay ? "over" : ""}" style="width:${w}%"></div><div class="max" style="left:calc(${mx}% - 1px)"></div></div>
     <div class="small" style="margin-top:8px"><b>Pay no more than ${ct1(t.maxPay)} for the combo.</b> ${t.mk > 1 ? `<span class="muted">Estimated quote: legs multiplied ${ct1(t.cost)} + ~${Math.round((t.mk - 1) * 100)}% combo markup. Estimate — check the real price in Robinhood.</span>` : `<span class="muted">Legs multiplied: ${ct1(t.cost)}. Check the real price in Robinhood.</span>`}</div>
