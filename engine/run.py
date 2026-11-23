@@ -382,6 +382,11 @@ def tick(force=()):
         board["watch"] = WT.track(board)
     except Exception as e:
         print("watch failed:", e)
+    try:   # top combos (under 10c + best value), this week and next week; logged and graded weekly
+        from . import topcombos as TC
+        board["topCombos"] = TC.build(board)
+    except Exception as e:
+        print("top combos failed:", e)
     board["schedule"] = {"pregameAt": rs.get("pregameAt"), "thursdayBaseline": rs.get("pregame") == wk}
     LR.save(L)
     save_json(TOP_FILE, board, compact=True)

@@ -32,7 +32,7 @@ DSR_CUT = 0.45         # defensive success rate allowed, 80th pct 2006-20 (highe
 KEY_SNAP = 0.70
 FEE = 2
 TAGS = {"eqwd": "Elite QB, weak D", "dbu": "Their D banged up", "qbwr": "QB + WR1 beat their secondary",
-        "hot": "Hot streak overpriced"}
+        "hot": "Hot streak overpriced", "wrout": "Key WR out", "dogx": "Underdog experts pick"}
 DEF_POS = {"DE", "DT", "NT", "DL", "LB", "OLB", "ILB", "MLB", "CB", "S", "FS", "SS", "SAF", "DB"}
 
 
@@ -150,25 +150,56 @@ def _streaks(season):
     return out
 
 
-def _key_defenders(season, team, week):
-    """Players who averaged 70%+ defensive snaps in 2+ of this team's earlier games this season."""
+_SNAPS = {}
+
+
+def _snaps(season):
     import pandas as pd
-    p = os.path.join(D, f"snap_counts_{season}.csv.gz")
-    if not os.path.exists(p):
-        return {}
-    s = pd.read_csv(p)
-    s["team"] = _fx(s.team)
-    s = s[(s.team == team) & (s.week < week) & s.position.isin(DEF_POS) & (s.game_type == "REG")]
+    if season not in _SNAPS:
+        p = os.path.join(D, f"snap_counts_{season}.csv.gz")
+        s = pd.read_csv(p) if os.path.exists(p) else pd.DataFrame(columns=["team", "week", "position", "game_type", "player",
+                                                                           "defense_pct", "offense_pct"])
+        s["team"] = _fx(s.team) if len(s) else s.team
+        _SNAPS[season] = s
+    return _SNAPS[season]
+
+
+def _key_players(season, team, week, pos, col):
+    """Players who averaged 70%+ of snaps (col) in 2+ of this team's earlier games this season."""
+    s = _snaps(season)
+    s = s[(s.team == team) & (s.week < week) & s.position.isin(pos) & (s.game_type == "REG")]
     out = {}
     for n, x in s.groupby("player"):
-        if len(x) >= 2 and x.defense_pct.mean() >= KEY_SNAP:
+        if len(x) >= 2 and x[col].mean() >= KEY_SNAP:
             out[_norm(n)] = n
     return out
 
 
+def _key_defenders(season, team, week):
+    return _key_players(season, team, week, DEF_POS, "defense_pct")
+
+
 # Tested edge before fee in recent years (win % minus price, 2021-26), from the combo study.
-EDGE = {"eqwd": 6, "dbu": 5, "qbwr": 3}   # shrunk for selection luck (combo study Round 9c)
-HOT_PENALTY = 4    # hot-streak teams were priced 4-9c too high
+EDGE = {"eqwd": 6, "dbu": 5, "qbwr": 3, "dogx": 2}   # shrunk for selection luck (combo study Round 9c)
+FADE = {"hot": 4, "wrout": 3}   # these teams were priced too high (hot streak 4-9c, key WR out ~4c in both eras)
+LEARN_K = 150      # live games needed before our own results count as much as the study
+
+
+def edges():
+    """Edge per tag in cents, learned cautiously: the study's (shrunk) edge blended with how the tag has
+    actually done since we started tracking it, weighted LEARN_K study games vs n live games.
+    Good tags: tagged team's win % minus price. Fade tags: the other side's win % minus price."""
+    lg = load_json(LOG, {}) or {}
+    out = {}
+    for k, tag in TAGS.items():
+        prior = EDGE.get(k, FADE.get(k, 0))
+        xs = [r for r in (lg.get("rows") or {}).values() if r["tag"] == tag and r.get("won") is not None and r.get("price")]
+        if xs:
+            live = sum(100 * r["won"] - r["price"] for r in xs) / len(xs)
+            out[k] = round((prior * LEARN_K + live * len(xs)) / (LEARN_K + len(xs)), 1)
+        else:
+            out[k] = prior
+    return out
 FADE_EDGE = 3      # the other side of a hot streak: +1 to +5c, small
 GAP = 5            # a leg counts for the watch-tag combo when the tested win % beats its price by 5c+
 
@@ -224,7 +255,7 @@ def for_board(board, games_list=None, week=None, early=False):
     rw = _pct_rank({t: v["wrEpa"] for t, v in info.items()})
     rd = _pct_rank({t: v["passD"] for t, v in info.items()}, higher_better=False)
     sk = st.get("streaks") or {}
-    kd = {}
+    kd, kw = {}, {}
     for g in gms:
         a, h = g["teams"]["away"]["team"], g["teams"]["home"]["team"]
         flag = {t: bool(info[t]["qbEpa"] is not None and info[t]["qbEpa"] >= QB_CUT and info[t]["dsr"] is not None
@@ -264,20 +295,36 @@ def for_board(board, games_list=None, week=None, early=False):
             if hot:
                 tags.append({"team": t, "tag": TAGS["hot"], "kind": "fade",
                              "why": f"{'; '.join(hot)}. Hot teams have been priced 4–9¢ too high, so {o} is slightly better value"})
+        for t, o in ((a, h), (h, a)):
+            if t not in kw:
+                kw[t] = _key_players(season, t, week, {"WR"}, "offense_pct")
+            wo = [i["player"] for i in g.get("injuries") or [] if i.get("team") == t and i.get("status") in ("Out", "Doubtful")
+                  and _norm(i.get("player")) in kw[t]]
+            if wo:
+                tags.append({"team": t, "tag": TAGS["wrout"], "kind": "fade",
+                             "why": f"{', '.join(wo)} out (key WR). Teams missing a key WR have been priced ~4¢ too high, so {o} is slightly better value"})
+        e = g.get("experts") or {}
+        if e.get("dogPicks") and e.get("dog") in (a, h):
+            tags.append({"team": e["dog"], "tag": TAGS["dogx"], "kind": "good",
+                         "why": f"Picked by our underdog experts ({', '.join(n.split()[-1] for n in e['dogPicks'])}): +6% a pick over 2 seasons, small sample"})
         for x in tags:
             k = next(k for k, v in TAGS.items() if v == x["tag"])
             c = g["teams"]["away" if x["team"] == a else "home"]
             if g.get("state") == "pre" and k in EDGE and info[x["team"]]["price"] is not None:
                 x["price"] = round(info[x["team"]]["price"])
-                x["est"] = min(97, x["price"] + EDGE[k])
-            if k == "hot" and g.get("state") == "pre":
+                x["est"] = min(97, x["price"] + edges()[k])
+            if k in FADE and g.get("state") == "pre":
                 o = h if x["team"] == a else a
                 if info[o]["price"] is not None:
                     x["oppPrice"] = round(info[o]["price"])
-        hot_teams = {x["team"] for x in tags if x["tag"] == TAGS["hot"]}
+        pen = {}
         for x in tags:
-            if x.get("est") is not None and x["team"] in hot_teams:
-                x["est"] -= HOT_PENALTY          # the same team is on a hot streak: priced a bit high
+            k = next(k for k, v in TAGS.items() if v == x["tag"])
+            if k in FADE:
+                pen[x["team"]] = max(pen.get(x["team"], 0), edges()[k])
+        for x in tags:
+            if x.get("est") is not None and x["team"] in pen:
+                x["est"] -= pen[x["team"]]          # the same team is also overpriced (hot streak / key WR out)
                 x["netOfHot"] = True
         for x in tags:
             if early:
@@ -305,7 +352,8 @@ def leg_estimates(board, games_list=None):
                 o = next(t for t in (g["teams"]["away"]["team"], g["teams"]["home"]["team"]) if t != x["team"])
                 k = (g["id"], o)
                 e = out.get(k)
-                out[k] = (max(min(97, x["oppPrice"] + FADE_EDGE), e[0] if e else 0), x["oppPrice"], (e[2] if e else []) + [f"Other side of {x['team']} hot streak"])
+                kk = next(k2 for k2, v in TAGS.items() if v == x["tag"])
+                out[k] = (max(min(97, x["oppPrice"] + edges()[kk]), e[0] if e else 0), x["oppPrice"], (e[2] if e else []) + [f"Other side of {x['team']} ({x['tag'].lower()})"])
     return out
 
 
@@ -409,14 +457,17 @@ def track(board):
         w = sum(1 for r in xs if r["won"])
         net = sum((100 - r["price"] - FEE) if r["won"] else -(r["price"] + FEE) for r in xs)
         out[tag] = {"n": n, "w": w, "price": round(float(np.mean([r["price"] for r in xs])), 1) if n else None,
-                    "netPer": round(net / n, 1) if n else None, "fade": tag == TAGS["hot"]}
-    return {"live": out, "study": STUDY}
+                    "netPer": round(net / n, 1) if n else None, "fade": tag in (TAGS["hot"], TAGS["wrout"])}
+    return {"live": out, "study": STUDY, "edges": {TAGS[k]: v for k, v in edges().items()},
+            "prior": {TAGS[k]: EDGE.get(k, FADE.get(k)) for k in TAGS}, "learnK": LEARN_K}
 
 
 STUDY = {
     TAGS["eqwd"]: "2006–20: 397 games won 68.5% at 61¢ avg. 2021–26: 162 games won 68.5% at 58.5¢ (about +8¢ after fee).",
     TAGS["dbu"]: "2013–20: 172 games won 59% at 52¢. 2021–24: 113 games 60% at 55¢. 2025–26: 43 games 67% at 56¢.",
     TAGS["qbwr"]: "Priced 65–80¢: 2013–20 247 games won 82% at 73¢. 2021–24 114 games 80%. 2025–26 53 games 83% (about +4 to +8¢).",
+    TAGS["wrout"]: "Team missing a key WR (70%+ snaps): priced ~4¢ too high in 2013–20 and 2021–26 (309 / 248 games). Tracked on the other side.",
+    TAGS["dogx"]: "Underdog picks by our 3 best underdog experts: 50 of 112 won, +6% a pick over 2025–26. Small sample.",
     TAGS["hot"]: "Teams on a hot player streak were priced 4–9¢ too high (QB 3+ straight 250-yd games, RB1 or WR1 2+ straight "
                  "100-yd games). Betting the other side: +1 to +5¢, small. Tracked on the other side.",
 }

@@ -165,6 +165,7 @@ function betCard(c, opts = {}) {
     <div class="row" style="margin-top:12px"><span class="hero">${ct(c.price)}</span><span class="sp"></span><span class="small">${move(c)}</span></div>
     <div class="sub">${fairPay(c, fair, buy, call)}</div>
     ${priceBar(c.price, fair, c.dayLo, c.dayHi)}
+    ${c.confidence ? `<div class="row" style="margin-top:6px">${meter(live && c.liveFair != null ? { level: c.liveFair >= 65 ? "High" : c.liveFair >= 45 ? "Med" : "Low" } : c.confidence)}<span class="small muted">· ${Math.round(fair ?? c.confidence.score)}%</span></div>` : ""}
     ${tags.join("")}
     ${closeTag(c)}
     ${call !== "Pass" && call !== "Sell" ? bestLine(c) : ""}
@@ -379,6 +380,12 @@ function expertsLine(g) {
 }
 // watch tags (combo study) + expert spots: one skinny banner at the top of the card, on that team's side.
 // Tags only — they never change the call. Tap the card for the why.
+// our confidence (win chance) for both teams, on every game row
+function winLine(g) {
+  const f = c => c.confidence ? `<b>${esc(c.team)}</b> ${Math.round(c.fair ?? c.confidence.score)}% <span class="cl ${c.confidence.level}">${c.confidence.level}</span>` : "";
+  const a = f(g.teams.away), h = f(g.teams.home);
+  return a || h ? `<div class="tiny muted" style="margin-top:2px">Win chance: ${a}${a && h ? " · " : ""}${h}</div>` : "";
+}
 function tagBar(g, id) {
   const items = { [g.away]: [], [g.home]: [] };
   const short = { "QB + WR1 beat their secondary": "QB + WR1 > their pass D", "Hot streak overpriced": "Hot streak · priced ~4¢ high" };
@@ -436,7 +443,7 @@ function gameRow(g) {
   const bc = callOf(best);
   const o = S.open.has(id);
   const tm = c => `<div class="tm">${badge(c.team, "sm")}<span>${esc(c.name || c.team)}</span><span class="sp"></span></div>`;
-  let row = `${tagBar(g, id)}<div class="grow" onclick="toggle('${id}')"><div class="mt sp">${tm(a)}${tm(h)}${spreadTxt(g) ? `<div class="tiny muted" style="margin-top:2px">${esc(spreadTxt(g))}</div>` : ""}${expertsLine(g)}</div>
+  let row = `${tagBar(g, id)}<div class="grow" onclick="toggle('${id}')"><div class="mt sp">${tm(a)}${tm(h)}${spreadTxt(g) ? `<div class="tiny muted" style="margin-top:2px">${esc(spreadTxt(g))}</div>` : ""}${expertsLine(g)}${winLine(g)}</div>
     <div class="rt"><span class="kt">${kick(g.kickoff)}</span><span class="pill c-${bc}">${esc(best.team)} ${LBL(bc)}</span></div>
     <span class="chev ${o ? "open" : ""}">›</span></div>`;
   if (o) row += `<div class="card">${gameDetail(g)}</div>`;
@@ -597,7 +604,7 @@ function comboCard(cat, k, res, safe) {
   const vt = vc === "Value" ? `Buy if the combo costs ${ct1(t.maxPay)} or less` : vc === "Wait" ? `Skip: only ${ct1(t.edge)} below fair — about a fair price` : `Don't buy: costs about ${ct1(-t.edge)} more than it's worth`;
   const vtS = safe && vc === "Wait" ? `About a fair price — OK if you want a likely winner. Pay ${ct1(t.maxPay)} or less` : vt;
   return `<div class="card bg-${vc}">
-    <div class="row"><span class="pill c-${vc}">${legs.length}-leg${S.comboEdits[ek] ? " · edited" : ""}</span><span class="sp"></span>${tierTag(t.est)}</div>
+    <div class="row"><span class="pill c-${vc}">${legs.length}-leg${S.comboEdits[ek] ? " · edited" : ""}</span><span class="sp"></span>${tierTag(t.est)}${confChip(comboConfJS(t.hit, t.est, legs))}</div>
     <div class="verdict v-${vc}">${esc(vtS)}</div>
     ${safe ? `<div class="safehit"><b>${pct(t.hit)}</b><span>chance every leg wins</span></div>` : ""}
     <div class="row" style="margin-top:12px;align-items:flex-end"><span class="hero">${t.mk > 1 ? "≈" : ""}${ct1(t.est)}</span><span class="sp"></span><span class="small" style="text-align:right"><b class="c-Value">+${ct1(100 - t.est)}</b> if it wins</span></div>
@@ -648,15 +655,47 @@ function watchCombo(k) {
   if (nk) h += `<h2>Next week · early watch-tag combo — ${nk} legs</h2><div class="small muted" style="margin:-4px 0 8px">Same rule on next week's early prices and injury reports. Early: news can still change these.</div><div class="safehit"><b>~${N[nk].est}%</b><span>tested chance every leg wins · costs ~${N[nk].cost}¢</span></div>${comboCard("watchNext", nk, N[nk], true)}`;
   return h;
 }
+const ctabTop = () => `<button class="${(S.ccat || "top") === "top" ? "on" : ""}" onclick="setCombo('top')">Top picks</button>`;
+const confChip = l => `<span class="cconf ${l}">Confidence ${l}</span>`;
+function comboConfJS(hit, cost, legs) {
+  const weak = legs.some(l => (l.est ?? l.fair) < 45), strong = legs.filter(l => (l.est ?? l.fair) >= 65).length >= legs.length / 2;
+  return !weak && strong && hit >= cost + 2 ? "High" : !weak && hit >= cost ? "Med" : "Low";
+}
+function topCard(c, i) {
+  return `<div class="card">
+    <div class="row"><b>#${i + 1} · ${c.size} legs</b><span class="sp"></span>${confChip(c.conf)}</div>
+    <div class="safehit"><b>~${c.hit}%</b><span>our chance every leg wins (about 1 in ${c.oneIn}) · costs ~${c.cost}¢</span></div>
+    <div class="tiny muted">${c.hit >= c.cost + 2 ? `Our chance beats the cost by ${(c.hit - c.cost).toFixed(1)}¢` : c.hit >= c.cost ? "About a fair price" : `Costs ${(c.cost - c.hit).toFixed(1)}¢ more than our chance`} · legs multiplied ${c.legsCost}¢. Skip if Robinhood's combo price is 10%+ above that.${c.reused ? ` Shares ${c.reused} game${c.reused > 1 ? "s" : ""} with a pick above (strongest legs).` : ""}</div>
+    <div style="margin-top:8px">${c.legs.map(l => `<div class="leg">${badge(l.team, "sm")}<div style="min-width:0"><b>${esc(l.team)}</b> <span class="small muted">vs ${esc(l.opp)}</span>${l.dog ? ` <span class="tag look">underdog</span>` : ""}<br>${(l.why || []).map(x => `<span class="tag good">${esc(x)}</span>`).join("")}</div><span class="sp"></span><span class="small muted">${Math.round(l.est)}%</span><span class="p">${ct(l.price)}</span></div>`).join("")}</div>
+  </div>`;
+}
+function topCombosView() {
+  const T = S.B.topCombos || {};
+  let h = `<div class="ptitle">Combos</div><div class="psub">Top picks · this week and next week</div><div class="ctabs">${ctabTop()}<button onclick="setCombo('standard')">All games</button><button onclick="setCombo('combined')">Shoe-in + dips</button></div>`;
+  const sec = (w, title, early) => {
+    const x = T[w] || {};
+    h += `<h2>${title} · 3 under ${T.cheapMax || 10}¢</h2><div class="small muted" style="margin:-4px 0 8px">Best chance to hit for under ${T.cheapMax || 10}¢, using as few of the same games as possible. Built mostly from favourites (they've been slightly underpriced); an underdog only when we expect it to win.${early ? " Early prices: news can change these." : ""}</div>`;
+    h += (x.cheap || []).length ? x.cheap.map(topCard).join("") : NOREC(`${x.legs || 0} teams with prices`);
+    h += `<h2>${title} · best value + chance</h2><div class="small muted" style="margin:-4px 0 8px">Any price: the best mix of our win chance and what it costs.</div>`;
+    h += (x.value || []).length ? x.value.map(topCard).join("") : NOREC();
+  };
+  sec("thisWeek", "This week");
+  sec("nextWeek", "Next week (early)", true);
+  const r = T.record || {};
+  if (r.cheap?.n || r.value?.n) h += `<div class="small muted" style="margin-top:8px">Track record: under-10¢ picks hit ${r.cheap.won} of ${r.cheap.n} (we expected ${r.cheap.expected}); value picks ${r.value.won} of ${r.value.n} (expected ${r.value.expected}).</div>`;
+  h += `<div class="tiny muted" style="margin-top:8px">Info only — check each leg's Buy/Wait/Pass. Our chance = our fair value plus watch tags (learned each week from how they do).</div>`;
+  return h;
+}
 function combosView() {
   S.csize = S.csize || {};
-  const cat = S.ccat || "standard";
+  const cat = S.ccat || "top";
+  if (cat === "top") return topCombosView();
   const sizes = comboSizes(cat);
   const r = S.B.combos[cat] || {};
   const k = sizes.includes(S.csize[cat]) ? S.csize[cat] : bestSize(cat);
   const found = sizes.filter(x => r[x].combo).length;
   let h = `<div class="ptitle">Combos</div><div class="psub">${found ? `${found} size${found > 1 ? "s" : ""} clear the bar` : "Nothing clears the bar right now"} · live + upcoming games</div>
-    <div class="ctabs"><button class="${cat === "standard" ? "on" : ""}" onclick="setCombo('standard')">All games</button><button class="${cat === "combined" ? "on" : ""}" onclick="setCombo('combined')">Shoe-in + dips</button></div>`;
+    <div class="ctabs">${ctabTop()}<button class="${cat === "standard" ? "on" : ""}" onclick="setCombo('standard')">All games</button><button class="${cat === "combined" ? "on" : ""}" onclick="setCombo('combined')">Shoe-in + dips</button></div>`;
   h += `<h2>${cat === "standard" ? "Weekly combos — live + upcoming" : "Combined combos — lopsided + TD dip + shoe-in"}</h2>`;
   if (!sizes.length) return h + NOREC(`${S.B.combos.poolGames || 0} games with prices — need 2`) + (cat === "standard" ? watchCombo() : "");
   h += `<div class="sizes">${sizes.map(x => `<button class="${x === k ? "on" : ""} ${r[x].combo ? "has" : ""}" onclick="setCombo('${cat}',${x})"><b>${x}</b><span>${r[x].combo ? "+" + ct1(r[x].combo.edge) : "legs"}</span></button>`).join("")}</div>`;
@@ -728,7 +767,7 @@ function learning() {
     const id = "wt";
     const sm = Object.entries(W.live).map(([k, v]) => `${k} ${v.n ? `${v.w}/${v.n}` : "0 yet"}`).join(" · ");
     h += `<h2>Watch tags</h2><div class="line u" onclick="toggle('${id}')">${esc(sm)} · tag only</div>`;
-    if (S.open.has(id)) h += `<table class="qt"><tr><th>Tag</th><th>Live</th><th>Tested</th></tr>${Object.entries(W.live).map(([k, v]) => `<tr><td>${esc(k)}</td><td>${v.n ? `${v.w}/${v.n} won at ${v.price}¢ avg · ${v.netPer >= 0 ? "+" : ""}${v.netPer}¢ each after fee` : "none graded yet"}</td><td class="small">${esc((W.study || {})[k] || "")}</td></tr>`).join("")}</table><div class="tiny muted">Both beat the price in older and recent years, but were found by searching many combinations, so they don't change prices or calls. They're tracked here from now on and only get promoted if they keep winning more than their price.</div>`;
+    if (S.open.has(id)) h += `<table class="qt"><tr><th>Tag</th><th>Live</th><th>Tested</th></tr>${Object.entries(W.live).map(([k, v]) => `<tr><td>${esc(k)}${W.edges ? `<div class="tiny muted">edge now ${W.edges[k] > 0 ? "+" : ""}${W.edges[k]}¢ (started ${W.prior?.[k]}¢)</div>` : ""}</td><td>${v.n ? `${v.w}/${v.n} won at ${v.price}¢ avg · ${v.netPer >= 0 ? "+" : ""}${v.netPer}¢ each after fee` : "none graded yet"}</td><td class="small">${esc((W.study || {})[k] || "")}</td></tr>`).join("")}</table><div class="tiny muted">Both beat the price in older and recent years, but were found by searching many combinations, so they don't change prices or calls. They're tracked here from now on. Each week the edge we use moves toward how the tag actually did, slowly: our own results count as much as the study only after ${W.learnK || 150} games.</div>${(() => { const r = S.B.topCombos?.record; return r ? `<div class="small" style="margin-top:6px"><b>Suggested combos</b>: under-10¢ hit ${r.cheap.won} of ${r.cheap.n} (expected ${r.cheap.expected}, ${r.cheap.net >= 0 ? "+" : ""}${r.cheap.net}¢ for 1 contract each) · value ${r.value.won} of ${r.value.n} (expected ${r.value.expected}, ${r.value.net >= 0 ? "+" : ""}${r.value.net}¢)</div>` : ""; })()}`;
   }
   // backtest
   if (bt) {

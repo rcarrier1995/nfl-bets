@@ -270,3 +270,18 @@ def test_watch_track_fade_bets_other_side(tmp_path, monkeypatch):
     assert out[W.TAGS["hot"]]["w"] == 1 and out[W.TAGS["hot"]]["price"] == 30      # bet on A at A's price
     assert out[W.TAGS["qbwr"]]["w"] == 0 and out[W.TAGS["qbwr"]]["n"] == 1
     assert W._pct_rank({"x": 1, "y": 2, "z": 3})["z"] > W._pct_rank({"x": 1, "y": 2, "z": 3})["x"]
+
+
+def test_top_combos_under_10c_and_spread_out():
+    from engine import topcombos as T
+    legs = []
+    for i in range(12):
+        p = 60 + i * 2
+        legs.append({"gameId": str(i), "team": f"F{i}", "opp": f"D{i}", "price": p, "fair": p + 1, "est": p + 1, "dog": False, "why": []})
+        legs.append({"gameId": str(i), "team": f"D{i}", "opp": f"F{i}", "price": 100 - p, "fair": 99 - p, "est": 99 - p, "dog": True, "why": []})
+    cheap = T.pick(legs, "cheap")
+    assert len(cheap) == 3 and all(c["cost"] <= 10 for c in cheap)
+    assert all(len({l["gameId"] for l in c["legs"]}) == c["size"] for c in cheap)        # one leg per game
+    assert not any(l["dog"] for c in cheap for l in c["legs"])                           # no longshots
+    assert cheap[1]["reused"] < cheap[1]["size"]
+    assert all(c["conf"] in ("High", "Med", "Low") for c in T.pick(legs, "value"))
