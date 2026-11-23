@@ -287,14 +287,6 @@ function quarterTable(g, only) {
   return `<table class="qt"><tr><th>Q</th><th>Score</th><th>Lead</th><th>Weather</th><th>Injuries</th><th>TO</th><th>QB</th></tr>${qs.map(q =>
     `<tr><td>Q${q.q}</td><td>${q.cumAway}-${q.cumHome}</td><td>${esc(q.leader)}</td><td>${esc(q.weather || "")}</td><td>${esc((q.injuries || []).join(", "))}</td><td>${q.turnovers?.[g.away] ?? 0}/${q.turnovers?.[g.home] ?? 0}</td><td>${esc(Object.values(q.qb || {}).filter(Boolean).join(" / "))}</td></tr>`).join("")}</table>`;
 }
-// a live game whose price is 2¢ or less on one side is effectively over: one line, no team cards
-function decided(g) {
-  const a = g.teams.away, h = g.teams.home;
-  const lv = c => c.price ?? c.liveFair;
-  if (lv(a) == null || lv(h) == null) return "";
-  const [w, l] = lv(a) >= lv(h) ? [a, h] : [h, a];
-  return lv(l) <= 2 || lv(w) >= 98 ? `${w.team} ${ct(lv(w))} · ${l.team} ${ct(lv(l))}` : "";
-}
 function liveCard(g) {
   const id = "q:" + g.id;
   const tc = c => {
@@ -315,10 +307,10 @@ function liveCard(g) {
   const wa = g.teams.away.liveFair, wh = g.teams.home.liveFair;
   const wp = wa != null && wh != null ? `<div class="wpbar"><i style="width:${wa / (wa + wh) * 100}%;background:${esc(COLORS()[g.away] || "#556")}"></i><i style="flex:1;background:${esc(COLORS()[g.home] || "#889")}"></i></div><div class="row tiny muted" style="margin:-6px 0 8px"><span>${pct(wa)} win</span><span class="sp"></span><span>${pct(wh)} win</span></div>` : "";
   return `<div class="card">${scoreBlock(g)}${wp}
-    ${decided(g) ? `<div class="note">Decided: ${esc(decided(g))} — nothing to buy or sell</div>` : `<div class="teams2">${tc(g.teams.away)}${tc(g.teams.home)}</div>`}
+    <div class="teams2">${tc(g.teams.away)}${tc(g.teams.home)}</div>
     <div class="line u" onclick="toggle('${id}')">Quarters · ${(g.quarters || []).map(q => `Q${q.q} ${q.cumAway}-${q.cumHome}`).join(" · ") || "—"}</div>
     ${S.open.has(id) ? quarterTable(g) : ""}
-    ${injLine(g)}${decided(g) ? "" : gradesBlock(g) + gradeLines(g)}${toLine(g)}${wxLine(g)}</div>`;
+    ${injLine(g)}${gradesBlock(g)}${gradeLines(g)}${toLine(g)}${wxLine(g)}</div>`;
 }
 
 // ---------- tabs ----------
