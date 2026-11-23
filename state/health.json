@@ -1,23 +1,23 @@
 {
  "espn": {
   "ok": true,
-  "lastOk": "2026-11-23T19:14:40Z",
+  "lastOk": "2026-11-23T19:24:49Z",
   "note": "",
   "fails": 0
  },
  "kalshi": {
   "ok": true,
-  "lastOk": "2026-11-23T19:14:27Z",
+  "lastOk": "2026-11-23T19:24:45Z",
   "note": "",
   "fails": 0,
   "lastFail": "2026-11-23T02:19:30Z",
   "error": "HTTP Error 429: Too Many Requests"
  },
  "weather": {
-  "ok": false,
-  "lastOk": "2026-11-23T19:04:19Z",
+  "ok": true,
+  "lastOk": "2026-11-23T19:24:45Z",
   "note": "",
-  "fails": 1,
+  "fails": 0,
   "lastFail": "2026-11-23T19:14:37Z",
   "error": "HTTP Error 503: Service Unavailable"
  },
