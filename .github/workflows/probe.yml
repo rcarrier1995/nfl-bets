@@ -19,30 +19,25 @@ jobs:
             code=$(curl -sL -m 25 -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36" -o probe/out/$i.html -w '%{http_code} %{size_download}' "$u")
             echo "$i $code $u" | tee -a probe/out/index.txt; sleep 2
           done <<'URLS'
-          https://www.cbssports.com/nfl/picks/experts/straight-up/1/
-          https://www.cbssports.com/nfl/picks/experts/straight-up/2/
-          https://www.cbssports.com/nfl/picks/experts/straight-up/3/
-          https://www.cbssports.com/nfl/picks/experts/straight-up/4/
-          https://www.cbssports.com/nfl/picks/experts/straight-up/5/
-          https://www.cbssports.com/nfl/picks/experts/straight-up/6/
-          https://www.cbssports.com/nfl/picks/experts/straight-up/7/
-          https://www.cbssports.com/nfl/picks/experts/straight-up/8/
-          https://www.cbssports.com/nfl/picks/experts/straight-up/9/
-          https://www.cbssports.com/nfl/picks/experts/straight-up/10/
-          https://www.cbssports.com/nfl/picks/experts/straight-up/11/
-          https://www.cbssports.com/nfl/picks/experts/straight-up/12/
-          https://www.cbssports.com/nfl/picks/experts/against-the-spread/1/
-          https://www.cbssports.com/nfl/picks/experts/against-the-spread/2/
-          https://www.cbssports.com/nfl/picks/experts/against-the-spread/3/
-          https://www.cbssports.com/nfl/picks/experts/against-the-spread/4/
-          https://www.cbssports.com/nfl/picks/experts/against-the-spread/5/
-          https://www.cbssports.com/nfl/picks/experts/against-the-spread/6/
-          https://www.cbssports.com/nfl/picks/experts/against-the-spread/7/
-          https://www.cbssports.com/nfl/picks/experts/against-the-spread/8/
-          https://www.cbssports.com/nfl/picks/experts/against-the-spread/9/
-          https://www.cbssports.com/nfl/picks/experts/against-the-spread/10/
-          https://www.cbssports.com/nfl/picks/experts/against-the-spread/11/
-          https://www.cbssports.com/nfl/picks/experts/against-the-spread/12/
+          https://www.nfl.com/robots.txt
+          https://www.nfl.com/news/nfl-picks-week-1-2026-nfl-season
+          https://www.nfl.com/news/nfl-picks-week-2-2026-nfl-season
+          https://www.nfl.com/news/nfl-picks-week-3-2026-nfl-season
+          https://www.nfl.com/news/nfl-picks-week-4-2026-nfl-season
+          https://www.nfl.com/news/nfl-picks-week-5-2026-nfl-season
+          https://www.nfl.com/news/nfl-picks-week-6-2026-nfl-season
+          https://www.nfl.com/news/nfl-picks-week-7-2026-nfl-season
+          https://www.nfl.com/news/nfl-picks-week-8-2026-nfl-season
+          https://www.nfl.com/news/nfl-picks-week-9-2026-nfl-season
+          https://www.nfl.com/news/nfl-picks-week-10-2026-nfl-season
+          https://www.nfl.com/news/nfl-picks-week-11-2026-nfl-season
+          https://www.nfl.com/news/nfl-picks-week-12-2026-nfl-season
+          https://www.espn.com/nfl/picks/_/week/11/seasontype/2
+          https://www.thescore.com/robots.txt
+          https://www.thescore.com/nfl/news/2482668
+          https://www.rotowire.com/robots.txt
+          https://www.rotowire.com/football/article/beating-the-book-98710
+          https://www.si.com/robots.txt
           URLS
           sed -i 's/^ *//' probe/out/index.txt
       - run: |
