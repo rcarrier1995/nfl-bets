@@ -261,6 +261,9 @@ def tick(force=()):
     ms = load_json(os.path.join(C.STATE, "model_study.json"))
     if ms:
         pub["modelStudy"] = ms
+    ts = load_json(os.path.join(C.STATE, "timing_study.json"))
+    if ts:
+        pub["timingStudy"] = ts
     if ih:
         pub["injuryResearch"] = {k: ih.get(k) for k in ("headline", "byQuarter", "byPosition", "throughWeek", "builtAt")}
     save_json(LEARN_PUB, pub, compact=True)

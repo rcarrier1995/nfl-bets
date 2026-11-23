@@ -222,7 +222,10 @@ def build(now=None, extra_shrink=1.0, calib=None, sb_override=None):
     comb = CB.search_legs(combined_legs)
 
     from .lag import record_and_detect
+    from .timing import best_time
     record_and_detect({"games": games}, now)
+    for c in calls:
+        c["bestTime"] = best_time(c)
     top3 = top_three([c for c in calls if c.get("state") == "pre"])
     save_json(LIVE_FILE, live_state, compact=True)
     save_json(SNAP_FILE, snaps, compact=True)

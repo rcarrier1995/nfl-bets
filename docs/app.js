@@ -67,6 +67,11 @@ function move(c) {
   if (pp != null && pp !== p) a = p < pp ? `<span class="mv-down${fresh}">▼ ${ct(pp - p)}</span>` : `<span class="mv-up${fresh}">▲ ${ct(p - pp)}</span>`;
   return `${a} <span class="tiny muted">updated ${ago(S.B.generatedAt)}</span>`;
 }
+function bestLine(c) {
+  if (!c.bestTime) return "";
+  const now = c.bestTime.startsWith("Now");
+  return `<div class="best ${now ? "now" : ""}"><span>⏱ Best time</span><b>${esc(c.bestTime)}</b></div>`;
+}
 function profitLine(buy) { return buy == null ? "" : `Buy ${ct(buy)} → +${ct(100 - buy)} if it wins`; }
 
 // ---------- bet card ----------
@@ -88,6 +93,7 @@ function betCard(c, opts = {}) {
     ${priceBar(c.price, fair)}
     <div class="row small"><span>${meter(c.confidence)}</span><span class="sp"></span><span>${call !== "Pass" ? profitLine(buy) : (c.price != null ? `+${ct(100 - c.price)} if it wins` : "")}</span></div>
     ${tags.join("")}
+    ${bestLine(c)}
     <div class="why u" onclick="toggle('${esc(id)}')">${esc(live && c.dipLine ? c.dipLine : c.why)}</div>
     ${open ? cardMore(c) : ""}
   </div>`;
@@ -207,6 +213,7 @@ function liveCard(g) {
       ${priceBar(c.price, c.liveFair)}
       <div class="row small"><span>${meter(c.confidence)}</span><span class="sp"></span>${c.price != null ? `<span>+${ct(100 - c.price)} if it wins</span>` : ""}</div>
       ${c.dipLine ? `<div class="dip">${esc(c.dipLine)}</div>` : ""}
+      ${bestLine(c)}
       ${liveInjLines(c)}
     </div>`;
   };
@@ -252,7 +259,7 @@ function pregame() {
       const buy = c.call === "Wait" ? c.buyAt : c.price;
       return `<div class="card bg-${c.call}" onclick="openBreakdown('${esc(c.key)}')"><div class="row">${badge(c.team)}<div><b>${esc(c.team)}</b><div class="tiny muted">vs ${esc(c.opp)}</div></div><span class="sp"></span><span class="pill c-${c.call}">${c.call}</span></div>
       <div class="hero" style="margin-top:12px">${ct(c.price)}</div><div class="sub">${c.call === "Wait" ? `Buy at ${ct(c.buyAt)} · ` : ""}Fair ${ct1(c.fair)}</div>
-      <div class="small" style="margin-top:6px"><b>Buy ${ct(buy)} → win ${ct(100 - buy)}</b></div><div class="small">${meter(c.confidence)}</div></div>`;
+      <div class="small" style="margin-top:6px"><b>Buy ${ct(buy)} → win ${ct(100 - buy)}</b></div><div class="small">${meter(c.confidence)}</div>${bestLine(c)}</div>`;
     }).join("")}</div>`;
   }
   const vw = pre.filter(c => ["Value", "Wait"].includes(c.call)).filter(filt).sort((a, b) => rank(b.call) - rank(a.call) || b.edge - a.edge);
@@ -417,6 +424,12 @@ function learning() {
     const id = "ms";
     h += `<h2>Model check</h2><div class="line u" onclick="toggle('${id}')">Tested on ${ms.trainGames + ms.testGames} games · new model ≈ market</div>`;
     if (S.open.has(id)) h += `<table class="qt"><tr><th>Model</th><th>Log loss 21–25</th><th>2026</th><th>Bets</th></tr>${ms.rows.map(r => `<tr><td>${esc(r.model)}</td><td>${r.trainLogLoss}</td><td>${r.testLogLoss}</td><td>${esc(r.betPnl || "")}</td></tr>`).join("")}</table><div class="tiny muted">Lower log loss = better.</div><div class="small">${ms.findings.map(f => "• " + esc(f)).join("<br>")}</div>${tile("New model calibration, 1,359 games", calibChart(ms.calibrationNew))}`;
+  }
+  const ts = L.timingStudy;
+  if (ts) {
+    const id = "ts";
+    h += `<h2>Best time to bet</h2><div class="line u" onclick="toggle('${id}')">${ts.games} games tested · no moment is cheap by itself</div>`;
+    if (S.open.has(id)) h += `<div class="small" style="margin:6px 0">${esc(ts.finding)} ${esc(ts.note || "")}</div><table class="qt"><tr><th>Spot</th><th>Games</th><th>Priced</th><th>Won</th><th>2026</th></tr>${ts.rows.filter(r => r.n >= 300).map(r => `<tr><td>${esc(r.spot)}</td><td>${r.n}</td><td>${r.price}%</td><td>${r.won}%</td><td>${r.gapTest == null ? "—" : (r.gapTest > 0 ? "+" : "") + r.gapTest}</td></tr>`).join("")}</table><div class="tiny muted">Quarter ends and the play after each TD, 2021–25, checked on 2026. "2026" = won minus priced, in points.</div>`;
   }
   // patterns by call
   const bc = L.byCall || {};

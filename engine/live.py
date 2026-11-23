@@ -238,7 +238,7 @@ def live_update(g, summary, ev, tables, live_state, snap, now):
         price = c.get("price")
         c["dipRef"] = ref
         if price is not None and ref is not None and price < ref and not late:
-            c["dipLine"] = f"Dip alert: now {price:.0f}¢, was {ref:.0f}¢"
+            c["dipLine"] = f"Price dropped: now {price:.0f}¢, was {ref:.0f}¢"
         payout_up = None
         if price is not None and ref is not None and ref < 100:
             payout_up = (100 - price) / (100 - ref) - 1
