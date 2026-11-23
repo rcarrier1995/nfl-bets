@@ -777,4 +777,20 @@ const th = localGet("theme"); if (th) document.documentElement.dataset.theme = t
 load();
 setInterval(() => { if (document.visibilityState === "visible") load(); }, 60000);
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") load(); });
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then(r => r.update()).catch(() => {});
+  let reloaded = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => { if (!reloaded) { reloaded = true; location.reload(); } });
+}
+// If a newer version of the app is published, reload once so page, styles and script always match.
+const MY_V = (document.querySelector('script[src*="app.js"]')?.getAttribute("src") || "").split("v=")[1] || "";
+async function checkVersion() {
+  try {
+    const html = await fetch("./?nv=" + Date.now(), { cache: "no-store" }).then(r => r.text());
+    const v = (html.match(/app\.js\?v=([0-9a-f]+)/) || [])[1];
+    if (v && MY_V && v !== MY_V) location.reload();
+  } catch (e) {}
+}
+checkVersion();
+setInterval(() => { if (document.visibilityState === "visible") checkVersion(); }, 120000);
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") checkVersion(); });

@@ -60,7 +60,7 @@ main.enter{animation:enter .22s ease-out}
 .tabs{position:fixed;bottom:0;left:0;right:0;z-index:30;display:flex;justify-content:center;
   background:var(--bg2);border-top:1px solid var(--line);padding:0 8px calc(env(safe-area-inset-bottom) * .6)}
 .tabs .in{display:flex;width:100%;max-width:420px}
-.tabs button{flex:1;border:0;background:none;height:40px;padding:0;color:var(--faint);display:grid;place-items:center;cursor:pointer;position:relative;transition:color .15s}
+.tabs button{flex:1;border:0;background:none;height:40px;padding:0;font-size:0;overflow:hidden;color:var(--faint);display:grid;place-items:center;cursor:pointer;position:relative;transition:color .15s}
 .tabs button .ic{width:40px;height:28px;border-radius:14px;display:grid;place-items:center;transition:background .2s}
 .tabs button svg{width:19px;height:19px}
 .tabs button.on{color:var(--accent)}

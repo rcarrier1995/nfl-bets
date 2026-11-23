@@ -170,6 +170,13 @@ def test_odds_consensus_and_spread():
     assert abs(h - c["pHome"] * 100) < 0.6
 
 
+def test_index_stamp_current():
+    from engine.stamp import version
+    import os
+    html = open(os.path.join(os.path.dirname(__file__), "..", "docs", "index.html")).read()
+    assert f"style.css?v={version()}" in html and f"app.js?v={version()}" in html, "run: python -m engine.stamp"
+
+
 if __name__ == "__main__":
     for k, f in list(globals().items()):
         if k.startswith("test_"):
