@@ -19,25 +19,25 @@ jobs:
             code=$(curl -sL -m 25 -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36" -o probe/out/$i.html -w '%{http_code} %{size_download}' "$u")
             echo "$i $code $u" | tee -a probe/out/index.txt
           done <<'URLS'
-          https://nflpickwatch.com/robots.txt
-          https://nflpickwatch.com/nfl/experts
-          https://nflpickwatch.com/nfl/picks
-          https://www.cbssports.com/robots.txt
-          https://www.cbssports.com/nfl/picks/experts/straight-up/
-          https://www.cbssports.com/nfl/picks/experts/against-the-spread/
-          https://www.espn.com/robots.txt
-          https://www.espn.com/nfl/picks
-          https://www.usatoday.com/robots.txt
-          https://www.actionnetwork.com/robots.txt
-          https://www.actionnetwork.com/nfl/picks
-          https://www.covers.com/robots.txt
-          https://www.oddsshark.com/robots.txt
-          https://www.oddsshark.com/nfl/computer-picks
-          https://www.foxsports.com/nfl/picks
-          https://www.si.com/nfl/picks
+          https://nflpickwatch.com/terms
+          https://nflpickwatch.com/terms-of-service
+          https://nflpickwatch.com/nfl/picks/su/experts
+          https://www.cbssports.com/nfl/picks/
+          https://www.cbssports.com/nfl/expert-picks/
+          https://www.cbssports.com/nfl/picks/experts/
+          https://www.oddsshark.com/nfl/expert-picks
+          https://www.oddsshark.com/nfl/picks
+          https://www.covers.com/picks/nfl
+          https://www.covers.com/terms-of-use
+          https://www.oddsshark.com/terms-of-use
+          https://www.cbssports.com/terms-of-use/
+          https://www.espn.com/nfl/story/_/page/nflpicks/nfl-expert-picks
+          https://sports.yahoo.com/nfl/
+          https://www.nbcsports.com/nfl/picks
+          https://www.pff.com/nfl/picks
           URLS
           sed -i 's/^ *//' probe/out/index.txt
       - run: |
           git config user.name "nfl-bets-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f probe/out && git commit -q -m "probe output" && git push -q
+          rm -f probe/out/index.txt.bak; git add -f probe/out && git commit -q -m "probe output" && git push -q
