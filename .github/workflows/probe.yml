@@ -2,36 +2,17 @@ name: probe
 on:
   push:
     branches: [probe-experts]
-    paths: [".github/workflows/probe.yml"]
+    paths: [".github/workflows/probe.yml", "probe/fetch25.py"]
 permissions:
   contents: write
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 50
     steps:
       - uses: actions/checkout@v4
-      - run: |
-          mkdir -p probe/out
-          i=0
-          while read -r u; do
-            i=$((i+1))
-            code=$(curl -sL -m 25 -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36" -o probe/out/$i.html -w '%{http_code} %{size_download}' "$u")
-            echo "$i $code $u" | tee -a probe/out/index.txt; sleep 2
-          done <<'URLS'
-          https://www.cbssports.com/nfl/picks/experts/straight-up/1/?season=2025
-          https://www.cbssports.com/nfl/picks/experts/straight-up/2025/1/
-          https://www.cbssports.com/nfl/picks/experts/against-the-spread/2025/regular/1/
-          https://archive.org/wayback/available?url=cbssports.com/nfl/picks/experts/straight-up/1/&timestamp=20250907
-          https://archive.org/wayback/available?url=cbssports.com/nfl/picks/experts/against-the-spread/1/&timestamp=20250907
-          https://archive.org/wayback/available?url=cbssports.com/nfl/picks/experts/straight-up/10/&timestamp=20251109
-          https://archive.org/wayback/available?url=cbssports.com/nfl/picks/experts/straight-up/&timestamp=20251109
-          https://web.archive.org/cdx/search/cdx?url=cbssports.com/nfl/picks/experts/straight-up/*&from=2025&to=2026&output=json&fl=timestamp,original,statuscode&filter=statuscode:200&collapse=urlkey
-          https://www.nfl.com/news/nfl-picks-week-1-2025-nfl-season
-          https://www.nfl.com/news/nfl-picks-week-10-2025-nfl-season
-          https://www.nfl.com/news/nfl-week-1-picks-upset-and-score-predictions-matchup-breakdowns-for-every-game
-          URLS
-          sed -i 's/^ *//' probe/out/index.txt
+      - run: python3 probe/fetch25.py
+        timeout-minutes: 40
       - run: |
           git config user.name "nfl-bets-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
