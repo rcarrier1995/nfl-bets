@@ -332,6 +332,25 @@ def _indoor(comp, home):
     return home in FIXED_DOMES and not comp.get("neutralSite")
 
 
+def espn_ml_p(odds):
+    """Devigged home win chance from the ESPN feed's moneyline (current, else open). None if missing."""
+    ml = (odds or {}).get("moneyline") or {}
+    def one(side):
+        for k in ("close", "current", "open"):
+            v = ((ml.get(side) or {}).get(k) or {}).get("odds")
+            try:
+                v = float(str(v).replace("−", "-").replace("+", ""))
+                if abs(v) >= 100:
+                    return 100 / (v + 100) if v > 0 else -v / (-v + 100)
+            except (TypeError, ValueError):
+                continue
+        return None
+    ph, pa = one("home"), one("away")
+    if ph is None or pa is None:
+        return None
+    return round(ph / (ph + pa), 4)
+
+
 def build_game(ev, tables, kidx, wx_all, pt_idx, live_state, snaps, prev_calls, now, extra_shrink, calib, cons=None):
     comp = ev["competitions"][0]
     st = ev["status"]
@@ -362,10 +381,15 @@ def build_game(ev, tables, kidx, wx_all, pt_idx, live_state, snaps, prev_calls, 
             spread_home = None
     espn_spread = spread_home
     cs = (cons or {}).get(f"{away}@{home}") if state == "pre" else None
+    ml_home = espn_ml_p(odds) if state == "pre" else None
     if cs:   # sharper: many-book consensus moneyline, as an equivalent spread
         from .odds import spread_from_p
         spread_home = spread_from_p(cs["pHome"])
         book = f"Consensus of {cs['books']} books" + (" incl. Pinnacle" if cs.get("pinnacle") else "")
+    elif ml_home is not None:   # review 2026-11-23: the book's own moneyline is ~1.2c from Kalshi vs 2.7c for the spread formula
+        from .odds import spread_from_p
+        spread_home = spread_from_p(ml_home)
+        book = f"{book or 'ESPN'} moneyline"
     snap = snaps.get(gkey, {})
     if spread_home is None and snap.get("spreadHome") is not None:
         spread_home, total, book = snap["spreadHome"], snap.get("total"), snap.get("book")
@@ -447,6 +471,7 @@ def build_game(ev, tables, kidx, wx_all, pt_idx, live_state, snaps, prev_calls, 
         price = pr.get("ask")
         c["price"] = price
         c["bid"] = pr.get("bid")
+        c["ticker"] = pr.get("ticker")
         c["sell"] = None
         c["tick"] = pr.get("tick", 1.0)
         c["fair"] = pre_fair.get(team)

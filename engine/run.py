@@ -110,6 +110,49 @@ def top3_message(board):
     return lines
 
 
+RECHECK_S = 60
+
+
+def recheck(cands, board, wait=RECHECK_S):
+    """Buy pushes fire only if, about a minute later on freshly fetched data, the Kalshi ask is no higher
+    (+1c) and the game hasn't changed: same sportsbook line pregame, same score and quarter live.
+    If the re-fetch fails, nothing is sent this tick (it tries again next tick). Returns the keys still good."""
+    if not cands:
+        return set()
+    import time
+    from .fetch import _get
+    time.sleep(wait)
+    try:
+        evs = {e["id"]: e for e in (_get(C.ESPN_SCOREBOARD, tries=2) or {}).get("events", [])}
+    except Exception as e:
+        print("recheck: scoreboard failed", e)
+        return set()
+    games = {g["id"]: g for g in board["games"]}
+    ok = set()
+    for c in cands:
+        try:
+            m = (_get(f"{C.KALSHI_BASE}/markets/{c['ticker']}", tries=2) or {}).get("market") or {}
+            ask = round(float(m.get("yes_ask_dollars")) * 100, 2)
+        except Exception as e:
+            print("recheck: kalshi failed", c.get("key"), e)
+            continue
+        g, ev = games.get(c.get("gameId")), evs.get(c.get("gameId"))
+        if not g or not ev or ask <= 0 or ask > (c["price"] or 0) + 1:
+            continue
+        comp = ev["competitions"][0]
+        if c.get("state") == "pre":
+            o = (comp.get("odds") or [{}])[0] or {}
+            if g.get("espnSpread") is not None and o.get("spread") is not None and abs(float(o["spread"]) - g["espnSpread"]) >= 0.5:
+                continue
+        else:
+            sc = {t["homeAway"]: str(t.get("score")) for t in comp["competitors"]}
+            if sc.get("away") != str(g["score"]["away"]) or sc.get("home") != str(g["score"]["home"]) \
+                    or (ev.get("status") or {}).get("period") != g.get("period"):
+                continue
+        ok.add(c["key"])
+    return ok
+
+
 def feed_notes(board, health):
     """Tell Rick about a feed problem ONLY when it affects a current bet."""
     notes = []
@@ -310,15 +353,21 @@ def tick(force=()):
     rs["alertsSent"] = sorted(sent)[-300:]
     # pregame: a team turning Value now (e.g. a Wait price got hit) -> one push
     vsent = rs.setdefault("valueSent", {})
-    for c in board["calls"]:
-        if c.get("state") == "pre" and c.get("call") == "Value" and not c.get("priceStale") and not (c.get("lineCheck") and c["price"] > (c["lineCheck"].get("buyUnder") or 0)) and vsent.get(c["key"]) != round(c["price"] or 0):
+    pre_c = [c for c in board["calls"]
+             if c.get("state") == "pre" and c.get("call") == "Value" and not c.get("priceStale")
+             and not (c.get("lineCheck") and c["price"] > (c["lineCheck"].get("buyUnder") or 0)) and vsent.get(c["key"]) != round(c["price"] or 0)]
+    live_c = [c for c in board["calls"]
+              if c.get("state") == "in" and c.get("liveCall") == "Value" and not c.get("paused") and not c.get("priceStale") and not c.get("alertsOff")
+              and c.get("price") is not None and vsent.get(c["key"] + ":live") != round(c["price"])]
+    ok = recheck(pre_c + live_c, board)      # review 2026-11-23: confirm a minute later on fresh data before any Buy push
+    for c in pre_c:
+        if c["key"] in ok:
             P.send(f"{'Slow price' if c.get('lag') else 'Buy now'}: {c['team']} {c['price']:.0f}c",
                    f"{c['team']} vs {c['opp']} {c['price']:.0f}c -> win {100 - c['price']:.0f}c · win chance {c['confidence']['level']}\n{c['why']}")
             vsent[c["key"]] = round(c["price"] or 0)
     # live: a Wait price getting hit mid-game -> one push (never paused, never late Q4)
-    for c in board["calls"]:
-        if c.get("state") == "in" and c.get("liveCall") == "Value" and not c.get("paused") and not c.get("priceStale") and not c.get("alertsOff") \
-                and c.get("price") is not None and vsent.get(c["key"] + ":live") != round(c["price"]):
+    for c in live_c:
+        if c["key"] in ok:
             P.send(f"Buy now (live): {c['team']} {c['price']:.0f}c",
                    f"{c['team']} vs {c['opp']} {c['price']:.0f}c -> win {100 - c['price']:.0f}c · fair {c.get('liveFair')}c", priority="high")
             vsent[c["key"] + ":live"] = round(c["price"])

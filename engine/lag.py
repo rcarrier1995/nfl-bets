@@ -37,6 +37,7 @@ def record_and_detect(board, now):
         rows = hist.setdefault(g["id"], [])
         if not rows or rows[-1][1:] != row[1:]:
             rows.append(row)
+        g["hist"] = rows[-150:]        # for the price-and-line chart on the card
         lag = detect(rows, now)
         for side, c in (("away", a), ("home", h)):
             c.pop("lag", None)

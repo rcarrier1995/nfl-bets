@@ -38,7 +38,9 @@ def test_injury_not_double_counted():
     assert M.injury_pts(qb, baseline_inj=qb, line_move=0.0)[0] == 0.0       # already out Thursday
 
 
-def test_combo_exhaustive_16_and_picks_cheap_side():
+def test_combo_exhaustive_16_and_picks_cheap_side(monkeypatch):
+    from engine import config as C
+    monkeypatch.setattr(C, "combo_markup", C._old_markup)   # tests the search, not the markup
     games = [(L("LVDEN", "DEN", 93, 90), L("LVDEN", "LV", 7, 11)),
              (L("JAXNYG", "NYG", 80, 78), L("JAXNYG", "JAX", 20, 23)),
              (L("MINSF", "SF", 81, 81), L("MINSF", "MIN", 19, 20)),
@@ -186,7 +188,8 @@ if __name__ == "__main__":
 
 def test_combo_markup_estimate():
     from engine import config as C
-    assert C.combo_markup(2) == 1.0 and abs(C.combo_markup(8) - 1.07) < 1e-9 and abs(C.combo_markup(10) - 1.22) < 1e-9
+    assert C.combo_markup(1) == 1.0 and C.combo_markup(2) == C.COMBO_MARKUP == C.combo_markup(10)   # ~26% (review 2026-11-23)
+    assert C.combo_markup(12) > C.COMBO_MARKUP
     legs = [L(i, f"T{i}", 80, 60) for i in range(9)]
     card = combos.card_from(legs, 80 ** 9 / 100 ** 8, 60 ** 9 / 100 ** 8)
     assert card["est"] > card["cost"] and card["edge"] == round(card["maxPay"] - card["est"], 2)
@@ -233,7 +236,9 @@ def test_sell_check():
     assert M.sell_check(None, 80) is None and M.sell_check(60, None) is None
 
 
-def test_search_safe_prefers_winners():
+def test_search_safe_prefers_winners(monkeypatch):
+    from engine import config as C
+    monkeypatch.setattr(C, "combo_markup", C._old_markup)
     from engine import combos as CB
     mk = lambda gid, t, f, p: {"gameId": gid, "team": t, "opp": "X", "fair": f, "price": p, "state": "pre"}
     pool = [(mk(1, "A", 80, 78), mk(1, "a", 20, 22)),

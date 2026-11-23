@@ -117,7 +117,23 @@ except Exception:
     pass
 
 
+COMBO_MARKUP = 1.26   # review 2026-11-23: Kalshi combo quotes ran ~26% above legs multiplied (Sept 2026 report)
+
+
 def combo_markup(n):
+    """Estimated combo quote vs legs multiplied. ~26% for any combo (config.json "comboMarkup" overrides it
+    once Rick's real Robinhood quotes show the true number); very big combos keep the old steeper curve."""
+    if n < 2:
+        return 1.0
+    try:
+        import json
+        m = float((json.load(open(os.path.join(ROOT, "config.json"))) or {}).get("comboMarkup") or COMBO_MARKUP)
+    except Exception:
+        m = COMBO_MARKUP
+    return max(m, _old_markup(n))
+
+
+def _old_markup(n):
     """Estimated combo quote vs the legs multiplied (Robinhood prices big combos above the product).
     Estimate only: ~1.0 up to 3 legs, ~1.07 at 8, ~1.22 at 10, +8% a leg beyond. Always check the real quote."""
     if n <= 3:

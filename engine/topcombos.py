@@ -2,7 +2,7 @@
   * "cheap": the 3 combos costing under 10c with the best chance to hit, overlapping as little as possible
     (a reused game costs a small penalty, so strong legs can still repeat when nothing else works);
   * "value": the 3 best blends of win chance and price at any cost (chance minus cost, leaning to chance).
-Win chance per leg = our fair value plus the (learned, cautious) watch-tag adjustments. Combo-study finding:
+Win chance per leg = our fair value (watch tags are shown, never added: review 2026-11-23). Combo-study finding:
 cheap combos work best as stacked favourites (60-85c legs); a longshot leg hurts, so it only gets in when
 our numbers say it's worth its price. Every suggestion is logged and graded (learn weekly).
 Info only: never changes a Buy/Wait/Pass call. The real Robinhood quote can run well above legs multiplied.
@@ -44,7 +44,8 @@ def legs_for(games_list):
         for c in teams:
             if not c.get("price") or c.get("fair") is None or not (3 <= c["price"] <= 97):
                 continue
-            est = max(1.0, min(97.0, c["fair"] + good[c["team"]] + adj[c["team"]]))
+            # review 2026-11-23: tags are info only -- no padding; the win chance is our fair
+            est = max(1.0, min(97.0, c["fair"]))
             out.append({"gameId": g["id"], "team": c["team"], "opp": c["opp"], "label": g.get("short"), "price": c["price"],
                         "fair": c["fair"], "est": round(est, 1), "call": c.get("call"), "why": why[c["team"]],
                         "dog": c["price"] < 50, "kickoff": g.get("kickoff")})

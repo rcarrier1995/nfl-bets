@@ -149,20 +149,33 @@ def window_lessons(board, L, force_windows=()):
     return out
 
 
+MIN_LESSON = 3    # review 2026-11-23: no lessons from 1-2 games
+
+
 def lesson_for(recs):
-    wrong = [r for r in recs if not r["right"] and not r["tie"]]
-    big = [r for r in wrong if r["pickFair"] >= 70]
+    """Facts about what happened, measured against what our own chances expected. Never a model change:
+    only update_shrink can change the model, and only on a big, statistically clear sample."""
+    recs = [r for r in recs if not r.get("tie")]
+    if len(recs) < MIN_LESSON:
+        return f"{len(recs)} game{'s' if len(recs) != 1 else ''}: too few to learn from — no lesson, no change."
+    wrong = [r for r in recs if not r["right"]]
+    exp = sum(1 - r["pickFair"] / 100 for r in recs)
+    sd = sum((r["pickFair"] / 100) * (1 - r["pickFair"] / 100) for r in recs) ** 0.5
+    luck = f"{len(wrong)} miss{'es' if len(wrong) != 1 else ''} vs about {exp:.1f} expected from our own chances"
     if not wrong:
-        return "Favourites held — no change."
+        return f"All {len(recs)} picks won ({luck}) — normal good luck, no change."
+    if len(wrong) > exp + 2 * sd:
+        return f"More upsets than our chances expected ({luck}). One week is still small — logged, no change yet."
+    big = [r for r in wrong if r["pickFair"] >= 70]
     if big:
-        return f"{len(big)} favourite(s) at 70¢+ lost — 70%+ fairs run hot; keep shrinking."
+        return f"{len(big)} favourite(s) at 70¢+ lost; {luck} — within normal luck, no change."
     q3 = [r for r in wrong if r["q3Leader"] and r["q3Leader"] != r["pick"]]
     if q3:
-        return f"{len(q3)} miss(es) trailed after Q3 — Q3 is the inflection; watch Q3 live."
+        return f"{len(q3)} miss(es) trailed after Q3; {luck} — no change."
     to = [r for r in wrong if (r.get("turnovers") or {}).get(r["pick"], 0) >= 2]
     if to:
-        return "Turnovers flipped games — 2+ turnovers stays a downgrade."
-    return "Close-game misses — coin-flips, no model change."
+        return f"Turnovers flipped games; {luck} — no change."
+    return f"Close-game misses; {luck} — coin-flips, no model change."
 
 
 def calibration(recs):
@@ -197,12 +210,26 @@ def by_call(recs):
     return out
 
 
+SHRINK_MIN = 40
+
+
+def profit_buys(recs):
+    """Profit per contract (cents, after fees) if every pregame Buy had been bought at its price."""
+    n, net = 0, 0.0
+    for r in recs:
+        for tm, c in (r.get("calls") or {}).items():
+            if c.get("call") == "Value" and c.get("price") and not r.get("tie"):
+                n += 1
+                net += (100 if r["winner"] == tm else 0) - c["price"] - 2
+    return {"n": n, "net": round(net, 1), "per": round(net / n, 1) if n else None}
+
+
 def update_shrink(L):
     """If favourites prove systematically overconfident, shrink next week's fairs toward 50c.
     Only activates with >=4 reviewed games."""
     recs = [r for r in L["graded"].values() if r["pickFair"] >= 65]
-    if len(L["graded"]) < 4 or len(recs) < 4:
-        L["shrink"] = {"factor": 1.0, "note": f"Needs ≥4 reviewed games ({len(L['graded'])} so far)"}
+    if len(recs) < SHRINK_MIN:     # review 2026-11-23: 4 games could trip it by luck
+        L["shrink"] = {"factor": 1.0, "note": f"Needs {SHRINK_MIN}+ favourites at 65¢+ before any auto-adjust ({len(recs)} so far)"}
         return L["shrink"]
     pred = sum(r["pickFair"] for r in recs) / len(recs)
     act = 100 * sum(r["right"] for r in recs) / len(recs)
@@ -247,9 +274,11 @@ def grade_combos(L, wk, graded_by_gid):
             continue
         c["hitResult"] = all(res)
         cat = name.split("-")[0]
-        o = out.setdefault(cat, {"n": 0, "hit": 0})
+        o = out.setdefault(cat, {"n": 0, "hit": 0, "net": 0.0})
         o["n"] += 1
         o["hit"] += int(all(res))
+        if c.get("cost"):
+            o["net"] = round(o["net"] + (100 if all(res) else 0) - c["cost"], 1)
     return out
 
 
@@ -266,7 +295,7 @@ def weekly_review(board, L, season, week):
     item = {"season": season, "week": week, "w": right, "l": len(recs) - right, "n": len(recs),
             "acc": round(100 * right / len(recs), 1), "brier": round(sum(r["brier"] for r in recs) / len(recs), 4),
             "calibration": calibration(recs), "calibConf": calibration_conf(recs), "byCall": by_call(recs),
-            "categories": _count(r["category"] for r in recs), "combos": combos,
+            "categories": _count(r["category"] for r in recs), "combos": combos, "buys": profit_buys(recs),
             "lesson": lesson_for(recs), "shrink": shrink["note"], "at": iso()}
     L["weekly"].append(item)
     return item
@@ -282,7 +311,7 @@ def _count(it):
 def totals(L):
     recs = list(L["graded"].values())
     r = sum(x["right"] for x in recs)
-    return {"right": C.BASELINE["right"] + r, "games": C.BASELINE["games"] + len(recs),
+    return {"buys": profit_buys(recs), "right": C.BASELINE["right"] + r, "games": C.BASELINE["games"] + len(recs),
             "reviewedRight": r, "reviewed": len(recs),
             "pct": round(100 * (C.BASELINE["right"] + r) / (C.BASELINE["games"] + len(recs)), 1),
             "baseline": C.BASELINE}

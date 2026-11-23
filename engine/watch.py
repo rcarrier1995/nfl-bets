@@ -385,7 +385,7 @@ def watch_combos(board, games_list=None, pool=None):
         e = est.get((l.get("gameId"), l.get("team")))
         if e and l.get("price") and e[0] - e[1] >= GAP:
             x = sanitize(dict(l))
-            x["est"] = min(97, l["price"] + (e[0] - e[1]))      # edge applied to the live leg price
+            x["est"] = l["fair"]      # tags pick the legs; the win chance shown is our fair (no padding)
             x["watchTags"] = e[2]
             legs.append(x)
     legs.sort(key=lambda l: -l["est"])
