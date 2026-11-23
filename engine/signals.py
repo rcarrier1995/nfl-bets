@@ -59,6 +59,27 @@ def tags(season, away, home, kickoff_ct_hour=None):
     return out
 
 
+DOME_TEAMS = {"ATL", "DET", "LV", "LAC", "LAR", "MIN", "NO", "ARI", "DAL", "HOU", "IND"}
+
+
+def venue_tags(away, home, indoor, neutral, wx):
+    """Altitude / cold / dome context for one game (tested in study(): all already in the line)."""
+    out = []
+    if home == "DEN" and not neutral:
+        out.append("Altitude (Denver, 5,280 ft)")
+    if indoor:
+        return out          # the weather line already says "Indoors"
+    t = (wx or {}).get("tempMin")
+    if t is not None and t <= C.WEATHER_TEMP:
+        out.append(f"Cold: {t:.0f}°F at kickoff")
+        domes = [x for x in (away, home) if x in DOME_TEAMS]
+        if domes:
+            out.append(f"{'/'.join(domes)} plays home games in a dome")
+    elif away in DOME_TEAMS:
+        out.append(f"{away} (dome team) outdoors")
+    return out
+
+
 def study():
     import numpy as np
     import pandas as pd
@@ -96,7 +117,18 @@ def study():
     T['prime']=(T.gametime.astype(str)>='19:00')|(~T.weekday.isin(['Sunday']))
     T['fav']=T.spread>0
     outdoor=T.roof.isin(['outdoors','open'])
+    # each team's usual home roof (dome/closed vs open-air), by season
+    hr=T[T.home].groupby(['season','team']).roof.agg(lambda x: x.mode().iat[0])
+    domeTeam=hr.isin(['dome','closed'])
+    T['domeTeam']=[bool(domeTeam.get((a,b),False)) for a,b in zip(T.season,T.team)]
+    T['oppDome']=[bool(domeTeam.get((a,b),False)) for a,b in zip(T.season,T.opp)]
+    cold=outdoor&(T.temp<=35)
     S={
+     'Denver at home (altitude)': T.home&(T.team=='DEN'),
+     'Dome team outdoors in cold (≤35°F)': ~T.home&T.domeTeam&cold,
+     'Home team vs dome visitor in cold': T.home&T.oppDome&cold,
+     'Dome team on the road outdoors': ~T.home&T.domeTeam&outdoor,
+     'Home team in a dome': T.home&T.domeTeam&T.roof.isin(['dome','closed']),
      'Rest advantage 3+ days': T.rest-T.orest>=3,
      'Short week vs rested opp': (T.rest<=5)&(T.orest>=7),
      'Off a bye vs normal rest': (T.rest>=13)&(T.orest<=8),
@@ -137,7 +169,7 @@ def study():
     res = {"games": int(len(g)), "train": "2006–2022", "test": "2023–2026", "rows": out,
            "finding": (f"None of {len(out)} situations beat the closing line in both samples. Rest, byes, travel, "
                        "division games, prime time, weather, blowouts and big favourites are already priced. "
-                       "Closest: a team starting a backup QB did ~0.7 pts worse than its line in both samples, "
+                       "Altitude, cold and dome/open-air splits are in the list too, all priced. Closest: a team starting a backup QB did ~0.7 pts worse than its line in both samples, "
                        "too small and too noisy to price (≈2¢).")}
     with open(FILE, "w") as f:
         json.dump(res, f, indent=1)

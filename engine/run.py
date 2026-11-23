@@ -244,6 +244,13 @@ def tick(force=()):
             P.send(f"{'Slow price' if c.get('lag') else 'Value now'}: {c['team']} {c['price']:.0f}c",
                    f"{c['team']} vs {c['opp']} {c['price']:.0f}c -> win {100 - c['price']:.0f}c · {c['confidence']['level']}\n{c['why']}")
             vsent[c["key"]] = round(c["price"] or 0)
+    # live: a Wait price getting hit mid-game -> one push (never paused, never late Q4)
+    for c in board["calls"]:
+        if c.get("state") == "in" and c.get("liveCall") == "Value" and not c.get("paused") and not c.get("alertsOff") \
+                and c.get("price") is not None and vsent.get(c["key"] + ":live") != round(c["price"]):
+            P.send(f"Buy now (live): {c['team']} {c['price']:.0f}c",
+                   f"{c['team']} vs {c['opp']} {c['price']:.0f}c -> win {100 - c['price']:.0f}c · fair {c.get('liveFair')}c", priority="high")
+            vsent[c["key"] + ":live"] = round(c["price"])
     if len(vsent) > 400:
         rs["valueSent"] = dict(list(vsent.items())[-400:])
     board["nextCheck"] = next_check(now)

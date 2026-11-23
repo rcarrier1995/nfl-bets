@@ -125,6 +125,17 @@
    "holds": false
   },
   {
+   "signal": "Home team in a dome",
+   "z": -0.68,
+   "ptsAll": -0.24,
+   "n": 1100,
+   "pts": -0.25,
+   "se": 0.4,
+   "nTest": 314,
+   "ptsTest": -0.18,
+   "holds": false
+  },
+  {
    "signal": "Windy (15+ mph) \u00b7 favourite",
    "z": -0.78,
    "ptsAll": -0.51,
@@ -169,6 +180,17 @@
    "holds": false
   },
   {
+   "signal": "Dome team on the road outdoors",
+   "z": 0.52,
+   "ptsAll": 0.2,
+   "n": 885,
+   "pts": 0.27,
+   "se": 0.44,
+   "nTest": 231,
+   "ptsTest": -0.05,
+   "holds": false
+  },
+  {
    "signal": "After a 20+ pt win",
    "z": -0.36,
    "ptsAll": -0.15,
@@ -177,6 +199,17 @@
    "se": 0.48,
    "nTest": 177,
    "ptsTest": 1.01,
+   "holds": false
+  },
+  {
+   "signal": "Denver at home (altitude)",
+   "z": -0.12,
+   "ptsAll": -0.12,
+   "n": 137,
+   "pts": -1.05,
+   "se": 1.14,
+   "nTest": 31,
+   "ptsTest": 4.03,
    "holds": false
   },
   {
@@ -200,7 +233,29 @@
    "nTest": 340,
    "ptsTest": -0.37,
    "holds": false
+  },
+  {
+   "signal": "Dome team outdoors in cold (\u226435\u00b0F)",
+   "z": 0.01,
+   "ptsAll": 0.01,
+   "n": 66,
+   "pts": 0.48,
+   "se": 1.49,
+   "nTest": 10,
+   "ptsTest": -3.05,
+   "holds": false
+  },
+  {
+   "signal": "Home team vs dome visitor in cold",
+   "z": -0.01,
+   "ptsAll": -0.01,
+   "n": 66,
+   "pts": -0.48,
+   "se": 1.49,
+   "nTest": 10,
+   "ptsTest": 3.05,
+   "holds": false
   }
  ],
- "finding": "None of 18 situations beat the closing line in both samples. Rest, byes, travel, division games, prime time, weather, blowouts and big favourites are already priced. Closest: a team starting a backup QB did ~0.7 pts worse than its line in both samples, too small and too noisy to price (\u22482\u00a2)."
+ "finding": "None of 23 situations beat the closing line in both samples. Rest, byes, travel, division games, prime time, weather, blowouts and big favourites are already priced. Altitude, cold and dome/open-air splits are in the list too, all priced. Closest: a team starting a backup QB did ~0.7 pts worse than its line in both samples, too small and too noisy to price (\u22482\u00a2)."
 }

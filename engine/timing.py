@@ -48,7 +48,7 @@ def best_time(c):
     if call == "Value":
         return f"Now — {edge:+.0f}¢ edge" + (" before kickoff" if st == "pre" else "")
     if call == "Wait" and buy:
-        return f"Set a limit order at {buy}¢" + (" before kickoff" if st == "pre" else "")
+        return f"When it drops to {buy}¢" + (" before kickoff" if st == "pre" else "") + " — phone alert"
     t = threshold(fair)
     return f"Only at {t}¢ or less" if t else "No price works"
 
