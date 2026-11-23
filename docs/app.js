@@ -52,10 +52,11 @@ function meter(conf) {
   const lvl = conf?.level || "Low";
   return `<span class="meter ${lvl}"><i></i><i></i><i></i></span><span class="small">Win chance ${lvl}</span>`;
 }
-function priceBar(price, fair, lo, hi) {
+function priceBar(price, fair, lo, hi, start) {
   if (price == null && fair == null) return "";
   const rng = lo != null && hi != null && hi > lo;
-  let h = `<div class="pbar${rng ? " hasrng" : ""}">`;
+  let h = `<div class="pbar${rng ? " hasrng" : ""}${start != null ? " hasst" : ""}">`;
+  if (start != null) h += `<div class="st" style="left:calc(${start}% - 5px)" title="Price at kickoff"></div><span class="stl" style="left:${Math.min(90, Math.max(10, start))}%">start ${Math.round(start)}¢</span>`;
   if (rng) {
     const cl = x => Math.min(92, Math.max(8, x));
     h += `<div class="rng" style="left:${lo}%;width:${hi - lo}%" title="Today's low to high"></div>` + (hi - lo < 16
@@ -296,7 +297,7 @@ function liveCard(g) {
       <div class="row">${badge(c.team, "sm")}<b>${esc(c.team)}</b><span class="pill c-${call}">${LBL(call)}</span><span class="sp"></span><span class="hero" style="font-size:28px">${ct(c.price)}</span></div>
       ${verdict(c)}
       <div class="row small" style="margin-top:8px"><span>${fairPay(c, c.liveFair, call === "Wait" ? c.liveBuyAt : c.price, call)}</span><span class="sp"></span>${move(c)}</div>
-      ${priceBar(c.price, c.liveFair, c.dayLo, c.dayHi)}
+      ${priceBar(c.price, c.liveFair, c.dayLo, c.dayHi, c.pregamePrice)}
       ${c.dipLine && call !== "Pass" ? `<div class="note">${esc(c.dipLine.replace("Price dropped: now ", "Price fell to ").replace(", was ", " from "))}</div>` : ""}
       ${c.bothOff && call === "Value" ? `<div class="note">${esc(c.bothOff)}</div>` : ""}
       ${call !== "Pass" && call !== "Sell" ? bestLine(c) : ""}
