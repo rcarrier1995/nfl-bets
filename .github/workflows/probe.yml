@@ -13,7 +13,7 @@ jobs:
       fail-fast: false
       max-parallel: 1
       matrix:
-        part: [nfl, straight-up, against-the-spread]
+        part: [straight-up]
     steps:
       - uses: actions/checkout@v4
-      - run: git pull -q --rebase || true; python3 probe/fetch25.py ${{ matrix.part }}
+      - run: git pull -q --rebase || true; python3 probe/fetch25.py ${{ matrix.part }} 1,3,4,5,6,7,8,9,10,11,12,13,15
