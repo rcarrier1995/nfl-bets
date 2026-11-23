@@ -30,3 +30,6 @@ cbs straight-up 12 20251121171332 nomatch 61661
 cbs straight-up 12 20251209042057 nomatch 59736
 cbs straight-up 12 20260121132358 err <urlopen error [Errno 111] Connection refused>
 cbs straight-up 12 MISSING (3 snaps)
+cbs straight-up 13 cdx err <urlopen error [Errno 111] Connection refused>
+cbs straight-up 15 20251212145211 nomatch 62480
+cbs straight-up 15 MISSING (1 snaps)
