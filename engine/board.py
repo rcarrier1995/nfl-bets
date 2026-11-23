@@ -8,6 +8,7 @@ from . import combos as CB
 from . import injuries as I
 from . import model as M
 from . import signals as SG
+from . import profiles as PF
 from .fetch import (espn_scoreboard, espn_summary, kalshi_events, weather_batch, load_json,
                     save_json, iso, now_utc, HEALTH)
 from .stats import abbrev, load_tables
@@ -208,6 +209,18 @@ def build(now=None, extra_shrink=1.0, calib=None, sb_override=None):
             calls.append(c)
         alerts += g.get("alerts", [])
 
+    # never act on an old price: if the price feed failed and the last good copy is > 12 min old,
+    # live calls drop to Pass, dip alerts are dropped, and run.py sends no price pushes.
+    if k_stale:
+        kat = (load_json(os.path.join(C.CACHE, "kalshi_events.json"), {}) or {}).get("at")
+        age = (now - parse_dt(kat)).total_seconds() / 60 if kat else 999
+        if age > 12:
+            alerts = []
+            for c in calls:
+                c["priceStale"] = round(age)
+                if c.get("state") == "in" and c.get("liveCall") in ("Value", "Wait"):
+                    c["liveCall"] = "Pass"
+                    c.setdefault("liveLines", []).insert(0, {"text": f"⏸ Price feed delayed {age:.0f} min — no live calls until it's back", "kind": "pause"})
     games.sort(key=lambda g: (g["kickoff"] or ""))
     # Combos: live + scheduled (never final), both sides, all calls incl. Pass
     pool = []
@@ -332,7 +345,18 @@ def build_game(ev, tables, kidx, wx_all, pt_idx, live_state, snaps, prev_calls, 
          "weather": wx, "weatherLine": wx_line(wx, indoor),
          "injuries": inj[away] + inj[home],
          "keyInjuries": len([i for i in inj[away] + inj[home] if i["starter"] and i["status"] in ("Out", "Doubtful")]),
-         "matchup": {away: matchup(away, tables), home: matchup(home, tables)}}
+         "matchup": {away: matchup(away, tables), home: matchup(home, tables)},
+         "matchupLines": PF.matchup_lines(away, home)}
+    # line move since we first saw the game, and how far the books disagree (context only)
+    first = snap.get("open") if snap.get("open") is not None else espn_spread
+    g["openSpread"] = first
+    if first is not None and espn_spread is not None and abs(espn_spread - first) >= 0.5:
+        fav = home if espn_spread - first < 0 else away
+        g["lineMoveLine"] = f"Line moved {abs(espn_spread - first):.1f} pts toward {fav} since it opened here ({first:+.1f} → {espn_spread:+.1f} {home})"
+    if cs and cs.get("pMin") is not None and cs.get("books", 0) >= 3:
+        lo, hi = round(cs["pMin"] * 100), round(cs["pMax"] * 100)
+        g["bookRangeLine"] = (f"Books agree: {home} {lo}–{hi}%" if hi - lo <= 3 else
+                              f"Books disagree: {home} {lo}–{hi}% across {cs['books']} books")
     if neutral and spread_home is not None:
         pass  # spread already neutral-site; HFA dropped in EPA margin
 
@@ -354,15 +378,16 @@ def build_game(ev, tables, kidx, wx_all, pt_idx, live_state, snaps, prev_calls, 
             move = (espn_spread if espn_spread is not None else spread_home) - th["spreadHome"]
         i_h, n_h = M.injury_pts(inj[home], b_inj, move)
         i_a, n_a = M.injury_pts(inj[away], b_inj, move)
-        pts_home = margin_home + adj_h + (w_h - w_a) + (i_h - i_a)
+        g_h, g_why = PF.adjust_pts(away, home)    # only grades that beat the line in the weekly study
+        pts_home = margin_home + adj_h + (w_h - w_a) + (i_h - i_a) + g_h
         f_h, f_a, shrink = M.fair_pair(pts_home, extra_shrink)
         pre_fair = {home: f_h, away: f_a}
         parts = {home: {"spread": margin_home, "epa": adj_h, "epaDetail": adj_detail, "weather": w_h - w_a,
                         "weatherWhy": w_why_h or w_why_a, "inj": i_h - i_a, "injNotes": n_h, "oppInjNotes": n_a,
-                        "pts": round(pts_home, 2), "shrink": shrink},
+                        "grades": g_h, "gradesWhy": g_why, "pts": round(pts_home, 2), "shrink": shrink},
                  away: {"spread": -margin_home, "epa": -adj_h, "epaDetail": adj_detail, "weather": w_a - w_h,
                         "weatherWhy": w_why_a or w_why_h, "inj": i_a - i_h, "injNotes": n_a, "oppInjNotes": n_h,
-                        "pts": round(-pts_home, 2), "shrink": shrink}}
+                        "grades": -g_h, "gradesWhy": g_why, "pts": round(-pts_home, 2), "shrink": shrink}}
     else:
         parts = {}
     for side in ("away", "home"):
@@ -416,7 +441,8 @@ def build_game(ev, tables, kidx, wx_all, pt_idx, live_state, snaps, prev_calls, 
                        "teams": {teams[s]["team"]: {k: teams[s].get(k) for k in
                                  ("fair", "price", "call", "edge", "buyAt", "fee", "confidence", "why")}
                                  for s in ("away", "home")},
-                       "thursday": snap.get("thursday")}
+                       "thursday": snap.get("thursday"),
+                       "open": snap.get("open") if snap.get("open") is not None else espn_spread}
     # live
     if state in ("in", "post") and summary is not None or state == "in":
         from .live import live_update

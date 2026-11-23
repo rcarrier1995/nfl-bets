@@ -61,6 +61,10 @@ def study_summary():
         return None
 
 
+from datetime import date as _date
+CUR = _date.today().year if _date.today().month >= 8 else _date.today().year - 1
+
+
 def study():
     """Rebuild state/timing_study.json from cached nflverse pbp 2021-2026."""
     import numpy as np
@@ -69,7 +73,7 @@ def study():
     cols = ["game_id", "season", "season_type", "qtr", "game_seconds_remaining", "total_home_score",
             "total_away_score", "vegas_home_wp", "result", "touchdown"]
     df = pd.concat(pd.read_csv(os.path.join(D, f"play_by_play_{y}.csv.gz"), usecols=cols, low_memory=False)
-                   for y in range(2021, 2027))
+                   for y in range(2021, CUR + 1) if os.path.exists(os.path.join(D, f"play_by_play_{y}.csv.gz")))
     df = df[(df.season_type == "REG") & df.result.notna() & (df.result != 0)].dropna(subset=["vegas_home_wp"])
     df = df.sort_values(["game_id", "game_seconds_remaining"], ascending=[True, False]).reset_index(drop=True)
     p0 = df.groupby("game_id").vegas_home_wp.first()
@@ -97,7 +101,7 @@ def study():
     rows = []
     for keys in (["label", "qtr", "side", "spot"], ["label", "side", "dip"]):
         for k, g in S.groupby(keys, observed=True):
-            tr, te = g[g.season < 2026], g[g.season == 2026]
+            tr, te = g[g.season < CUR], g[g.season == CUR]
             if len(tr) < 50:
                 continue
             gap = (tr.win.mean() - tr.wp.mean()) * 100
@@ -108,13 +112,16 @@ def study():
                          "won": round(tr.win.mean() * 100, 1), "gap": round(gap, 1), "se": round(se, 1),
                          "nTest": int(len(te)), "gapTest": None if tgap is None else round(tgap, 1),
                          "holds": bool(abs(gap) > 2 * se and tgap is not None and tgap * gap > 0 and abs(tgap) > 2)})
-    out = {"games": int(df.game_id.nunique()), "seasons": "2021–2026", "rows": rows,
+    edges = [r for r in rows if r["holds"]]
+    out = {"games": int(df.game_id.nunique()), "seasons": f"2021–{CUR}", "rows": rows,
            "edges": [r for r in rows if r["holds"]],
            "finding": ("No game moment is cheap by itself: at quarter ends and after TDs, leaders, trailers "
                        "and dipped favourites all won about as often as the live price said. Best time = "
                        "whenever the price sits below fair by the Value bar."),
-           "note": ("Only 1 of 66 spots held up in 2026 (underdogs down 15–30 at a quarter end, ~2¢ under), "
-                    "about what chance alone gives across 66 tests, and smaller than the 2¢ fee.")}
+           "note": (f"{len(edges)} of {len(rows)} spots held up in {CUR}"
+                    + (" (" + "; ".join(f"{e['spot']} {e['gap']:+.0f}¢" for e in edges) + ")" if edges else "")
+                    + f", about what chance alone gives across {len(rows)} tests, and smaller than the 2¢ fee."
+                    if len(edges) <= max(1, len(rows) // 20) else f"{len(edges)} of {len(rows)} spots held up in {CUR}.")}
     with open(FILE, "w") as f:
         json.dump(out, f, indent=1)
     return out

@@ -245,6 +245,11 @@ def tick(force=()):
         B.set_thursday_baseline(board)
         rs["pregame"] = wk
         rs["pregameAt"] = iso(now)
+    try:
+        from .clv import update as clv_update
+        board["clv"] = clv_update(board, now)
+    except Exception as e:
+        print("clv failed:", e)
     # learning
     snaps = load_json(B.SNAP_FILE, {}) or {}
     LR.audit(board, prev, L)
@@ -287,13 +292,13 @@ def tick(force=()):
     # pregame: a team turning Value now (e.g. a Wait price got hit) -> one push
     vsent = rs.setdefault("valueSent", {})
     for c in board["calls"]:
-        if c.get("state") == "pre" and c.get("call") == "Value" and vsent.get(c["key"]) != round(c["price"] or 0):
+        if c.get("state") == "pre" and c.get("call") == "Value" and not c.get("priceStale") and vsent.get(c["key"]) != round(c["price"] or 0):
             P.send(f"{'Slow price' if c.get('lag') else 'Value now'}: {c['team']} {c['price']:.0f}c",
                    f"{c['team']} vs {c['opp']} {c['price']:.0f}c -> win {100 - c['price']:.0f}c · {c['confidence']['level']}\n{c['why']}")
             vsent[c["key"]] = round(c["price"] or 0)
     # live: a Wait price getting hit mid-game -> one push (never paused, never late Q4)
     for c in board["calls"]:
-        if c.get("state") == "in" and c.get("liveCall") == "Value" and not c.get("paused") and not c.get("alertsOff") \
+        if c.get("state") == "in" and c.get("liveCall") == "Value" and not c.get("paused") and not c.get("priceStale") and not c.get("alertsOff") \
                 and c.get("price") is not None and vsent.get(c["key"] + ":live") != round(c["price"]):
             P.send(f"Buy now (live): {c['team']} {c['price']:.0f}c",
                    f"{c['team']} vs {c['opp']} {c['price']:.0f}c -> win {100 - c['price']:.0f}c · fair {c.get('liveFair')}c", priority="high")
@@ -324,6 +329,14 @@ def tick(force=()):
     ss = load_json(os.path.join(C.STATE, "signals_study.json"))
     if ss:
         pub["signalsStudy"] = ss
+    ps = load_json(os.path.join(C.STATE, "profiles_study.json"))
+    if ps:
+        pub["profilesStudy"] = ps
+    if board.get("clv"):
+        pub["clv"] = board["clv"]
+    rw = load_json(os.path.join(C.STATE, "retest_log.json"))
+    if rw:
+        pub["retest"] = rw
     if ih:
         pub["injuryResearch"] = {k: ih.get(k) for k in ("headline", "byQuarter", "byPosition", "throughWeek", "builtAt")}
     save_json(LEARN_PUB, pub, compact=True)

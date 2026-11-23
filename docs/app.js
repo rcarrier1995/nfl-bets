@@ -139,6 +139,16 @@ function sitLine(g) {
   if (!g.situation?.length) return "";
   return `<div class="line">${ic("ch")}<span>${g.situation.map(esc).join(" · ")} <span class="muted">— already in the line</span></span></div>`;
 }
+function gradeLines(g) {
+  const ml = g.matchupLines || [];
+  const mk = [g.lineMoveLine, g.bookRangeLine].filter(Boolean);
+  if (!ml.length && !mk.length) return "";
+  const id = "gl:" + g.id;
+  let h = ml.length ? `<div class="line u" onclick="toggle('${id}')">${ic("mu")}<span>${esc(ml[0])}${ml.length > 1 ? ` <span class="muted">+${ml.length - 1} more</span>` : ""}</span></div>` : "";
+  if (ml.length && S.open.has(id)) h += `<div class="small" style="margin:2px 0 6px 26px">${ml.map(esc).join("<br>")}<br><span class="muted">Matchup grades are tested every week: none beat the line yet, so they don't change the price.</span></div>`;
+  for (const m of mk) h += `<div class="line muted">${ic("line")}${esc(m)}</div>`;
+  return h;
+}
 function toLine(g) {
   if (!g.turnovers || g.state === "pre") return "";
   const id = "to:" + g.id;
@@ -163,7 +173,7 @@ function gameCombosLine(g) {
 function liveInjLines(c) {
   return (c.liveLines || []).map((l, i) => {
     const id = `ll:${c.key}:${i}`;
-    let h = `<div class="line ${l.detail ? "u" : ""}" ${l.detail ? `onclick="toggle('${esc(id)}')"` : ""}>${esc(l.text)}</div>`;
+    let h = `<div class="line ${l.detail ? "u" : ""} ${l.kind === "ctx" ? "muted" : ""}" ${l.detail ? `onclick="toggle('${esc(id)}')"` : ""}>${esc(l.text)}</div>`;
     if (l.detail && S.open.has(id)) h += injTile(l.detail);
     return h;
   }).join("");
@@ -187,7 +197,7 @@ function gameRow(g) {
 const rank = c => ({ Value: 3, Wait: 2, Pass: 1 }[c] || 0);
 function gameDetail(g) {
   return `<div class="teams2">${betCard(g.teams.away)}${betCard(g.teams.home)}</div>
-    ${injLine(g)}${wxLine(g)}${muLine(g)}${sitLine(g)}${toLine(g)}${changesLine(g)}${gameCombosLine(g)}
+    ${injLine(g)}${wxLine(g)}${muLine(g)}${gradeLines(g)}${sitLine(g)}${toLine(g)}${changesLine(g)}${gameCombosLine(g)}
     ${g.spreadHome != null ? `<div class="line muted">${ic("line")}${esc(g.home)} ${g.spreadHome > 0 ? "+" : ""}${g.spreadHome} · total ${g.total ?? "—"}</div>` : ""}`;
 }
 function finalLine(g) {
@@ -218,10 +228,11 @@ function liveCard(g) {
     const call = callOf(c);
     return `<div class="card bg-${call}" style="margin:6px 0">
       <div class="row">${badge(c.team, "sm")}<b>${esc(c.team)}</b><span class="pill c-${call}">${call}</span><span class="sp"></span><span class="hero" style="font-size:28px">${ct(c.price)}</span></div>
-      <div class="row small"><span>Fair ${ct1(c.liveFair)}${call === "Wait" ? ` · Buy at ${ct(c.liveBuyAt)}` : ""}</span><span class="sp"></span><span>${move(c)}</span></div>
+      <div class="row small"><span>Fair ${ct1(c.liveFair)}${c.ourLive != null ? ` <span class="muted">· ours ${ct1(c.ourLive)}</span>` : ""}${call === "Wait" ? ` · Buy at ${ct(c.liveBuyAt)}` : ""}</span><span class="sp"></span><span>${move(c)}</span></div>
       ${priceBar(c.price, c.liveFair)}
       <div class="row small"><span>${meter(c.confidence)}</span><span class="sp"></span>${c.price != null ? `<span>+${ct(100 - c.price)} if it wins</span>` : ""}</div>
       ${c.dipLine ? `<div class="dip">${esc(c.dipLine)}</div>` : ""}
+      ${c.bothOff ? `<div class="dip">${esc(c.bothOff)}</div>` : ""}
       ${bestLine(c)}
       ${liveInjLines(c)}
     </div>`;
@@ -232,7 +243,7 @@ function liveCard(g) {
     <div class="teams2">${tc(g.teams.away)}${tc(g.teams.home)}</div>
     <div class="line u" onclick="toggle('${id}')">Quarters · ${(g.quarters || []).map(q => `Q${q.q} ${q.cumAway}-${q.cumHome}`).join(" · ") || "—"}</div>
     ${S.open.has(id) ? quarterTable(g) : ""}
-    ${injLine(g)}${toLine(g)}${wxLine(g)}</div>`;
+    ${injLine(g)}${gradeLines(g)}${toLine(g)}${wxLine(g)}</div>`;
 }
 
 // ---------- tabs ----------
@@ -299,10 +310,13 @@ function nextKick() {
 }
 
 // ---------- combos ----------
+// estimated combo quote vs legs multiplied (same as engine/config.combo_markup) — an estimate, check Robinhood
+const markup = n => n <= 3 ? 1 : n <= 8 ? 1 + 0.07 * (n - 3) / 5 : n <= 10 ? 1.07 + 0.075 * (n - 8) : 1.22 * Math.pow(1.08, n - 10);
 function comboTotals(legs) {
   const hit = legs.reduce((p, l) => p * l.fair / 100, 1) * 100;
   const cost = legs.reduce((p, l) => p * l.price / 100, 1) * 100;
-  return { hit, cost, maxPay: hit - 2, edge: hit - 2 - cost };
+  const mk = markup(legs.length), est = cost * mk;
+  return { hit, cost, est, mk, maxPay: hit - 2, edge: hit - 2 - est };
 }
 function tierTag(cost) {
   if (cost < 2) return `<span class="tag look">under 2¢ — look, don't buy</span>`;
@@ -321,12 +335,12 @@ function comboCard(cat, k, res) {
   const t = comboTotals(legs);
   const id = "cb:" + ek;
   const edit = S.open.has(id);
-  const w = Math.min(100, t.cost / Math.max(t.maxPay, t.cost, 0.01) * 100), mx = Math.min(100, t.maxPay / Math.max(t.maxPay, t.cost, 0.01) * 100);
+  const w = Math.min(100, t.est / Math.max(t.maxPay, t.est, 0.01) * 100), mx = Math.min(100, t.maxPay / Math.max(t.maxPay, t.est, 0.01) * 100);
   return `<div class="card ${t.edge >= 0 ? "bg-Value" : ""}">
-    <div class="row"><span class="pill ${t.edge >= 0 ? "c-Value" : "c-Pass"}">${legs.length}-leg${S.comboEdits[ek] ? " · edited" : ""}</span><span class="sp"></span>${tierTag(t.cost)}</div>
-    <div class="row" style="margin-top:12px;align-items:flex-end"><span class="hero">${ct1(t.cost)}</span><span class="sp"></span><span class="small" style="text-align:right"><b class="c-Value">+${ct1(100 - t.cost)}</b> if it wins</span></div>
-    <div class="mpbar"><div class="cost ${t.cost > t.maxPay ? "over" : ""}" style="width:${w}%"></div><div class="max" style="left:calc(${mx}% - 1px)"></div></div>
-    <div class="small" style="margin-top:8px"><b>Pay no more than ${ct1(t.maxPay)} for the combo.</b> ${legs.length >= 6 ? `<span class="muted">Big combos are often quoted 7–22% above the legs multiplied — compare the quote to ${ct1(t.cost)}.</span>` : `<span class="muted">Compare the quote to ${ct1(t.cost)} (legs multiplied).</span>`}</div>
+    <div class="row"><span class="pill ${t.edge >= 0 ? "c-Value" : "c-Pass"}">${legs.length}-leg${S.comboEdits[ek] ? " · edited" : ""}</span><span class="sp"></span>${tierTag(t.est)}</div>
+    <div class="row" style="margin-top:12px;align-items:flex-end"><span class="hero">${t.mk > 1 ? "≈" : ""}${ct1(t.est)}</span><span class="sp"></span><span class="small" style="text-align:right"><b class="c-Value">+${ct1(100 - t.est)}</b> if it wins</span></div>
+    <div class="mpbar"><div class="cost ${t.est > t.maxPay ? "over" : ""}" style="width:${w}%"></div><div class="max" style="left:calc(${mx}% - 1px)"></div></div>
+    <div class="small" style="margin-top:8px"><b>Pay no more than ${ct1(t.maxPay)} for the combo.</b> ${t.mk > 1 ? `<span class="muted">Estimated quote: legs multiplied ${ct1(t.cost)} + ~${Math.round((t.mk - 1) * 100)}% combo markup. Estimate — check the real price in Robinhood.</span>` : `<span class="muted">Legs multiplied: ${ct1(t.cost)}. Check the real price in Robinhood.</span>`}</div>
     <div class="kpis"><div><b>${pct(t.hit)}</b><span>Hits</span></div><div><b>${ct1(t.maxPay)}</b><span>Max pay</span></div><div><b class="${t.edge >= 0 ? "c-Value" : "bad"}">${t.edge >= 0 ? "+" : ""}${ct1(t.edge)}</b><span>Edge</span></div></div>
     <div style="margin-top:8px">${legs.map((l, i) => `<div class="leg" onclick="swapLeg('${ek}',${i})">${badge(l.team, "sm")}<div style="min-width:0"><b>${esc(l.team)}</b> <span class="small muted">vs ${esc(l.opp)}${l.state === "in" ? " · live" : ""}</span><br>${(l.tags || []).map(x => `<span class="tag ${x === "Shoe-in" ? "shoe" : ""}">${esc(x)}</span>`).join("")}</div><span class="sp"></span><span class="small muted">${pct(l.fair)}</span><span class="p">${ct(l.price)}</span>${edit && legs.length > 2 ? `<button class="x" onclick="event.stopPropagation();dropLeg('${ek}',${i})" aria-label="Remove">✕</button>` : ""}</div>`).join("")}</div>
     <div class="row" style="margin-top:10px"><button class="btn" onclick="toggle('${id}')">${edit ? "Done" : "Edit"}</button>${edit ? `<button class="btn" onclick="addLeg('${ek}')">+ Add leg</button>` : ""}${S.comboEdits[ek] ? `<button class="btn" onclick="resetCombo('${ek}')">Reset</button>` : ""}</div>
@@ -447,6 +461,20 @@ function learning() {
     h += `<h2>Other signals tested</h2><div class="line u" onclick="toggle('${id}')">${ss.games.toLocaleString()} games · ${ss.rows.filter(r => r.holds).length} of ${ss.rows.length} beat the line</div>`;
     if (S.open.has(id)) h += `<div class="small" style="margin:6px 0">${esc(ss.finding)}</div><table class="qt"><tr><th>#</th><th>Situation</th><th>${esc(ss.train)}</th><th>${esc(ss.test)}</th></tr>${ss.rows.map((r, i) => `<tr><td>${i + 1}</td><td>${esc(r.signal)}</td><td>${r.pts > 0 ? "+" : ""}${r.pts} <span class="muted">(${r.n})</span></td><td>${r.ptsTest > 0 ? "+" : ""}${r.ptsTest} <span class="muted">(${r.nTest})</span></td></tr>`).join("")}</table><div class="tiny muted">Ranked by how steadily each beat (or lost to) the line across both samples. Points vs the closing line per game; ±1 pt is noise at these sizes.</div>`;
   }
+  const ps = L.profilesStudy;
+  if (ps) {
+    const id = "ps";
+    const nh = (ps.held || []).length;
+    h += `<h2>Team & matchup grades tested</h2><div class="line u" onclick="toggle('${id}')">${ps.games.toLocaleString()} games · ${nh} of ${ps.rows.length} beat the line${ps.builtAt ? ` · re-tested ${ago(ps.builtAt)}` : ""}</div>`;
+    if (S.open.has(id)) h += `<div class="small" style="margin:6px 0">${esc(ps.finding)}</div><table class="qt"><tr><th>#</th><th>Grade</th><th>${esc(ps.train)}</th><th>${esc(ps.test)}</th></tr>${ps.rows.map((r, i) => `<tr><td>${i + 1}</td><td>${esc(r.signal)}${r.holds ? ` <span class="ok">✓ used</span>` : ""}<br><span class="tiny muted">${esc(r.unit)}</span></td><td>${r.per1sd > 0 ? "+" : ""}${r.per1sd} <span class="muted">(${r.n})</span></td><td>${r.per1sdTest == null ? "—" : (r.per1sdTest > 0 ? "+" : "") + r.per1sdTest} <span class="muted">(${r.nTest})</span></td></tr>`).join("")}</table>
+      <div class="tiny muted">Per one standard step of the grade: points vs the closing line (pre-game) or cents vs the live win price at half time / after Q3 (in-game). A grade is used only if it holds in both columns. Re-tested every week after Monday night.</div>
+      ${ps.wpModel ? `<div class="small" style="margin-top:8px"><b>Our own live win %</b>: accuracy (Brier) ${ps.wpModel.brier} vs ${ps.wpModel.brierRef} for the reference model on ${ps.wpModel.nTest.toLocaleString()} 2026 plays; usually within ${ps.wpModel.medianGap}¢. Used as a second opinion: a live Buy needs both models to agree.</div>` : ""}
+      ${ps.sigma ? `<div class="small" style="margin-top:6px"><b>Game total and upsets</b>: ${ps.sigma.holds ? "holds — used in the price." : "low/high totals don't change upset odds beyond the line. Not used."} <span class="muted">${esc(ps.sigma.note)}</span></div>` : ""}`;
+  }
+  const cv = L.clv;
+  h += `<h2>Beat the kickoff price?</h2>${cv && cv.n ? `<div class="line">${cv.beat} of ${cv.n} calls got a better price than kickoff · avg ${cv.avg > 0 ? "+" : ""}${cv.avg}¢</div><div class="small">${cv.recent.slice().reverse().map(r => `${esc(r.team)} ${esc(r.call)} at ${ct(r.entry)} → kickoff ${ct(r.close)} (${r.clv > 0 ? "+" : ""}${r.clv}¢)`).join("<br>")}</div><div class="tiny muted">Getting in cheaper than the kickoff price over many calls is the earliest sign the calls are sharp.</div>` : `<div class="line muted">Tracking started. Each Value/Wait call is compared with the price at kickoff once its game starts.</div>`}`;
+  const rt = L.retest;
+  if (rt?.at) h += `<h2>Weekly re-test</h2><div class="line">${esc(rt.summary || "")} <span class="muted">· ${ago(rt.at)}</span></div>`;
   // patterns by call
   const bc = L.byCall || {};
   if (Object.keys(bc).length) h += `<h2>By call type</h2><div class="line">${Object.entries(bc).map(([k, v]) => `${k}: ${v.won}/${v.n} won`).join(" · ")}</div>`;
@@ -664,12 +692,61 @@ window.openBreakdown = key => {
    </div>`);
 };
 
+// ---------- add to home screen ----------
+let _bip = null;
+window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); _bip = e; });
+const isStandalone = () => window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+const isIOS = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+function installCard() {
+  if (isStandalone()) return `<div class="card"><h3>On your home screen</h3><div class="small"><span class="ok">✓ Installed.</span> You're using the app version.</div></div>`;
+  return `<div class="card"><h3>Put the app on your home screen</h3>
+   <div class="small">One tap from your home screen, full screen, no browser bars.</div>
+   <button class="btn pri" style="margin-top:10px;width:100%" onclick="installApp()">Add to Home Screen</button></div>`;
+}
+const STEP = (n, html) => `<div class="leg" style="cursor:default"><span class="tb sm" style="--c:#16a34a">${n}</span><div class="small" style="min-width:0">${html}</div></div>`;
+const SHARE_IC = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><path d="M12 3v12"/><path d="M8 7l4-4 4 4"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>`;
+window.installApp = async () => {
+  if (_bip) { _bip.prompt(); try { await _bip.userChoice; } catch (e) {} _bip = null; render(); return; }
+  const ua = navigator.userAgent;
+  const chromeIOS = /CriOS/.test(ua), otherIOS = /FxiOS|EdgiOS|GSA\//.test(ua);
+  let steps;
+  if (isIOS() && chromeIOS) {
+    steps = [
+      `Tap the <b>Share</b> button ${SHARE_IC} at the top right, next to the web address.`,
+      `Scroll down the list and tap <b>Add to Home Screen</b>.`,
+      `Tap <b>Add</b>. The NFL Bets icon appears on your home screen.`];
+  } else if (isIOS() && !otherIOS) {
+    steps = [
+      `Tap the <b>•••</b> button at the bottom right of Safari. (On older iPhones, tap the <b>Share</b> button ${SHARE_IC} at the bottom of the screen instead and skip to step 3.)`,
+      `Tap <b>Share</b> ${SHARE_IC}.`,
+      `Scroll down and tap <b>Add to Home Screen</b>. If you only see a short list, tap <b>View More</b> first.`,
+      `Leave <b>Open as Web App</b> on, then tap <b>Add</b>.`];
+  } else if (isIOS()) {
+    steps = [`This browser can't add apps to the home screen. Tap <b>Copy link</b> below, open <b>Safari</b>, paste the link, then tap the button again.`];
+  } else {
+    steps = [
+      `Open your browser menu (<b>⋮</b> or <b>•••</b>).`,
+      `Tap <b>Add to Home screen</b> or <b>Install app</b>.`,
+      `Tap <b>Install</b> / <b>Add</b>.`];
+  }
+  openModal(`<h2>Add to Home Screen</h2>${steps.map((t, i) => STEP(i + 1, t)).join("")}
+    <div class="small muted" style="margin-top:10px">Apple doesn't let a website add itself, so this takes 3 taps once. Siri can't do it.</div>
+    <div class="row" style="margin-top:12px"><button class="btn" onclick="copyLink()">Copy link</button><span class="sp"></span><button class="btn pri" onclick="closeModal()">Got it</button></div>
+    <div id="copyRes" class="small"></div>`);
+};
+window.copyLink = async () => {
+  const url = location.origin + location.pathname;
+  try { await navigator.clipboard.writeText(url); $("#copyRes").innerHTML = `<span class="ok">Link copied.</span>`; }
+  catch (e) { $("#copyRes").textContent = url; }
+};
+
 // ---------- setup + system ----------
 function setup() {
   const p = S.B.push || {};
   const topic = localGet("topic") || p.topic || "";
   const h = S.B.health || {};
   return `<div class="ptitle">Setup</div><h2>Setup & Edge</h2>
+  ${installCard()}
   <div class="card"><h3>Phone alerts</h3>
    <div class="small">Status: ${p.topic ? `<span class="ok">topic saved on server</span>` : `<span class="bad">no topic on server</span>`}${p.lastNote ? `<br>${esc(p.lastNote)}` : ""}</div>
    <div class="row" style="margin-top:8px"><input id="topic" placeholder="ntfy topic" value="${esc(topic)}" style="flex:1"><button class="btn pri" onclick="testPush()">Test</button></div>
@@ -682,7 +759,6 @@ function setup() {
   <div class="card"><h3>Sunday inactives check</h3><div class="small">Re-checks inactives and backups now.</div>
    <a class="btn" href="https://github.com/${REPO}/actions/workflows/manual.yml" target="_blank" rel="noopener">Run inactives check</a>
    <div class="tiny muted" style="margin-top:4px">Opens GitHub → tap “Run workflow”, pick <code>inactives</code>.</div></div>
-  <div class="card"><h3>Install on your phone</h3><div class="small">iPhone: open this page in Safari → Share → <b>Add to Home Screen</b>. Mac: bookmark it or Safari → File → Add to Dock.</div></div>
   <div class="card doc"><h3>How pricing works</h3>
    <p><code>fair = Φ((spread + weather + fresh injury news) × 1.15 ÷ 13.5)</code>. The 1.15 scale was fitted on 1,359 games (2021–25) and checked on 2026: calibrated in every bucket. The old ×0.85/×0.80 shrink priced favourites too cheap and lost money in testing, so it's gone.</p>
    <p>Weather/run +1.0–1.5 pts to the run-heavy team in open air if wind ≥15 mph or ≤35°F. QB out −3.5, 2+ WR/CB out −1 — only when the news is fresh (not out Thursday, line moved &lt;2 pts); otherwise the line already priced it.</p>

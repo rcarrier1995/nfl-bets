@@ -113,3 +113,15 @@ try:
         BASE_POS.update((_json.load(_f) or {}).get("basePos", {}))
 except Exception:
     pass
+
+
+def combo_markup(n):
+    """Estimated combo quote vs the legs multiplied (Robinhood prices big combos above the product).
+    Estimate only: ~1.0 up to 3 legs, ~1.07 at 8, ~1.22 at 10, +8% a leg beyond. Always check the real quote."""
+    if n <= 3:
+        return 1.0
+    if n <= 8:
+        return 1.0 + 0.07 * (n - 3) / 5
+    if n <= 10:
+        return 1.07 + 0.075 * (n - 8)
+    return 1.22 * 1.08 ** (n - 10)

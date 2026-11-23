@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from . import config as C
 from . import injuries as I
 from . import model as M
+from . import profiles as PF
 from .fetch import iso
 
 TO_TYPES = ("Interception", "Fumble Recovery (Opponent)", "Fumble Return Touchdown", "Sack Opp Fumble Recovery")
@@ -25,6 +26,22 @@ def _prob_home(ev, summary):
     if wp:
         return wp[-1].get("homeWinPercentage"), wp[-1].get("tiePercentage") or 0
     return None, 0
+
+
+def _box(summary):
+    """In-game box per team: yards/play, first downs, first-down rate (ESPN summary)."""
+    out = {}
+    for blk in ((summary or {}).get("boxscore") or {}).get("teams", []):
+        st = {s.get("name"): s.get("displayValue") for s in blk.get("statistics", [])}
+        try:
+            plays = int(st.get("totalOffensivePlays") or 0)
+            fd = int(st.get("firstDowns") or 0)
+            ypp = float(st.get("yardsPerPlay") or 0)
+        except Exception:
+            continue
+        if plays:
+            out[C.espn_abbr(blk["team"]["abbreviation"])] = {"plays": plays, "fd": fd, "ypp": ypp, "fdr": fd / plays}
+    return out
 
 
 def live_update(g, summary, ev, tables, live_state, snap, now):
@@ -149,6 +166,24 @@ def live_update(g, summary, ev, tables, live_state, snap, now):
     # ---- live fair & calls & alerts ----
     ph, tie = _prob_home(ev, summary)
     alerts = []
+    # our own live win % (pregame line + score + time + ball + field position + timeouts)
+    ours_home = None
+    if g["state"] == "in":
+        pre_h = ((snap or {}).get("teams") or {}).get(g["home"], {}).get("fair")
+        yl = None
+        pt = sit.get("possessionText") or ""
+        pos_tm = g.get("possession")
+        try:
+            side_tm, yd = pt.rsplit(" ", 1)
+            yd = int(yd)
+            yl = (100 - yd) if C.espn_abbr(side_tm) == pos_tm else yd
+        except Exception:
+            yl = 50 if pt.strip() == "50" else None
+        lead_h = (g["score"]["home"] or 0) - (g["score"]["away"] or 0)
+        tod = (sit.get("homeTimeouts") or 0) - (sit.get("awayTimeouts") or 0) if sit.get("homeTimeouts") is not None else 0
+        ours_home = PF.live_wp(None if pre_h is None else pre_h / 100, lead_h, secs,
+                               None if pos_tm is None else pos_tm == g["home"], yl, tod)
+    box = _box(summary)
     for side in ("away", "home"):
         c = g["teams"][side]
         tm, opp = c["team"], c["opp"]
@@ -214,8 +249,35 @@ def live_update(g, summary, ev, tables, live_state, snap, now):
         c["liveCuts"] = {"injury": round(cut, 1), "nextQ": round(nq_cut, 1), "impactPts": imp}
         if c["liveFair"] is not None:
             c["liveFair"] = round(max(0.0, c["liveFair"] - cut - nq_cut), 1)
+        c["ourLive"] = None
+        if ours_home is not None:
+            c["ourLive"] = round(max(0.0, 100 * (ours_home if side == "home" else 1 - ours_home) - cut - nq_cut), 1)
+        # context: comeback grade when behind, 2nd-half grade around half time, outplaying but trailing
+        my, their = (g["score"]["home"], g["score"]["away"]) if side == "home" else (g["score"]["away"], g["score"]["home"])
+        trailing = (my or 0) < (their or 0)
+        if trailing:
+            cb = PF.comeback_line(tm, opp)
+            if cb:
+                lines_.append({"text": cb, "kind": "ctx"})
+            bt, bo = box.get(tm), box.get(opp)
+            if bt and bo and bt["plays"] >= 15 and bo["plays"] >= 15 and bt["ypp"] - bo["ypp"] > 1.0 \
+                    and bt["fdr"] - bo["fdr"] > 0.03:
+                lines_.append({"text": f"Outplaying {opp} but behind: {bt['ypp']:.1f} vs {bo['ypp']:.1f} yds/play, "
+                                       f"{bt['fd']} vs {bo['fd']} first downs (tested: not a reliable edge yet)", "kind": "ctx"})
+        if period in (2, 3):
+            hl = PF.half_line(tm)
+            if hl:
+                lines_.append({"text": hl, "kind": "ctx"})
         cl = M.classify(c["liveFair"], c.get("price"))
         live_call = cl["call"]
+        price_ = c.get("price")
+        if c["ourLive"] is not None and price_ is not None and c["liveFair"] is not None:
+            gap_ours = c["ourLive"] - price_
+            if live_call == "Value" and gap_ours < C.WAIT_EDGE:
+                live_call = "Wait"
+                lines_.append({"text": f"Our own win model says {c['ourLive']:.0f}% (ESPN {c['liveFair']:.0f}%) — not cheap enough on both, so Wait", "kind": "ctx"})
+            elif gap_ours >= C.VALUE_EDGE and c["liveFair"] - price_ >= C.VALUE_EDGE:
+                c["bothOff"] = f"Price {price_:.0f}¢ is under both win models: ours {c['ourLive']:.0f}%, ESPN {c['liveFair']:.0f}%"
         if to_tot.get(tm, 0) >= 2:
             live_call = {"Value": "Wait", "Wait": "Pass"}.get(live_call, live_call)
         late = period >= 5 or (period == 4 and secs < 300)

@@ -182,3 +182,45 @@ if __name__ == "__main__":
         if k.startswith("test_"):
             f()
             print("ok", k)
+
+
+def test_combo_markup_estimate():
+    from engine import config as C
+    assert C.combo_markup(2) == 1.0 and abs(C.combo_markup(8) - 1.07) < 1e-9 and abs(C.combo_markup(10) - 1.22) < 1e-9
+    legs = [L(i, f"T{i}", 80, 60) for i in range(9)]
+    card = combos.card_from(legs, 80 ** 9 / 100 ** 8, 60 ** 9 / 100 ** 8)
+    assert card["est"] > card["cost"] and card["edge"] == round(card["maxPay"] - card["est"], 2)
+
+
+def test_our_live_wp_sane():
+    from engine import profiles as PF
+    if not PF._wp_cache():
+        return
+    up = PF.live_wp(0.5, 14, 300, True, 40, 0)
+    down = PF.live_wp(0.5, -14, 300, True, 40, 0)
+    even = PF.live_wp(0.7, 0, 3500, None, 75, 0)
+    assert up > 0.95 and down < 0.05 and 0.6 < even < 0.8
+
+
+def test_no_pushes_from_local_runs(monkeypatch):
+    import importlib
+    from engine import push as P
+    importlib.reload(P)          # another test swaps P.send for a recorder
+    monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+    monkeypatch.delenv("NFL_PUSH", raising=False)
+    assert P.send("t", "b") is False
+
+
+def test_matchup_lines_use_real_ranks():
+    from engine import profiles as PF
+    PF._prof = {"AAA": {"rank": {"passOff": 2, "passDef": 10, "rushOff": 16, "rushDef": 16, "sackRate": 16, "sackAllowed": 16,
+                                 "stuffRate": 16, "stuffAllowed": 16, "q4For": 16, "q4Against": 16, "q1For": 16,
+                                 "q1Against": 16, "h2h1": 2}, "fumLuck": 0, "h2h1": 0.1},
+                "BBB": {"rank": {"passOff": 20, "passDef": 30, "rushOff": 16, "rushDef": 16, "sackRate": 16, "sackAllowed": 16,
+                                 "stuffRate": 16, "stuffAllowed": 16, "q4For": 16, "q4Against": 16, "q1For": 16,
+                                 "q1Against": 16, "h2h1": 16}, "fumLuck": 0, "h2h1": 0}}
+    PF._stud = {"rows": []}
+    out = PF.matchup_lines("AAA", "BBB")
+    assert any("AAA pass attack (2nd) vs BBB pass D (30th)" in x for x in out)
+    assert PF.adjust_pts("AAA", "BBB") == (0.0, [])
+    PF._prof = PF._stud = None

@@ -19,6 +19,10 @@ def state():
 
 
 def send(title, body, tags="football", priority="default"):
+    # only the cloud job sends real pushes; a run on a dev machine (stale cached prices) must never buzz Rick
+    if not os.environ.get("GITHUB_ACTIONS") and os.environ.get("NFL_PUSH") != "1":
+        print(f"[push skipped, local run] {title}")
+        return False
     cfg = config()
     st = state()
     topic = (os.environ.get("NTFY_TOPIC") or cfg.get("ntfyTopic") or "").strip()

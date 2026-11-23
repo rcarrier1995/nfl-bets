@@ -1,7 +1,8 @@
 """Combo search (Section 8). Exhaustive over every game set and every side combination.
 
 Hit % = product of fair probs. Fair price = hit% x 100. Max pay = fair price - 2c buffer.
-Cost = product of market prices. Edge = max pay - cost. One leg per game (same-game legs are
+Cost = product of market prices; est = cost x estimated combo markup (config.combo_markup).
+Edge = max pay - est. One leg per game (same-game legs are
 correlated and never multiplied as if independent).
 """
 import itertools
@@ -53,7 +54,7 @@ def _best_for_size(games, k, top_n=1):
         f = fa[sub[:, None, :], bits[None, :, :]]          # (m, 2^k, k)
         p = pa[sub[:, None, :], bits[None, :, :]]
         hit = f.prod(axis=2) * 100.0
-        cost = p.prod(axis=2) * 100.0
+        cost = p.prod(axis=2) * 100.0 * C.combo_markup(k)
         edge = (hit - C.FEE_BUFFER_COMBO) - cost
         checked += edge.size
         flat = edge.ravel()
@@ -74,10 +75,17 @@ def build_card(games, subset, sides, k):
         legs.append(sanitize(leg))
     hit = math.prod(l["fair"] / 100 for l in legs) * 100
     cost = math.prod(l["price"] / 100 for l in legs) * 100
+    return card_from(legs, hit, cost)
+
+
+def card_from(legs, hit, cost):
+    """cost = legs multiplied; est = estimated real quote (markup); edge uses the estimate."""
+    k = len(legs)
     maxpay = hit - C.FEE_BUFFER_COMBO
+    est = cost * C.combo_markup(k)
     return {"size": k, "legs": legs, "hit": round(hit, 2), "fair": round(hit, 2),
-            "maxPay": round(maxpay, 2), "cost": round(cost, 2), "edge": round(maxpay - cost, 2),
-            "profit": round(100 - cost, 2), "tier": tier(cost)}
+            "maxPay": round(maxpay, 2), "cost": round(cost, 2), "est": round(est, 2), "markup": round(C.combo_markup(k), 3),
+            "edge": round(maxpay - est, 2), "profit": round(100 - est, 2), "tier": tier(est)}
 
 
 def tier(cost):
@@ -108,7 +116,7 @@ def search(pool_games, sizes=None):
         else:
             e, sub, sides = best[0]
             card = build_card(games, sub, sides, k)
-            if card["cost"] <= card["maxPay"]:
+            if card["est"] <= card["maxPay"]:
                 res["combo"] = card
             else:
                 res["none"] = True
@@ -128,7 +136,7 @@ def search_legs(legs, sizes=None):
             if len({legs[i]["gameId"] for i in sub}) < k:
                 continue
             hit = math.prod(legs[i]["fair"] / 100 for i in sub) * 100
-            cost = math.prod(legs[i]["price"] / 100 for i in sub) * 100
+            cost = math.prod(legs[i]["price"] / 100 for i in sub) * 100 * C.combo_markup(k)
             e = hit - C.FEE_BUFFER_COMBO - cost
             checked += 1
             if best is None or e > best[0]:
@@ -143,10 +151,8 @@ def search_legs(legs, sizes=None):
             sel = [sanitize(dict(legs[i])) for i in best[1]]
             hit = math.prod(l["fair"] / 100 for l in sel) * 100
             cost = math.prod(l["price"] / 100 for l in sel) * 100
-            card = {"size": k, "legs": sel, "hit": round(hit, 2), "fair": round(hit, 2),
-                    "maxPay": round(hit - 2, 2), "cost": round(cost, 2),
-                    "edge": round(hit - 2 - cost, 2), "profit": round(100 - cost, 2), "tier": tier(cost)}
-            if card["cost"] <= card["maxPay"]:
+            card = card_from(sel, hit, cost)
+            if card["est"] <= card["maxPay"]:
                 res["combo"] = card
             else:
                 res["none"] = True

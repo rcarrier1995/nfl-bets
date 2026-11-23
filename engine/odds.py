@@ -68,7 +68,8 @@ def consensus_from(events):
             w.append(2.0 if sharp else 1.0)
         if ps:
             out[f"{away}@{home}"] = {"pHome": round(sum(p * x for p, x in zip(ps, w)) / sum(w), 4),
-                                     "books": len(ps), "pinnacle": pin, "kickoff": ev.get("commence_time")}
+                                     "books": len(ps), "pinnacle": pin, "kickoff": ev.get("commence_time"),
+                                     "pMin": round(min(ps), 4), "pMax": round(max(ps), 4)}
     return out
 
 

@@ -1,5 +1,5 @@
 {
- "games": 1514,
+ "games": 1515,
  "seasons": "2021\u20132026",
  "rows": [
   {
@@ -31,8 +31,8 @@
    "won": 47.9,
    "gap": -1.2,
    "se": 2.3,
-   "nTest": 57,
-   "gapTest": 7.8,
+   "nTest": 58,
+   "gapTest": 6.8,
    "holds": false
   },
   {
@@ -42,8 +42,8 @@
    "won": 52.1,
    "gap": 1.2,
    "se": 2.3,
-   "nTest": 57,
-   "gapTest": -7.8,
+   "nTest": 58,
+   "gapTest": -6.8,
    "holds": false
   },
   {
@@ -97,8 +97,8 @@
    "won": 42.4,
    "gap": 1.7,
    "se": 1.9,
-   "nTest": 72,
-   "gapTest": -2.1,
+   "nTest": 73,
+   "gapTest": -2.6,
    "holds": false
   },
   {
@@ -108,8 +108,8 @@
    "won": 57.6,
    "gap": -1.7,
    "se": 1.9,
-   "nTest": 72,
-   "gapTest": 2.1,
+   "nTest": 73,
+   "gapTest": 2.6,
    "holds": false
   },
   {
@@ -229,8 +229,8 @@
    "won": 19.9,
    "gap": -0.2,
    "se": 1.6,
-   "nTest": 71,
-   "gapTest": -2.3,
+   "nTest": 72,
+   "gapTest": -2.4,
    "holds": false
   },
   {
@@ -240,8 +240,8 @@
    "won": 80.1,
    "gap": 0.2,
    "se": 1.6,
-   "nTest": 71,
-   "gapTest": 2.3,
+   "nTest": 72,
+   "gapTest": 2.4,
    "holds": false
   },
   {
@@ -295,8 +295,8 @@
    "won": 49.8,
    "gap": 1.0,
    "se": 2.4,
-   "nTest": 52,
-   "gapTest": 5.1,
+   "nTest": 53,
+   "gapTest": 4.0,
    "holds": false
   },
   {
@@ -306,8 +306,8 @@
    "won": 50.2,
    "gap": -1.0,
    "se": 2.4,
-   "nTest": 52,
-   "gapTest": -5.1,
+   "nTest": 53,
+   "gapTest": -4.0,
    "holds": false
   },
   {
@@ -361,8 +361,8 @@
    "won": 38.7,
    "gap": 0.7,
    "se": 2.2,
-   "nTest": 52,
-   "gapTest": 1.6,
+   "nTest": 53,
+   "gapTest": 1.2,
    "holds": false
   },
   {
@@ -372,8 +372,8 @@
    "won": 61.3,
    "gap": -0.7,
    "se": 2.2,
-   "nTest": 52,
-   "gapTest": -1.6,
+   "nTest": 53,
+   "gapTest": -1.2,
    "holds": false
   },
   {
@@ -427,8 +427,8 @@
    "won": 28.0,
    "gap": -1.1,
    "se": 2.1,
-   "nTest": 51,
-   "gapTest": -3.6,
+   "nTest": 52,
+   "gapTest": -3.9,
    "holds": false
   },
   {
@@ -438,8 +438,8 @@
    "won": 72.0,
    "gap": 1.1,
    "se": 2.1,
-   "nTest": 51,
-   "gapTest": 3.6,
+   "nTest": 52,
+   "gapTest": 3.9,
    "holds": false
   },
   {
@@ -515,8 +515,8 @@
    "won": 42.2,
    "gap": -0.7,
    "se": 1.8,
-   "nTest": 93,
-   "gapTest": -4.3,
+   "nTest": 94,
+   "gapTest": -4.8,
    "holds": false
   },
   {
@@ -526,8 +526,8 @@
    "won": 17.4,
    "gap": -0.2,
    "se": 1.2,
-   "nTest": 106,
-   "gapTest": -4.8,
+   "nTest": 108,
+   "gapTest": -5.1,
    "holds": false
   },
   {
@@ -537,8 +537,8 @@
    "won": 71.7,
    "gap": 0.4,
    "se": 1.1,
-   "nTest": 199,
-   "gapTest": 4.5,
+   "nTest": 202,
+   "gapTest": 5.0,
    "holds": false
   },
   {
@@ -647,8 +647,8 @@
    "won": 47.6,
    "gap": 4.4,
    "se": 2.3,
-   "nTest": 50,
-   "gapTest": 0.7,
+   "nTest": 51,
+   "gapTest": -0.3,
    "holds": false
   },
   {
@@ -658,8 +658,8 @@
    "won": 17.8,
    "gap": -3.1,
    "se": 1.7,
-   "nTest": 59,
-   "gapTest": 2.8,
+   "nTest": 61,
+   "gapTest": 2.1,
    "holds": false
   },
   {
@@ -669,8 +669,8 @@
    "won": 67.8,
    "gap": -0.5,
    "se": 1.5,
-   "nTest": 109,
-   "gapTest": -1.9,
+   "nTest": 112,
+   "gapTest": -1.0,
    "holds": false
   },
   {
@@ -743,5 +743,5 @@
   }
  ],
  "finding": "No game moment is cheap by itself: at quarter ends and after TDs, leaders, trailers and dipped favourites all won about as often as the live price said. Best time = whenever the price sits below fair by the Value bar.",
- "note": "Only 1 of 66 spots held up in 2026 (underdogs down 15\u201330 at a quarter end, ~2\u00a2 under), about what chance alone gives across 66 tests, and smaller than the 2\u00a2 fee."
+ "note": "1 of 66 spots held up in 2026 (Quarter end \u00b7 Underdog \u00b7 down 15-30 +2\u00a2), about what chance alone gives across 66 tests, and smaller than the 2\u00a2 fee."
 }

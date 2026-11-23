@@ -1,28 +1,28 @@
 {
- "games": 5359,
+ "games": 5360,
  "train": "2006\u20132022",
  "test": "2023\u20132026",
  "rows": [
   {
    "signal": "Backup QB starting",
-   "z": -2.21,
+   "z": -2.19,
    "ptsAll": -0.71,
    "n": 1283,
    "pts": -0.69,
    "se": 0.37,
-   "nTest": 336,
-   "ptsTest": -0.8,
+   "nTest": 337,
+   "ptsTest": -0.77,
    "holds": false
   },
   {
    "signal": "Opponent on backup QB",
-   "z": 2.21,
+   "z": 2.19,
    "ptsAll": 0.71,
    "n": 1283,
    "pts": 0.69,
    "se": 0.37,
-   "nTest": 336,
-   "ptsTest": 0.8,
+   "nTest": 337,
+   "ptsTest": 0.77,
    "holds": false
   },
   {
@@ -38,13 +38,13 @@
   },
   {
    "signal": "Rest advantage 3+ days",
-   "z": 1.63,
-   "ptsAll": 0.6,
+   "z": 1.66,
+   "ptsAll": 0.61,
    "n": 903,
    "pts": 0.29,
    "se": 0.42,
-   "nTest": 218,
-   "ptsTest": 1.89,
+   "nTest": 219,
+   "ptsTest": 1.93,
    "holds": false
   },
   {
@@ -115,13 +115,13 @@
   },
   {
    "signal": "Home underdog",
-   "z": -0.87,
-   "ptsAll": -0.26,
+   "z": -0.85,
+   "ptsAll": -0.25,
    "n": 1562,
    "pts": -0.13,
    "se": 0.34,
-   "nTest": 393,
-   "ptsTest": -0.74,
+   "nTest": 394,
+   "ptsTest": -0.71,
    "holds": false
   },
   {
@@ -159,13 +159,13 @@
   },
   {
    "signal": "Home team (all)",
-   "z": -0.54,
-   "ptsAll": -0.1,
+   "z": -0.53,
+   "ptsAll": -0.09,
    "n": 4383,
    "pts": -0.19,
    "se": 0.2,
-   "nTest": 976,
-   "ptsTest": 0.3,
+   "nTest": 977,
+   "ptsTest": 0.31,
    "holds": false
   },
   {

@@ -1,0 +1,29 @@
+{
+ "at": "2026-11-23T02:56:21Z",
+ "season": 2026,
+ "studies": {
+  "grades": {
+   "ok": true,
+   "held": []
+  },
+  "timing": {
+   "ok": true,
+   "held": [
+    "Quarter end \u00b7 Underdog \u00b7 down 15-30"
+   ]
+  },
+  "signals": {
+   "ok": true,
+   "held": []
+  }
+ },
+ "summary": "Re-tested 3 studies with the newest games: no change \u2014 nothing beats the line yet, prices unchanged.",
+ "added": [],
+ "dropped": [],
+ "history": [
+  {
+   "at": "2026-11-23T02:56:21Z",
+   "summary": "Re-tested 3 studies with the newest games: no change \u2014 nothing beats the line yet, prices unchanged."
+  }
+ ]
+}
