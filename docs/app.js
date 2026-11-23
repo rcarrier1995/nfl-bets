@@ -24,8 +24,9 @@ function kick(iso) {
   return d.toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" }).replace(":00", "");
 }
 const callOf = c => { const k = c.state === "in" && c.liveCall ? c.liveCall : c.call; return k === "Pass" && c.sell && c.state !== "post" && !c.priceStale && !(c.state === "in" && (c.alertsOff || c.paused)) ? "Sell" : k; };
-const callsBy = () => Object.fromEntries((S.B?.calls || []).map(c => [c.key, c]));
-const gameBy = () => Object.fromEntries((S.B?.games || []).map(g => [g.id, g]));
+const nextCalls = () => (S.B?.nextWeek || []).flatMap(g => [g.teams.away, g.teams.home]);
+const callsBy = () => Object.fromEntries((S.B?.calls || []).concat(nextCalls()).map(c => [c.key, c]));
+const gameBy = () => Object.fromEntries((S.B?.games || []).concat(S.B?.nextWeek || []).map(g => [g.id, g]));
 const COLORS = () => Object.assign({}, ...(S.B?.games || []).map(g => g.colors || {}));
 const LOGOS = () => Object.assign({}, ...(S.B?.games || []).map(g => g.logos || {}));
 function badge(team, size = "") {
@@ -109,7 +110,7 @@ function verdict(c) {
 }
 // signals that don't change the call right now stay behind one tap
 function moreInfo(c, lines, grades = true) {
-  const g = (S.B.games || []).find(x => x.id === c.gameId);
+  const g = gameBy()[c.gameId];
   const hasGrades = grades && (g?.grades?.[c.team] || []).length;
   if (!lines.length && !hasGrades && grades) return "";
   const id = "mi:" + c.key;
@@ -118,7 +119,7 @@ function moreInfo(c, lines, grades = true) {
   return h;
 }
 function gradesToggle(c) {
-  const g = (S.B.games || []).find(x => x.id === c.gameId);
+  const g = gameBy()[c.gameId];
   if (!g || !(g.grades?.[c.team] || []).length) return "";
   const id = "gt:" + c.key;
   return `<div class="line u muted" onclick="toggle('${esc(id)}')">${ic("mu")}Team grades</div>${S.open.has(id) ? teamChips(g, c.team) : ""}`;
@@ -154,7 +155,7 @@ function betCard(c, opts = {}) {
 }
 // this team's own info only: its injuries, its side of the matchup, its grades
 function teamInfo(c) {
-  const g = (S.B.games || []).find(x => x.id === c.gameId);
+  const g = gameBy()[c.gameId];
   if (!g) return "";
   const t = c.team, o = c.opp, mu = g.matchup?.[t], mo = g.matchup?.[o];
   const inj = (g.injuries || []).filter(i => i.team === t && i.starter && ["Out", "Doubtful", "Questionable"].includes(i.status));
@@ -167,7 +168,7 @@ function teamInfo(c) {
 }
 // "Why it could win / lose today": 2-3 short reasons each, only from data on the board
 function winLose(c) {
-  const g = (S.B.games || []).find(x => x.id === c.gameId);
+  const g = gameBy()[c.gameId];
   if (!g) return "";
   const t = c.team, o = c.opp, mu = g.matchup?.[t], mo = g.matchup?.[o];
   const W = [], L = [];   // [weight, text]
@@ -432,8 +433,13 @@ function pregame() {
   h += `<h2>Wait list</h2>${waits.length ? waits.map(c => `<div class="grow" onclick="openBreakdown('${esc(c.key)}')">${badge(c.team, "sm")}<b>${esc(c.team)}</b><span class="small">now ${ct(c.price)}</span><span class="sp"></span><span class="small c-Wait">buy at ${ct(c.buyAt)} → +${ct(100 - c.buyAt)}</span></div>`).join("") : NOREC(closest ? `Closest Wait: ${closest.team} at ${ct(closest.price)}, needs fair − 8¢ after fees` : "")}`;
   const games = S.B.games.filter(g => filt(g.teams.away) || filt(g.teams.home) || (S.chip === "All" && !S.q));
   const up = games.filter(g => g.state === "pre"), lvg = games.filter(g => g.state === "in"), fin = games.filter(g => g.state === "post");
+  const nw = (S.B.nextWeek || []).filter(g => filt(g.teams.away) || filt(g.teams.home) || (S.chip === "All" && !S.q));
+  const es = S.B.earlyStudy || {};
+  const nextSec = `<h2>Next week · early prices <span class="cnt">${nw.length}</span></h2>
+    <div class="tiny muted" style="margin:-4px 0 8px">Early: injury news can still move these. ${es.n ? `So far the early price was ${es.avg > 0 ? `${es.avg}¢ cheaper` : `${-es.avg}¢ dearer`} than at kickoff on average (${es.cheaper} cheaper, ${es.dearer} dearer, ${es.n} teams).` : "We're tracking whether early prices beat kickoff prices."}</div>
+    ${nw.length ? `<div class="glist">${nw.map(gameRow).join("")}</div>` : NOREC("Kalshi hasn't listed next week's games yet")}`;
   h += `<h2>All games this week <span class="cnt">${games.length}</span></h2>${games.length ? `${lvg.map(gameRow).join("")}${up.length ? `<div class="glist">${up.map(gameRow).join("")}</div>` : ""}${fin.length ? `<div class="glist" style="margin-top:10px">${fin.map(gameRow).join("")}</div>` : ""}` : NOREC()}`;
-  return h;
+  return h + nextSec;
 }
 function live() {
   const lv = S.B.games.filter(g => g.state === "in");

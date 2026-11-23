@@ -240,6 +240,20 @@ def build(now=None, extra_shrink=1.0, calib=None, sb_override=None):
                      if (l.get("fair") or 0) >= C.SHOE_IN or l.get("lopsided") or l.get("tdDip")]
     comb = CB.search_legs(combined_legs)
 
+    # next week: early prices as soon as Kalshi lists them (no pushes, no combos, flagged early)
+    next_games = []
+    if week and int(week) < 18:
+        try:
+            sb2, _ = espn_scoreboard(week=int(week) + 1, season=season)
+            for ev in (sb2 or {}).get("events", []):
+                if ev["status"]["type"]["state"] == "pre":
+                    next_games.append(build_game(ev, tables, kidx, [], {}, live_state, snaps, prev_calls, now,
+                                                 extra_shrink, calib, None))
+        except Exception as e:  # noqa
+            HEALTH.fail("espn-next", e)
+    next_games.sort(key=lambda g: (g["kickoff"] or ""))
+    early = early_track(next_games, games, snaps, now)
+
     from .lag import record_and_detect
     from .timing import best_time
     record_and_detect({"games": games}, now)
@@ -256,7 +270,38 @@ def build(now=None, extra_shrink=1.0, calib=None, sb_override=None):
         "combos": {"standard": std, "combined": comb, "pool": [l for pair in pool for l in pair],
                    "poolGames": len(pool)},
         "alerts": alerts, "feedsStale": feeds_stale, "tablesBuiltAt": tables.get("builtAt"),
+        "nextWeek": next_games, "earlyStudy": early,
     }
+
+
+EARLY_FILE = os.path.join(C.STATE, "early_prices.json")
+
+
+def early_track(next_games, games, snaps, now):
+    """Remember the first price we saw for each next-week team; once that game kicks off, compare it with
+    the last pregame price. Answers: does buying early beat waiting for kickoff?"""
+    st = load_json(EARLY_FILE, {}) or {}
+    first, done = st.setdefault("first", {}), st.setdefault("done", {})
+    for g in next_games:
+        for side in ("away", "home"):
+            c = g["teams"][side]
+            if c.get("price") is not None and c["key"] not in first:
+                first[c["key"]] = {"price": c["price"], "fair": c.get("fair"), "at": iso(now)}
+    for g in games:
+        if g.get("state") == "pre":
+            continue
+        for side in ("away", "home"):
+            c = g["teams"][side]
+            f, kick = first.get(c["key"]), c.get("pregamePrice")
+            if f and kick is not None and c["key"] not in done:
+                done[c["key"]] = {"early": f["price"], "kickoff": kick, "team": c["team"]}
+    d = list(done.values())
+    save_json(EARLY_FILE, st, compact=True)
+    if not d:
+        return {"n": 0}
+    diffs = [x["kickoff"] - x["early"] for x in d]   # + means early was cheaper
+    return {"n": len(d), "avg": round(sum(diffs) / len(d), 1),
+            "cheaper": sum(1 for x in diffs if x > 0), "dearer": sum(1 for x in diffs if x < 0)}
 
 
 def _combo_fair(c):
