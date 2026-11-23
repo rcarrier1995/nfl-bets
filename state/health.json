@@ -1,23 +1,23 @@
 {
  "espn": {
   "ok": true,
-  "lastOk": "2026-11-23T03:06:44Z",
+  "lastOk": "2026-11-23T03:07:30Z",
   "note": "",
   "fails": 0
  },
  "kalshi": {
   "ok": true,
-  "lastOk": "2026-11-23T03:04:34Z",
+  "lastOk": "2026-11-23T03:07:30Z",
   "note": "",
   "fails": 0,
   "lastFail": "2026-11-23T02:19:30Z",
   "error": "HTTP Error 429: Too Many Requests"
  },
  "weather": {
-  "ok": false,
-  "lastOk": "2026-11-23T02:58:30Z",
+  "ok": true,
+  "lastOk": "2026-11-23T03:07:30Z",
   "note": "",
-  "fails": 1,
+  "fails": 0,
   "lastFail": "2026-11-23T03:06:43Z",
   "error": "<urlopen error _ssl.c:994: The handshake operation timed out>"
  },
