@@ -292,3 +292,8 @@ input:focus,select:focus{border-color:color-mix(in srgb,var(--accent) 55%,var(--
 .verdict.v-Wait{background:color-mix(in srgb,var(--wait) 16%,transparent);color:var(--wait)}
 .verdict.v-Pass{background:color-mix(in srgb,var(--bad) 14%,transparent);color:var(--bad)}
 .note{margin-top:8px;padding:7px 10px;border-radius:10px;background:var(--soft);font-size:12.5px;color:var(--muted)}
+
+/* could win / could lose */
+.wl{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0 4px}
+.wl ul{margin:4px 0 0;padding-left:16px;font-size:12.5px;line-height:1.4}
+.wl li{margin:2px 0}

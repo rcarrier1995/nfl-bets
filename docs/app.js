@@ -114,7 +114,7 @@ function moreInfo(c, lines, grades = true) {
   if (!lines.length && !hasGrades && grades) return "";
   const id = "mi:" + c.key;
   let h = `<div class="line u muted" onclick="toggle('${esc(id)}')">More info${lines.length ? ` (${lines.length})` : ""}</div>`;
-  if (S.open.has(id)) h += liveInjLines({ ...c, liveLines: lines }) + (grades ? (hasGrades ? teamChips(g, c.team) : "") : teamInfo(c));
+  if (S.open.has(id)) h += liveInjLines({ ...c, liveLines: lines }) + (grades ? (hasGrades ? teamChips(g, c.team) : "") : teamInfo(c) + winLose(c));
   return h;
 }
 function gradesToggle(c) {
@@ -165,6 +165,44 @@ function teamInfo(c) {
   if (ch) h += `<div class="small" style="margin:6px 0 2px"><b>Grades</b> <span class="muted">· last 17 games · #1 best, #32 worst</span></div>${ch}`;
   return h;
 }
+// "Why it could win / lose today": 2-3 short reasons each, only from data on the board
+function winLose(c) {
+  const g = (S.B.games || []).find(x => x.id === c.gameId);
+  if (!g) return "";
+  const t = c.team, o = c.opp, mu = g.matchup?.[t], mo = g.matchup?.[o];
+  const W = [], L = [];   // [weight, text]
+  const fair = c.state === "in" ? c.liveFair : c.fair;
+  if (c.state === "in" && g.score) {
+    const me = g.home === t ? g.score.home : g.score.away, them = g.home === t ? g.score.away : g.score.home;
+    if (me > them) W.push([99, `Leading ${me}–${them}`]); else if (me < them) L.push([99, `Trailing ${me}–${them}`]);
+  } else if (g.spreadHome != null && g.spreadHome !== 0) {
+    const sp = g.home === t ? g.spreadHome : -g.spreadHome;   // negative = favoured
+    if (sp < 0) W.push([99, `Favoured by ${Math.abs(sp)} pts`]); else L.push([99, `Underdog by ${sp} pts`]);
+  }
+  const outs = (g.injuries || []).filter(i => i.starter && ["Out", "Doubtful"].includes(i.status));
+  const mine = outs.filter(i => i.team === t), theirs = outs.filter(i => i.team === o);
+  const nm = l => l.slice(0, 2).map(i => `${i.pos} ${i.player.split(" ").slice(-1)[0]}`).join(", ") + (l.length > 2 ? ` +${l.length - 2}` : "");
+  if (theirs.length) W.push([4 + theirs.length + (theirs.some(i => i.pos === "QB") ? 5 : 0), `${o} missing ${nm(theirs)}`]);
+  if (mine.length) L.push([4 + mine.length + (mine.some(i => i.pos === "QB") ? 5 : 0), `Missing ${nm(mine)}`]);
+  if (mu && mo) {
+    for (const [off, def, label] of [["passOff", "passDef", "pass"], ["runOff", "runDef", "run"]]) {
+      const a = mu[off]?.rank, d = mo[def]?.rank, oa = mo[off]?.rank, md = mu[def]?.rank;
+      if (a && d && d - a >= 8) W.push([d - a, `Its ${label} game (#${a}) vs a weak ${label} D (#${d})`]);
+      if (a && d && a - d >= 8) L.push([a - d, `Its ${label} game (#${a}) vs a strong ${label} D (#${d})`]);
+      if (oa && md && oa - md >= 8) W.push([oa - md, `Its ${label} D (#${md}) vs a weak ${label} attack (#${oa})`]);
+      if (oa && md && md - oa >= 8) L.push([md - oa, `${o}'s ${label} attack (#${oa}) vs its ${label} D (#${md})`]);
+    }
+  }
+  const gs = g.grades?.[t] || [];
+  const best = gs.filter(x => x.r <= 5).sort((a, b) => a.r - b.r)[0], worst = gs.filter(x => x.r >= 28).sort((a, b) => b.r - a.r)[0];
+  if (best) W.push([3, `${best.k} #${best.r} in the NFL`]);
+  if (worst) L.push([3, `${worst.k} #${worst.r} in the NFL`]);
+  if (c.weatherWhy) (/favors/.test(c.weatherWhy) && c.weatherWhy.includes(o) ? L : W).push([2, c.weatherWhy]);
+  const top = a => a.sort((x, y) => y[0] - x[0]).slice(0, 3).map(x => `<li>${esc(x[1])}</li>`).join("");
+  if (!W.length && !L.length) return "";
+  return `<div class="wl"><div><b class="ok">Could win</b><ul>${top(W) || "<li class=muted>Nothing stands out</li>"}</ul></div><div><b class="bad">Could lose</b><ul>${top(L) || "<li class=muted>Nothing stands out</li>"}</ul></div></div>
+    <div class="tiny muted">${fair != null ? `Win chance ${Math.round(fair)}% already counts all of this.` : ""}</div>`;
+}
 function h2hDetails(g, inner) {
   const id = "h2h:" + g.id;
   return `<div class="line u" onclick="toggle('${id}')">${ic("mu")}Head-to-head details</div>${S.open.has(id) ? `<div style="margin-left:4px">${inner}</div>` : ""}`;
@@ -172,7 +210,7 @@ function h2hDetails(g, inner) {
 function cardMore(c) {
   const r = (c.reasons || []).map(x => `<span class="chipf">${esc(x)}</span>`).join("");
   const why = c.why && !/fair|edge/i.test(c.why) ? c.why : "";
-  return `<div class="gdet">${why ? `<div class="small" style="margin-bottom:6px">${esc(why)}</div>` : ""}${r || ""}${teamInfo(c)}<div style="margin-top:8px"><button class="btn pri" onclick="openBreakdown('${esc(c.key)}')">Full breakdown</button></div></div>`;
+  return `<div class="gdet">${why ? `<div class="small" style="margin-bottom:6px">${esc(why)}</div>` : ""}${r || ""}${teamInfo(c)}${winLose(c)}<div style="margin-top:8px"><button class="btn pri" onclick="openBreakdown('${esc(c.key)}')">Full breakdown</button></div></div>`;
 }
 
 // ---------- game sections ----------
