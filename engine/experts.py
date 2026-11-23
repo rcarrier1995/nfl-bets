@@ -301,7 +301,17 @@ def stats(st):
                     key=lambda n: (-ex[n]["roi"], -ex[n]["pct"]))
     for i, n in enumerate(ranked):
         ex[n]["rank"] = i + 1
+    # underdog experts: of the top SHOW, the 3 with the most underdog profit (8+ underdog picks)
+    dogs = sorted([n for n in ranked[:SHOW] if ex[n]["dog"][0] >= 8], key=lambda n: -ex[n]["dog"][2])[:3]
+    dg = _blank()
+    for g, ps in by_game.items():
+        for p, r in ps:
+            if p["expert"] in dogs and p["price"] is not None and p["price"] < 50:
+                _add(dg, p["price"], r == p["team"])
+                break    # one bet per underdog pick, even if two of them made it
+    _finish(dg)
     return {"experts": ex, "baseline": base, "agree": agree, "top": ranked[:SHOW], "count": len(ex),
+            "dogExperts": dogs, "dogGroup": dg,
             "sources": ["CBS Sports expert picks", "NFL.com weekly picks"]}
 
 
@@ -339,7 +349,10 @@ def for_board(st, games):
                          "ats": ats and f"{ats['team']} {ats.get('line') or ''}".strip(),
                          "score": ((nfl.get("picks") or {}).get(n) or {}).get("score")})
         cnt = {t: sum(1 for v in allp.values() if v == t) for t in (a, h)}
-        g["experts"] = {"top": rows, "count": cnt, "n": len(allp),
+        sp = g.get("spreadHome")
+        dog = None if sp in (None, 0) else (a if sp < 0 else h)
+        dpk = [n for n in (stt.get("dogExperts") or []) if dog and allp.get(n) == dog]
+        g["experts"] = {"top": rows, "count": cnt, "n": len(allp), "dog": dog, "dogPicks": dpk,
                         "reasons": [{"name": n, "team": allp.get(n), "text": t} for n, t in (nfl.get("reasons") or {}).items()],
                         "agree": next((t for t, c in cnt.items() if c == len(allp) and c >= 8), None)}
 
@@ -366,5 +379,5 @@ def public(st):
     rows = [{"name": n, "source": v.get("source"), "rank": v.get("rank"), "w": v["w"], "n": v["n"], "pct": v["pct"],
              "roi": v["roi"], "fav": v["fav"], "dog": v["dog"]} for n, v in (s.get("experts") or {}).items()]
     rows.sort(key=lambda r: (r["rank"] or 99, -(r["roi"] or -99)))
-    return {"table": rows, "top": s.get("top"), "baseline": s.get("baseline"), "agree": s.get("agree"),
+    return {"table": rows, "top": s.get("top"), "dogExperts": s.get("dogExperts"), "dogGroup": s.get("dogGroup"), "baseline": s.get("baseline"), "agree": s.get("agree"),
             "sources": s.get("sources"), "at": st.get("at"), "minPicks": MIN_PICKS}

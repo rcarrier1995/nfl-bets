@@ -375,7 +375,8 @@ function expertsLine(g) {
   const c = {};
   for (const r of e.top) c[r.team] = (c[r.team] || 0) + 1;
   const txt = Object.entries(c).sort((a, b) => b[1] - a[1]).map(([t, n]) => `${t} ${n}`).join(" · ");
-  return `<div class="tiny muted" style="margin-top:2px">Top ${e.top.length} experts: <b>${esc(txt)}</b>${e.agree ? ` <span class="tag">All ${e.n} agree</span>` : ""}</div>`;
+  const dp = e.dogPicks?.length ? `<div class="tiny" style="margin-top:2px;color:var(--gold)">Underdog pick: <b>${esc(e.dog)}</b> by ${esc(e.dogPicks.map(n => n.split(" ").slice(-1)[0]).join(", "))}</div>` : "";
+  return `<div class="tiny muted" style="margin-top:2px">Top ${e.top.length} experts: <b>${esc(txt)}</b>${e.agree ? ` <span class="tag">All ${e.n} agree</span>` : ""}</div>${dp}`;
 }
 function expertsBlock(g) {
   const e = g.experts;
@@ -688,7 +689,7 @@ function learning() {
     if (S.open.has(id)) {
       h += `<table class="qt"><tr><th>#</th><th>Expert</th><th>Right</th><th>Profit</th><th>Underdogs</th></tr>${E.table.map(r => `<tr><td>${r.rank || "–"}</td><td>${esc(r.name)} <span class="muted">${esc(r.source)}</span></td><td>${r.w}-${r.n - r.w} (${r.pct}%)</td><td class="${(r.roi ?? 0) >= 0 ? "ok" : "bad"}">${pc(r.roi)}</td><td>${r.dog[1]}/${r.dog[0]} · ${r.dog[2] >= 0 ? "+" : ""}${r.dog[2]}u</td></tr>`).join("")}</table>`;
       const b = E.baseline || {}, a = E.agree || {};
-      h += `<div class="small muted" style="margin-top:6px">Profit = per 1-unit pick at the moneyline when they picked. Always picking the favourite: ${pc(b.fav?.roi)}. Always the underdog: ${pc(b.dog?.roi)}.${a.all ? ` When every expert agreed: won ${a.all.pct}% vs ${a.all.implied}% the price implied (${a.all.n} games) — no extra edge, so it's a tag only.` : ""} Ranked by profit, re-ranked every week. Sources: ${esc((E.sources || []).join(", "))}.</div>`;
+      h += `<div class="small muted" style="margin-top:6px">Profit = per 1-unit pick at the moneyline when they picked. Always picking the favourite: ${pc(b.fav?.roi)}. Always the underdog: ${pc(b.dog?.roi)}.${a.all ? ` When every expert agreed: won ${a.all.pct}% vs ${a.all.implied}% the price implied (${a.all.n} games) — no extra edge, so it's a tag only.` : ""} ${E.dogExperts?.length && E.dogGroup?.n ? ` Underdog experts (${esc(E.dogExperts.map(n => n.split(" ").slice(-1)[0]).join(", "))}): their underdog picks won ${E.dogGroup.w} of ${E.dogGroup.n}, ${E.dogGroup.profit >= 0 ? "+" : ""}${E.dogGroup.profit} units — small sample, picked after the fact.` : ""} Ranked by profit, re-ranked every week. Sources: ${esc((E.sources || []).join(", "))}.</div>`;
     }
   }
   // backtest
