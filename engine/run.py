@@ -326,6 +326,14 @@ def tick(force=()):
     board["banners"] = {"weekly": weekly_banner(board, L),
                         "windows": [w for w in L["windows"] if w["season"] == season and w["week"] == week]}
     board["learningShrink"] = L["shrink"]
+    try:   # expert picks: context only, never blocks the board
+        from . import experts as EX
+        est = EX.update(season, week, now, rs)
+        EX.for_board(est, board["games"])
+        EX.tag_legs(board)
+        board["experts"] = EX.public(est)
+    except Exception as e:
+        print("experts failed:", e)
     board["schedule"] = {"pregameAt": rs.get("pregameAt"), "thursdayBaseline": rs.get("pregame") == wk}
     LR.save(L)
     save_json(TOP_FILE, board, compact=True)

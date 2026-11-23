@@ -245,3 +245,14 @@ def test_search_safe_prefers_winners():
     assert {l["team"] for l in c["legs"]} == {"A", "C"}      # highest hit that still fits max pay
     assert all(l["fair"] >= 60 for l in c["legs"])
     assert c["est"] <= c["maxPay"]
+
+
+def test_expert_stats_profit_at_price():
+    from engine import experts as E
+    st = {"weeks": {"2026-w1": {"cbs": {"su": {"experts": ["A", "B"], "games": [
+        {"away": "X", "home": "Y", "picks": {"A": {"team": "X", "line": "+200"}, "B": {"team": "Y", "line": "-250"}}}]}}}},
+          "results": {"2026-w1": {"X@Y": "X"}}}
+    s = E.stats(st)["experts"]
+    assert s["A"]["w"] == 1 and abs(s["A"]["profit"] - 2.0) < 0.01     # +200 underdog paid 2 units
+    assert s["B"]["w"] == 0 and s["B"]["profit"] == -1.0
+    assert s["A"]["dog"][:2] == [1, 1] and s["B"]["fav"][:2] == [1, 0]

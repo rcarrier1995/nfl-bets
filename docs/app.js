@@ -224,6 +224,12 @@ function winLose(c) {
   const best = gs.filter(x => x.r <= 5).sort((a, b) => a.r - b.r)[0], worst = gs.filter(x => x.r >= 28).sort((a, b) => b.r - a.r)[0];
   if (best) W.push([3, `${best.k} #${best.r} in the NFL`]);
   if (worst) L.push([3, `${worst.k} #${worst.r} in the NFL`]);
+  const ex = g.experts?.top || [];
+  if (ex.length >= 3) {
+    const k = ex.filter(r => r.team === t).length;
+    if (k >= ex.length - 1) W.push([2, `${k} of ${ex.length} top experts pick ${t}`]);
+    else if (k <= 1) L.push([2, `${ex.length - k} of ${ex.length} top experts pick ${o}`]);
+  }
   if (c.weatherWhy) { (/favors/.test(c.weatherWhy) && c.weatherWhy.includes(o) ? L : W).push([2, c.weatherWhy]); DM.push([30, c.weatherWhy]); }
   const dm = DM.sort((x, y) => y[0] - x[0])[0];
   const top = a => a.sort((x, y) => y[0] - x[0]).slice(0, 3).map(x => `<li>${esc(x[1])}</li>`).join("");
@@ -338,6 +344,25 @@ function spreadTxt(g) {
   const moved = op != null && Math.abs(op - sp) >= 0.5 ? ` (opened ${(op < 0) === (sp < 0) ? n(op) : `${op < 0 ? g.home : g.away} ${n(op)}`})` : "";
   return `${sp === 0 ? "Pick'em" : `${fav} ${n(sp)}`}${moved}${g.total != null ? ` · O/U ${g.total}` : ""}`;
 }
+// expert picks (CBS + NFL.com): one short line by the spread, full list in head-to-head details
+function expertsLine(g) {
+  const e = g.experts;
+  if (!e || !e.top?.length) return "";
+  const c = {};
+  for (const r of e.top) c[r.team] = (c[r.team] || 0) + 1;
+  const txt = Object.entries(c).sort((a, b) => b[1] - a[1]).map(([t, n]) => `${t} ${n}`).join(" · ");
+  return `<div class="tiny muted" style="margin-top:2px">Top ${e.top.length} experts: <b>${esc(txt)}</b>${e.agree ? ` <span class="tag">All ${e.n} agree</span>` : ""}</div>`;
+}
+function expertsBlock(g) {
+  const e = g.experts;
+  if (!e || !e.n) return "";
+  const pc = x => x == null ? "" : `${x >= 0 ? "+" : ""}${x.toFixed(1)}%`;
+  let h = `<div class="small" style="margin:8px 0 2px"><b>Expert picks</b> <span class="muted">· top ${e.top.length} by profit this season</span></div>`;
+  h += e.top.map(r => `<div class="small">#${r.rank} ${esc(r.name)} → <b>${esc(r.team)}</b>${r.score ? ` (${esc(r.score)})` : ""}${r.ats ? ` · ATS ${esc(r.ats)}` : ""} <span class="muted">· ${r.pct}% right, ${pc(r.roi)} profit</span></div>`).join("");
+  h += `<div class="small muted">All ${e.n} experts: ${Object.entries(e.count).map(([t, n]) => `${esc(t)} ${n}`).join(" · ")}</div>`;
+  for (const r of e.reasons || []) h += `<div class="note small">“${esc(r.text)}” <span class="muted">— ${esc(r.name)}, NFL.com (picked ${esc(r.team || "")})</span></div>`;
+  return h + `<div class="tiny muted">Context only. Experts haven't beaten the line yet (see Learning).</div>`;
+}
 function gameRow(g) {
   const a = g.teams.away, h = g.teams.home;
   const best = [a, h].sort((x, y) => rank(callOf(y)) - rank(callOf(x)) || (y.edge ?? -99) - (x.edge ?? -99))[0];
@@ -347,7 +372,7 @@ function gameRow(g) {
   const bc = callOf(best);
   const o = S.open.has(id);
   const tm = c => `<div class="tm">${badge(c.team, "sm")}<span>${esc(c.name || c.team)}</span><span class="sp"></span></div>`;
-  let row = `<div class="grow" onclick="toggle('${id}')"><div class="mt sp">${tm(a)}${tm(h)}${spreadTxt(g) ? `<div class="tiny muted" style="margin-top:2px">${esc(spreadTxt(g))}</div>` : ""}</div>
+  let row = `<div class="grow" onclick="toggle('${id}')"><div class="mt sp">${tm(a)}${tm(h)}${spreadTxt(g) ? `<div class="tiny muted" style="margin-top:2px">${esc(spreadTxt(g))}</div>` : ""}${expertsLine(g)}</div>
     <div class="rt"><span class="kt">${kick(g.kickoff)}</span><span class="pill c-${bc}">${esc(best.team)} ${LBL(bc)}</span></div>
     <span class="chev ${o ? "open" : ""}">›</span></div>`;
   if (o) row += `<div class="card">${gameDetail(g)}</div>`;
@@ -356,7 +381,7 @@ function gameRow(g) {
 const rank = c => ({ Value: 3, Wait: 2, Sell: 2, Pass: 1 }[c] || 0);
 function gameDetail(g) {
   return `<div class="teams2">${betCard(g.teams.away)}${betCard(g.teams.home)}</div>
-    ${h2hDetails(g, `${injLine(g)}${wxLine(g)}${muLine(g)}${gradesBlock(g)}${gradeLines(g)}${sitLine(g)}${toLine(g)}${changesLine(g)}${gameCombosLine(g)}`)}`;
+    ${h2hDetails(g, `${injLine(g)}${wxLine(g)}${muLine(g)}${gradesBlock(g)}${gradeLines(g)}${sitLine(g)}${toLine(g)}${changesLine(g)}${gameCombosLine(g)}${expertsBlock(g)}`)}`;
 }
 function finalLine(g) {
   const id = "f:" + g.id;
@@ -400,12 +425,12 @@ function liveCard(g) {
   };
   const wa = g.teams.away.liveFair, wh = g.teams.home.liveFair;
   const wp = wa != null && wh != null ? `<div class="wpbar"><i style="width:${wa / (wa + wh) * 100}%;background:${esc(COLORS()[g.away] || "#556")}"></i><i style="flex:1;background:${esc(COLORS()[g.home] || "#889")}"></i></div><div class="row tiny muted" style="margin:-6px 0 8px"><span>${pct(wa)} win</span><span class="sp"></span><span>${pct(wh)} win</span></div>` : "";
-  const spr = spreadTxt(g) ? `<div class="tiny muted" style="text-align:center;margin:-4px 0 8px">Pregame line: ${esc(spreadTxt(g))}</div>` : "";
+  const spr = spreadTxt(g) ? `<div class="tiny muted" style="text-align:center;margin:-4px 0 8px">Pregame line: ${esc(spreadTxt(g))}${expertsLine(g)}</div>` : "";
   return `<div class="card">${scoreBlock(g)}${spr}${wp}
     <div class="teams2">${tc(g.teams.away)}${tc(g.teams.home)}</div>
     <div class="line u" onclick="toggle('${id}')">Quarters · ${(g.quarters || []).map(q => `Q${q.q} ${q.cumAway}-${q.cumHome}`).join(" · ") || "—"}</div>
     ${S.open.has(id) ? quarterTable(g) : ""}
-    ${h2hDetails(g, `${injLine(g)}${muLine(g)}${gradesBlock(g)}${gradeLines(g)}${toLine(g)}${wxLine(g)}`)}</div>`;
+    ${h2hDetails(g, `${injLine(g)}${muLine(g)}${gradesBlock(g)}${gradeLines(g)}${toLine(g)}${wxLine(g)}${expertsBlock(g)}`)}</div>`;
 }
 
 // ---------- tabs ----------
@@ -608,6 +633,19 @@ function learning() {
   const head = calRows.length ? calRows.map(r => `${r.bucket}: ${Math.round(r.actual)}%`).join(" · ") : "—";
   h += `<h2>Calibration</h2><div class="line u" onclick="toggle('${id1}')">${esc(head)}</div>${S.open.has(id1) ? `<div class="ig">${tile("By fair value", calibChart(calRows))}${tile("By confidence", calibChart(calC))}</div><div class="tiny muted">${useRev ? "Reviewed games" : "Rebuilt backtest (Weeks 1–11) until 20 games are reviewed"}</div>` : ""}`;
   if (L.shrink) h += `<div class="line muted small">${esc(L.shrink.note)}</div>`;
+  // experts
+  const E = S.B.experts;
+  if (E?.table?.length) {
+    const id = "exp";
+    const pc = x => x == null ? "—" : `${x >= 0 ? "+" : ""}${x.toFixed(1)}%`;
+    const top = E.table.filter(r => r.rank && r.rank <= (E.top || []).length);
+    h += `<h2>Expert picks</h2><div class="line u" onclick="toggle('${id}')">Showing top ${top.length} of ${E.table.length}: ${esc(top.map(r => r.name.split(" ").slice(-1)[0]).join(", "))}</div>`;
+    if (S.open.has(id)) {
+      h += `<table class="qt"><tr><th>#</th><th>Expert</th><th>Right</th><th>Profit</th><th>Underdogs</th></tr>${E.table.map(r => `<tr><td>${r.rank || "–"}</td><td>${esc(r.name)} <span class="muted">${esc(r.source)}</span></td><td>${r.w}-${r.n - r.w} (${r.pct}%)</td><td class="${(r.roi ?? 0) >= 0 ? "ok" : "bad"}">${pc(r.roi)}</td><td>${r.dog[1]}/${r.dog[0]} · ${r.dog[2] >= 0 ? "+" : ""}${r.dog[2]}u</td></tr>`).join("")}</table>`;
+      const b = E.baseline || {}, a = E.agree || {};
+      h += `<div class="small muted" style="margin-top:6px">Profit = per 1-unit pick at the moneyline when they picked. Always picking the favourite: ${pc(b.fav?.roi)}. Always the underdog: ${pc(b.dog?.roi)}.${a.all ? ` When every expert agreed: won ${a.all.pct}% vs ${a.all.implied}% the price implied (${a.all.n} games) — no extra edge, so it's a tag only.` : ""} Ranked by profit, re-ranked every week. Sources: ${esc((E.sources || []).join(", "))}.</div>`;
+    }
+  }
   // backtest
   if (bt) {
     const id = "bt";
