@@ -92,7 +92,7 @@ function betCard(c, opts = {}) {
   if (c.price != null && c.price <= 10) tags.push(`<span class="tag look">longshot — cheap contracts lose most</span>`);
   const open = S.open.has(id);
   return `<div class="card bg-${call}" data-card="${esc(c.key)}">
-    <div class="row">${badge(c.team)}<div style="min-width:0"><b>${esc(c.name || c.team)}</b>${opts.vs ? `<div class="tiny muted">vs ${esc(c.opp)}</div>` : ""}</div><span class="sp"></span><span class="pill c-${call}">${call === "Value" ? "Value now" : call === "Wait" ? "Wait for a dip" : "Pass"}</span></div>
+    <div class="row">${badge(c.team)}<div style="min-width:0"><b>${esc(c.name || c.team)}</b>${opts.vs ? `<div class="tiny muted">vs ${esc(c.opp)}</div>` : ""}</div><span class="sp"></span><span class="pill c-${call}">${call === "Value" ? "Buy" : call === "Wait" ? "Wait for a dip" : "Pass"}</span></div>
     <div class="row" style="margin-top:12px"><span class="hero">${ct(c.price)}</span><span class="sp"></span><span class="small">${move(c)}</span></div>
     <div class="sub">${call === "Wait" ? `Buy at ${ct(buyAt)} · ` : ""}Fair ${ct1(fair)}${c.edge != null && !live ? ` · Edge ${c.edge > 0 ? "+" : ""}${ct1(live ? c.liveEdge : c.edge)}` : ""}</div>
     ${priceBar(c.price, fair)}
@@ -139,6 +139,7 @@ function sitLine(g) {
   if (!g.situation?.length) return "";
   return `<div class="line">${ic("ch")}<span>${g.situation.map(esc).join(" · ")} <span class="muted">— already in the line</span></span></div>`;
 }
+const LBL = c => c === "Value" ? "Buy" : c;
 // rank chips: #1 green ... #32 red
 const chip = (k, r, tip) => `<span class="gchip" title="${esc(tip || "")}" style="--h:${Math.round((32 - r) / 31 * 120)}"><b>#${r}</b>${esc(k)}</span>`;
 // player grade 1-10 (from the 0-100 percentile), coloured the same way
@@ -205,7 +206,7 @@ function gameRow(g) {
   const o = S.open.has(id);
   const tm = c => `<div class="tm">${badge(c.team, "sm")}<span>${esc(c.name || c.team)}</span><span class="sp"></span></div>`;
   let row = `<div class="grow" onclick="toggle('${id}')"><div class="mt sp">${tm(a)}${tm(h)}</div>
-    <div class="rt"><span class="kt">${kick(g.kickoff)}</span><span class="pill c-${bc}">${esc(best.team)} ${bc === "Value" ? "Value" : bc === "Wait" ? "Wait" : "Pass"}</span></div>
+    <div class="rt"><span class="kt">${kick(g.kickoff)}</span><span class="pill c-${bc}">${esc(best.team)} ${bc === "Value" ? "Buy" : bc === "Wait" ? "Wait" : "Pass"}</span></div>
     <span class="chev ${o ? "open" : ""}">›</span></div>`;
   if (o) row += `<div class="card">${gameDetail(g)}</div>`;
   return row;
@@ -243,7 +244,7 @@ function liveCard(g) {
   const tc = c => {
     const call = callOf(c);
     return `<div class="card bg-${call}" style="margin:6px 0">
-      <div class="row">${badge(c.team, "sm")}<b>${esc(c.team)}</b><span class="pill c-${call}">${call}</span><span class="sp"></span><span class="hero" style="font-size:28px">${ct(c.price)}</span></div>
+      <div class="row">${badge(c.team, "sm")}<b>${esc(c.team)}</b><span class="pill c-${call}">${LBL(call)}</span><span class="sp"></span><span class="hero" style="font-size:28px">${ct(c.price)}</span></div>
       <div class="row small"><span>Fair ${ct1(c.liveFair)}${c.ourLive != null ? ` <span class="muted">· ours ${ct1(c.ourLive)}</span>` : ""}${call === "Wait" ? ` · Buy at ${ct(c.liveBuyAt)}` : ""}</span><span class="sp"></span><span>${move(c)}</span></div>
       ${priceBar(c.price, c.liveFair)}
       <div class="row small"><span>${meter(c.confidence)}</span><span class="sp"></span>${c.price != null ? `<span>+${ct(100 - c.price)} if it wins</span>` : ""}</div>
@@ -287,14 +288,14 @@ function pregame() {
   const pre = S.B.calls.filter(c => c.state === "pre");
   const nV = pre.filter(c => c.call === "Value").length, nW = pre.filter(c => c.call === "Wait").length;
   const nG = S.B.games.filter(g => g.state !== "post").length;
-  let h = `<div class="ptitle">Pregame</div><div class="stats"><div class="stat"><b class="c-Value">${nV}</b><span>Value now</span></div><div class="stat"><b class="c-Wait">${nW}</b><span>Wait for a dip</span></div><div class="stat"><b>${nG}</b><span>Games left</span></div></div>
+  let h = `<div class="ptitle">Pregame</div><div class="stats"><div class="stat"><b class="c-Value">${nV}</b><span>Buy now</span></div><div class="stat"><b class="c-Wait">${nW}</b><span>Wait for a dip</span></div><div class="stat"><b>${nG}</b><span>Games left</span></div></div>
     <div class="searchw">${ic("search")}<input class="search" id="q" placeholder="Search team" value="${esc(S.q)}"></div>
-    <div class="chips">${["All", "Value", "Wait", "Preferred"].map(x => `<button class="chip ${S.chip === x ? "on" : ""}" data-chip="${x}">${x === "Preferred" ? "≤65¢" : x}</button>`).join("")}</div>`;
+    <div class="chips">${["All", "Value", "Wait", "Preferred"].map(x => `<button class="chip ${S.chip === x ? "on" : ""}" data-chip="${x}">${x === "Preferred" ? "≤65¢" : LBL(x)}</button>`).join("")}</div>`;
   const top = (S.B.top3 || []).map(k => by[k]).filter(Boolean).filter(filt);
   if (top.length) {
     h += `<h2>Top 3 today</h2><div class="rail">${top.map((c, i) => {
       const buy = c.call === "Wait" ? c.buyAt : c.price;
-      return `<div class="card bg-${c.call}" onclick="openBreakdown('${esc(c.key)}')"><div class="row">${badge(c.team)}<div><b>${esc(c.team)}</b><div class="tiny muted">vs ${esc(c.opp)}</div></div><span class="sp"></span><span class="pill c-${c.call}">${c.call}</span></div>
+      return `<div class="card bg-${c.call}" onclick="openBreakdown('${esc(c.key)}')"><div class="row">${badge(c.team)}<div><b>${esc(c.team)}</b><div class="tiny muted">vs ${esc(c.opp)}</div></div><span class="sp"></span><span class="pill c-${c.call}">${LBL(c.call)}</span></div>
       <div class="hero" style="margin-top:12px">${ct(c.price)}</div><div class="sub">${c.call === "Wait" ? `Buy at ${ct(c.buyAt)} · ` : ""}Fair ${ct1(c.fair)}</div>
       <div class="small" style="margin-top:6px"><b>Buy ${ct(buy)} → win ${ct(100 - buy)}</b></div><div class="small">${meter(c.confidence)}</div>${bestLine(c)}</div>`;
     }).join("")}</div>`;
@@ -450,7 +451,7 @@ function learning() {
   if (bt) {
     const id = "bt";
     h += `<h2>Backtest</h2><div class="line u" onclick="toggle('${id}')">${bt.original.right}/${bt.original.games} · ${bt.original.pct}% (Weeks 1–11)</div>`;
-    if (S.open.has(id)) h += `<div class="ig">${tile("By week (rebuilt)", weekBars(bt.byWeek))}${tile("Calls", `<div class="kv"><span>Value</span><span>${bt.value}</span><span>Wait</span><span>${bt.wait}</span><span>Max edge</span><span>${bt.maxEdge}¢</span><span>≤65¢ favs</span><span>${bt.prefSingles.won}/${bt.prefSingles.n}</span><span>>65¢ favs</span><span>${bt.aboveSingles.won}/${bt.aboveSingles.n}</span><span>Brier</span><span>${bt.brier}</span></div><div class="tiny muted" style="margin-top:4px">Rebuilt ${bt.right}/${bt.games}. Combos hit 10–30%; P&L was Week 9 — not an edge.</div>`)}</div>`;
+    if (S.open.has(id)) h += `<div class="ig">${tile("By week (rebuilt)", weekBars(bt.byWeek))}${tile("Calls", `<div class="kv"><span>Buy</span><span>${bt.value}</span><span>Wait</span><span>${bt.wait}</span><span>Max edge</span><span>${bt.maxEdge}¢</span><span>≤65¢ favs</span><span>${bt.prefSingles.won}/${bt.prefSingles.n}</span><span>>65¢ favs</span><span>${bt.aboveSingles.won}/${bt.aboveSingles.n}</span><span>Brier</span><span>${bt.brier}</span></div><div class="tiny muted" style="margin-top:4px">Rebuilt ${bt.right}/${bt.games}. Combos hit 10–30%; P&L was Week 9 — not an edge.</div>`)}</div>`;
   }
   // injury research (every player)
   const ir = L.injuryResearch;
@@ -489,7 +490,7 @@ function learning() {
       ${ps.sigma ? `<div class="small" style="margin-top:6px"><b>Game total and upsets</b>: ${ps.sigma.holds ? "holds — used in the price." : "low/high totals don't change upset odds beyond the line. Not used."} <span class="muted">${esc(ps.sigma.note)}</span></div>` : ""}`;
   }
   const cv = L.clv;
-  h += `<h2>Beat the kickoff price?</h2>${cv && cv.n ? `<div class="line">${cv.beat} of ${cv.n} calls got a better price than kickoff · avg ${cv.avg > 0 ? "+" : ""}${cv.avg}¢</div><div class="small">${cv.recent.slice().reverse().map(r => `${esc(r.team)} ${esc(r.call)} at ${ct(r.entry)} → kickoff ${ct(r.close)} (${r.clv > 0 ? "+" : ""}${r.clv}¢)`).join("<br>")}</div><div class="tiny muted">Getting in cheaper than the kickoff price over many calls is the earliest sign the calls are sharp.</div>` : `<div class="line muted">Tracking started. Each Value/Wait call is compared with the price at kickoff once its game starts.</div>`}`;
+  h += `<h2>Beat the kickoff price?</h2>${cv && cv.n ? `<div class="line">${cv.beat} of ${cv.n} calls got a better price than kickoff · avg ${cv.avg > 0 ? "+" : ""}${cv.avg}¢</div><div class="small">${cv.recent.slice().reverse().map(r => `${esc(r.team)} ${esc(LBL(r.call))} at ${ct(r.entry)} → kickoff ${ct(r.close)} (${r.clv > 0 ? "+" : ""}${r.clv}¢)`).join("<br>")}</div><div class="tiny muted">Getting in cheaper than the kickoff price over many calls is the earliest sign the calls are sharp.</div>` : `<div class="line muted">Tracking started. Each Buy/Wait call is compared with the price at kickoff once its game starts.</div>`}`;
   const rt = L.retest;
   if (rt?.at) h += `<h2>Weekly re-test</h2><div class="line">${esc(rt.summary || "")} <span class="muted">· ${ago(rt.at)}</span></div>`;
   // patterns by call
@@ -692,7 +693,7 @@ window.openBreakdown = key => {
   for (const cat of ["standard", "combined"]) for (const [k, r] of Object.entries(S.B.combos[cat] || {})) if (r.combo?.legs.some(l => l.team === c.team && l.gameId === c.gameId)) combos.push({ k, cat, r });
   const call = callOf(c);
   openModal(`<div class="row"><b style="font-size:20px">${esc(c.team)}</b><span class="muted">vs ${esc(c.opp)} · ${kick(g.kickoff)}</span></div>
-   <div class="row" style="margin:6px 0 10px"><span class="hero">${ct(c.price)}</span><span class="pill c-${call}">${call}</span><span class="sp"></span><span class="small">${call === "Wait" ? `Buy at ${ct(live ? c.liveBuyAt : c.buyAt)} · ` : ""}Fair ${ct1(fair)}</span></div>
+   <div class="row" style="margin:6px 0 10px"><span class="hero">${ct(c.price)}</span><span class="pill c-${call}">${LBL(call)}</span><span class="sp"></span><span class="small">${call === "Wait" ? `Buy at ${ct(live ? c.liveBuyAt : c.buyAt)} · ` : ""}Fair ${ct1(fair)}</span></div>
    <div class="ig">
     ${tile("Fair vs market", edgeTile(c.price, fair, c.fee ?? 2), true)}
     ${tile("Confidence", confTile(c.confidence))}
@@ -768,7 +769,7 @@ function setup() {
    <div class="small">Status: ${p.topic ? `<span class="ok">topic saved on server</span>` : `<span class="bad">no topic on server</span>`}${p.lastNote ? `<br>${esc(p.lastNote)}` : ""}</div>
    <div class="row" style="margin-top:8px"><input id="topic" placeholder="ntfy topic" value="${esc(topic)}" style="flex:1"><button class="btn pri" onclick="testPush()">Test</button></div>
    <div id="testRes" class="small"></div>
-   <div class="small" style="margin:8px 0">Buzzes for: Value now · Wait prices hit · slow prices · live dips · <b>injury news</b> (starter ruled out, confirmed out in-game, QB change).</div>
+   <div class="small" style="margin:8px 0">Buzzes for: Buy now · Wait prices hit · slow prices · live dips · <b>injury news</b> (starter ruled out, confirmed out in-game, QB change).</div>
    <ol class="small"><li>Install the free <b>ntfy</b> app (App Store / Google Play).</li><li>Tap <b>+</b>, type the topic above, Subscribe.</li><li>Tap <b>Test</b> here — your phone should buzz.</li></ol>
    <div class="small"><a href="https://github.com/${REPO}/edit/main/config.json" target="_blank" rel="noopener">Change the server topic</a> (edit <code>ntfyTopic</code>, Commit).</div>
   </div>
@@ -780,14 +781,14 @@ function setup() {
    <p><code>fair = Φ((spread + weather + fresh injury news) × 1.15 ÷ 13.5)</code>. The 1.15 scale was fitted on 1,359 games (2021–25) and checked on 2026: calibrated in every bucket. The old ×0.85/×0.80 shrink priced favourites too cheap and lost money in testing, so it's gone.</p>
    <p>Weather/run +1.0–1.5 pts to the run-heavy team in open air if wind ≥15 mph or ≤35°F. QB out −3.5, 2+ WR/CB out −1 — only when the news is fresh (not out Thursday, line moved &lt;2 pts); otherwise the line already priced it.</p>
    <p>EPA is shown (matchup bars, breakdown) but not added to the price: every EPA weight tested made the fairs worse.</p>
-   <p>Edge = fair − price − fee (fee 2¢: Robinhood commission ≤1¢ + exchange fee ≤1¢). <b>Value now</b> ≥15¢. <b>Wait for a dip</b> 8–15¢, buy-at = fair − 15¢ − fee. Else <b>Pass</b>.</p>
+   <p>Edge = fair − price − fee (fee 2¢: Robinhood commission ≤1¢ + exchange fee ≤1¢). <b>Buy</b> ≥15¢. <b>Wait for a dip</b> 8–15¢, buy-at = fair − 15¢ − fee. Else <b>Pass</b>.</p>
    <p>Confidence 0–100 = fair strength (30) + edge (30) + calibration (20) + data completeness (20). High ≥65, Med ≥40.</p>
    <p>Combos: every game set, every side (2^N). Hit % = product of fairs. Max pay = fair − 2¢. One leg per game (same-game legs are correlated). Shoe-in = fair ≥70¢ only.</p></div>
   <div class="card doc"><h3>How it works — rules</h3><ul class="small">
    <li>Live dip alert needs: price ≥15¢ under live fair after fees, AND payout up ≥20% vs the pre-drop price (profit = 100 − price; 60¢→52¢ = 40→48 = +20%), AND a lopsided game (spread ≥7).</li>
    <li>No alerts with under 5:00 left in Q4 or in OT.</li><li>QB change in Q1–Q3 (or Q4 within 14) pauses that team. Q4 garbage time (lead ≥21) ignored.</li>
    <li>2+ turnovers = downgrade, never a dip buy.</li><li>Live checks every 10 min while games are on. Live fair = ESPN win probability, minus injury cuts.</li></ul></div>
-  <div class="card doc"><h3>Injury formula</h3><p class="small"><code>Impact = Base × Reliance × Matchup × Time × Confirmed</code>; fair cut ≈ Impact × 2.5¢. Base WR −2.0, CB −1.0, DL −1.25, LB −1.25, ST −1.0, OL/S/RB/TE 0. Reliance clamp(0.6 + 0.4 × share ÷ median, 0.8–1.2) — the written 0.8 + 0.4 didn't match your worked examples, so this version reproduces them. Matchup CB/S: 0.7 + 0.6 × opp pass share; DL/LB: run share. Time 0.25 + 0.75 × secs left ÷ 3600. Confirmed only when out through the next quarter or ruled out. Proven backup halves. Multiple: worst + 0.5 × second, cap −3. QB −3.5 × Time (cap −4, halved for a proven backup). |Impact| &lt;1.5 = watch; ≥1.5 cut fair + pause dips that quarter; ≥2.0 also pause Value/Wait. ⭐ NextQFactor: top-10 (prior-week EPA) or QB out → −1.0 pt (−1.5 QB) next quarter only.</p></div>
+  <div class="card doc"><h3>Injury formula</h3><p class="small"><code>Impact = Base × Reliance × Matchup × Time × Confirmed</code>; fair cut ≈ Impact × 2.5¢. Base WR −2.0, CB −1.0, DL −1.25, LB −1.25, ST −1.0, OL/S/RB/TE 0. Reliance clamp(0.6 + 0.4 × share ÷ median, 0.8–1.2) — the written 0.8 + 0.4 didn't match your worked examples, so this version reproduces them. Matchup CB/S: 0.7 + 0.6 × opp pass share; DL/LB: run share. Time 0.25 + 0.75 × secs left ÷ 3600. Confirmed only when out through the next quarter or ruled out. Proven backup halves. Multiple: worst + 0.5 × second, cap −3. QB −3.5 × Time (cap −4, halved for a proven backup). |Impact| &lt;1.5 = watch; ≥1.5 cut fair + pause dips that quarter; ≥2.0 also pause Buy/Wait. ⭐ NextQFactor: top-10 (prior-week EPA) or QB out → −1.0 pt (−1.5 QB) next quarter only.</p></div>
   <div class="card doc"><h3>Data sources & limits</h3><ul class="small">
    <li>Prices: Kalshi public API (no sign-in). It's a <b>proxy</b> — Robinhood routes NFL contracts to Kalshi, Rothera or Crypto.com per contract. Always confirm the price in the Robinhood app.</li>
    <li>Scores, odds (one book), injuries, win probability: ESPN unofficial API (can change without notice).</li>

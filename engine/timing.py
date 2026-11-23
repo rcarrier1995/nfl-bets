@@ -117,7 +117,7 @@ def study():
            "edges": [r for r in rows if r["holds"]],
            "finding": ("No game moment is cheap by itself: at quarter ends and after TDs, leaders, trailers "
                        "and dipped favourites all won about as often as the live price said. Best time = "
-                       "whenever the price sits below fair by the Value bar."),
+                       "whenever the price sits below fair by the Buy bar."),
            "note": (f"{len(edges)} of {len(rows)} spots held up in {CUR}"
                     + (" (" + "; ".join(f"{e['spot']} {e['gap']:+.0f}¢" for e in edges) + ")" if edges else "")
                     + f", about what chance alone gives across {len(rows)} tests, and smaller than the 2¢ fee."
