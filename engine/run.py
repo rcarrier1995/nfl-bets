@@ -33,6 +33,22 @@ def ct(now):
     return now.astimezone(C.CT)
 
 
+def _nflverse_files(season):
+    """Download games.csv (daily), play-by-play this + last season, snap counts and player weeks
+    (every 3 days) when missing or stale. Kept between runs by the feed cache."""
+    import time
+    from .fetch import nflverse_csv
+    d = os.path.join(C.CACHE, "nflverse")
+    need = [("schedules", "games.csv", 1), ("pbp", f"play_by_play_{season}.csv.gz", 3),
+            ("pbp", f"play_by_play_{season - 1}.csv.gz", 60), *[("pbp", f"play_by_play_{y}.csv.gz", 365) for y in range(2021, season - 1)],
+            ("snap_counts", f"snap_counts_{season}.csv.gz", 3),
+            ("stats_player", f"stats_player_week_{season}.csv.gz", 3)]
+    for tag, f, days in need:
+        p = os.path.join(d, f)
+        if not os.path.exists(p) or time.time() - os.path.getmtime(p) > days * 86400:
+            nflverse_csv(tag, f)
+
+
 def due_jobs(now, rs, sb_live, week_key, force=()):
     t = ct(now)
     wd, hm, date = t.weekday(), t.hour * 60 + t.minute, t.strftime("%Y-%m-%d")
@@ -326,6 +342,10 @@ def tick(force=()):
     board["banners"] = {"weekly": weekly_banner(board, L),
                         "windows": [w for w in L["windows"] if w["season"] == season and w["week"] == week]}
     board["learningShrink"] = L["shrink"]
+    try:   # nflverse files the research blocks read (the loop's cache may not have them)
+        _nflverse_files(season)
+    except Exception as e:
+        print("nflverse files failed:", e)
     try:   # form, coach style, backup-QB profiles: context only
         from . import form as FM
         fp = load_json(FM.PROF, {}) or {}
@@ -354,9 +374,10 @@ def tick(force=()):
     try:   # watch tags from the combo study: tag only, tracked live
         from . import watch as WT
         wp = load_json(WT.FILE, {}) or {}
-        if "pregame" in jobs or wp.get("season") != season or (now - B.parse_dt(wp.get("at"))).days >= 6:
+        if "pregame" in jobs or wp.get("season") != season or (now - B.parse_dt(wp.get("at"))).total_seconds() >= 86400:
             WT.build(season)
         WT.for_board(board)
+        WT.for_board(board, board.get("nextWeek") or [], week=week + 1, early=True)
         WT.tag_legs(board)
         board["watch"] = WT.track(board)
     except Exception as e:

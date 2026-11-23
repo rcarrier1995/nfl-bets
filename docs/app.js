@@ -383,7 +383,7 @@ function tagBar(g, id) {
   const items = { [g.away]: [], [g.home]: [] };
   const short = { "QB + WR1 beat their secondary": "QB + WR1 > their pass D", "Hot streak overpriced": "Hot streak · priced ~4¢ high" };
   for (const w of g.watch || []) if (items[w.team]) items[w.team].push([w.kind === "fade" ? "fade" : "good",
-    (short[w.tag] || w.tag) + (w.est != null ? ` · wins ~${Math.round(w.est)}% · costs ${Math.round(w.price)}¢` : "") + (w.inGame ? " · now" : "")]);
+    (short[w.tag] || w.tag) + (w.est != null ? ` · wins ~${Math.round(w.est)}% · costs ${Math.round(w.price)}¢` : "") + (w.inGame ? " · now" : "") + (w.early ? " · early" : "")]);
   const e = g.experts;
   if (e?.agree && items[e.agree]) items[e.agree].push(["exp", `All ${e.n} experts pick`]);
   if (e?.dogPicks?.length && items[e.dog]) items[e.dog].push(["exp", `Underdog pick: ${e.dogPicks.map(n => n.split(" ").slice(-1)[0]).join(", ")}`]);
@@ -643,6 +643,9 @@ function watchCombo(k) {
   const wk = W[String(k)] ? String(k) : Object.keys(W).filter(x => W[x]?.combo).sort((a, b) => b - a)[0];
   let h = `<h2>Watch-tag combo${wk ? ` — ${wk} legs` : ""}</h2><div class="small muted" style="margin:-4px 0 8px">Only legs whose tested win % beats their price by ${W.gap || 5}¢+ (watch tags), most likely to win first. Tags are info only — check the call on each leg.</div>`;
   h += wk ? `<div class="safehit"><b>~${W[wk].est}%</b><span>tested chance every leg wins · costs ~${W[wk].cost}¢</span></div>${comboCard("watch", wk, W[wk], true)}` : NOREC(`${W.legs || 0} leg${W.legs === 1 ? "" : "s"} win 5¢+ more than their price right now — need 2`);
+  const N = S.B.combos.watchNext || {};
+  const nk = Object.keys(N).filter(x => N[x]?.combo).sort((a, b) => b - a)[0];
+  if (nk) h += `<h2>Next week · early watch-tag combo — ${nk} legs</h2><div class="small muted" style="margin:-4px 0 8px">Same rule on next week's early prices and injury reports. Early: news can still change these.</div><div class="safehit"><b>~${N[nk].est}%</b><span>tested chance every leg wins · costs ~${N[nk].cost}¢</span></div>${comboCard("watchNext", nk, N[nk], true)}`;
   return h;
 }
 function combosView() {

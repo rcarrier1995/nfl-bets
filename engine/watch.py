@@ -194,15 +194,16 @@ def _price(c):
     return c.get("fair")
 
 
-def for_board(board):
+def for_board(board, games_list=None, week=None, early=False):
+    """Tag this week's games, or (early=True) next week's with the injury report and prices known so far."""
     st = load_json(FILE, {}) or {}
     if not st.get("qb"):
         return
-    season, week = board.get("season"), board.get("week")
+    season, week = board.get("season"), week or board.get("week")
     T = games()
     T = T[(T.season == season) & (T.week == week)]
     starter = {r.team: (r.qb, r.qbn) for r in T.itertuples()}
-    gms = [g for g in board.get("games", []) if g.get("state") in ("pre", "in", "post")]
+    gms = [g for g in (board.get("games", []) if games_list is None else games_list) if g.get("state") in ("pre", "in", "post")]
     info = {}
     for g in gms:
         out_names = {_norm(i.get("player")) for i in g.get("injuries") or [] if i.get("status") in ("Out", "Doubtful")}
@@ -278,17 +279,20 @@ def for_board(board):
             if x.get("est") is not None and x["team"] in hot_teams:
                 x["est"] -= HOT_PENALTY          # the same team is on a hot streak: priced a bit high
                 x["netOfHot"] = True
+        for x in tags:
+            if early:
+                x["early"] = True
         if tags:
             g["watch"] = tags
         else:
             g.pop("watch", None)
 
 
-def leg_estimates(board):
+def leg_estimates(board, games_list=None):
     """{(gameId, team): (tested win %, price, [tags])} for pregame legs: tag edge added to the price.
     Several tags on one leg: the biggest edge only (not added up)."""
     out = {}
-    for g in board.get("games", []):
+    for g in (board.get("games", []) if games_list is None else games_list):
         if g.get("state") != "pre":
             continue
         for x in g.get("watch") or []:
@@ -305,14 +309,26 @@ def leg_estimates(board):
     return out
 
 
-def watch_combos(board):
+def next_pool(games_list):
+    """Legs for next week's games (early prices), same shape as the combo pool."""
+    out = []
+    for g in games_list or []:
+        for side in ("away", "home"):
+            c = g["teams"][side]
+            if c.get("price") and c.get("fair") is not None and g.get("state") == "pre":
+                out.append({"gameId": g["id"], "team": c["team"], "opp": c["opp"], "fair": c["fair"], "price": c["price"],
+                            "call": c.get("call"), "label": g.get("short"), "state": "pre", "tags": []})
+    return out
+
+
+def watch_combos(board, games_list=None, pool=None):
     """Combos built only from legs whose tested win % beats their price by GAP+ (most likely to win first).
     Info only: shows the combined tested win % next to the combined price."""
     import math
     from . import config as CC
     from .combos import sanitize
-    est = leg_estimates(board)
-    pool = (board.get("combos") or {}).get("pool") or []
+    est = leg_estimates(board, games_list)
+    pool = pool if pool is not None else ((board.get("combos") or {}).get("pool") or [])
     legs = []
     for l in pool:
         e = est.get((l.get("gameId"), l.get("team")))
@@ -343,6 +359,8 @@ def tag_legs(board):
     if cb is None:
         return
     cb["watch"] = watch_combos(board)
+    nw = board.get("nextWeek") or []
+    cb["watchNext"] = watch_combos(board, nw, next_pool(nw))
     w = {}
     for g in board.get("games", []):
         for x in g.get("watch") or []:
