@@ -352,7 +352,7 @@ function pregame() {
     h += `<h2>Top 3 today</h2><div class="rail">${top.map((c, i) => {
       const buy = c.call === "Wait" ? c.buyAt : c.price;
       return `<div class="card bg-${c.call}" onclick="openBreakdown('${esc(c.key)}')"><div class="row">${badge(c.team)}<div><b>${esc(c.team)}</b><div class="tiny muted">vs ${esc(c.opp)}</div></div><span class="sp"></span><span class="pill c-${c.call}">${LBL(c.call)}</span></div>
-      <div class="hero" style="margin-top:12px">${ct(c.price)}</div><div class="sub">${c.call === "Wait" ? `Buy at ${ct(c.buyAt)} · ` : ""}Fair ${ct1(c.fair)}</div>
+      <div class="row" style="margin-top:12px"><span class="hero">${ct(c.price)}</span><span class="sp"></span><span class="small">${move(c)}</span></div><div class="sub">${c.call === "Wait" ? `Buy at ${ct(c.buyAt)} · ` : ""}Fair ${ct1(c.fair)}</div>
       <div class="small" style="margin-top:6px"><b>+${ct(100 - buy)}</b> if it wins</div>${bestLine(c)}</div>`;
     }).join("")}</div>`;
   }
