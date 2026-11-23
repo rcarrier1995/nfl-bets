@@ -180,8 +180,10 @@ def _key_defenders(season, team, week):
 
 
 # Tested edge before fee in recent years (win % minus price, 2021-26), from the combo study.
-EDGE = {"eqwd": 6, "dbu": 5, "qbwr": 3, "dogx": 2}   # shrunk for selection luck (combo study Round 9c)
-FADE = {"hot": 4, "wrout": 3}   # these teams were priced too high (hot streak 4-9c, key WR out ~4c in both eras)
+EDGE = {"eqwd": 6, "dbu": 5, "qbwr": 3, "dogx": 0}   # shrunk for selection luck (combo study Round 9c).
+# dogx = 0: the experts were chosen on the same picks (+6% on 112, z ~0.5), so it's info only until live results say otherwise
+FADE = {"hot": 3, "wrout": 3}   # shrunk edges (research README Round 9c: hot fade +3; key WR out ~4c raw in both eras)
+# note: live results are graded against the ask (about 1c above the de-vigged price the study used), so live edges read ~1c low
 LEARN_K = 150      # live games needed before our own results count as much as the study
 
 
@@ -464,7 +466,8 @@ def track(board):
 
 
 STUDY = {
-    TAGS["eqwd"]: "2006–20: 397 games won 68.5% at 61¢ avg. 2021–26: 162 games won 68.5% at 58.5¢ (about +8¢ after fee).",
+    TAGS["eqwd"]: "Our rebuild of the rule (career QB EPA top 20%, own D success allowed worst 20%): 2006–20 397 games won 68.5% at 61¢; "
+                  "2021–26 162 games won 68.5% at 58.5¢. The research write-up's version (150 games, 71% at 59¢) used a slightly different cut. Edge used: +6¢ (shrunk).",
     TAGS["dbu"]: "2013–20: 172 games won 59% at 52¢. 2021–24: 113 games 60% at 55¢. 2025–26: 43 games 67% at 56¢.",
     TAGS["qbwr"]: "Priced 65–80¢: 2013–20 247 games won 82% at 73¢. 2021–24 114 games 80%. 2025–26 53 games 83% (about +4 to +8¢).",
     TAGS["wrout"]: "Team missing a key WR (70%+ snaps): priced about 4¢ too high in 2013–20 and 2021–26 (309 / 248 games). Tracked on the other side.",

@@ -3,6 +3,7 @@ import os
 from datetime import datetime
 
 from . import config as C
+from . import model as M
 from .fetch import load_json, save_json, iso
 
 LEARN = os.path.join(C.STATE, "learning.json")
@@ -78,7 +79,7 @@ def grade_finals(board, snaps, L):
                "brier": round((pf / 100 - outcome) ** 2, 4),
                "calls": {tm: {k: (t.get(tm) or {}).get(k) for k in ("call", "fair", "price", "edge", "buyAt")}
                          for tm in (g["away"], g["home"])},
-               "conf": {tm: ((t.get(tm) or {}).get("confidence") or {}).get("level") for tm in (g["away"], g["home"])},
+               "conf": {tm: M.confidence((t.get(tm) or {}).get("fair"))["level"] for tm in (g["away"], g["home"])},
                "q3Leader": q3["leader"] if q3 else None,
                "quarters": g.get("quarters", []), "turnovers": g.get("turnovers"),
                "injuries": [f"Q{i['q']} {i['team']} {i['pos']} {i['name']} ({i['state']})" for i in g.get("injLive", [])],
@@ -89,6 +90,16 @@ def grade_finals(board, snaps, L):
         L["graded"][g["key"]] = rec
         new.append(rec)
     return new
+
+
+def regrade(L, keys):
+    """Drop grades (and that week's window lessons) for games whose snapshot was re-priced; grade_finals redoes them."""
+    keys = [k for k in keys if k in L["graded"]]
+    weeks = {(L["graded"][k].get("season"), L["graded"][k].get("week")) for k in keys}
+    for k in keys:
+        del L["graded"][k]
+    L["windows"] = [w for w in L["windows"] if (w.get("season"), w.get("week")) not in weeks]
+    return len(keys)
 
 
 def review_line(r):

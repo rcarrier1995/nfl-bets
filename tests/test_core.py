@@ -285,3 +285,16 @@ def test_top_combos_under_10c_and_spread_out():
     assert not any(l["dog"] for c in cheap for l in c["legs"])                           # no longshots
     assert cheap[1]["reused"] < cheap[1]["size"]
     assert all(c["conf"] in ("High", "Med", "Low") for c in T.pick(legs, "value"))
+
+
+def test_backfilled_snapshots_repriced_with_current_model():
+    from engine import backtest as BT, learning as LR
+    snaps = {"2026-w11|1": {"backfilled": True, "spreadHome": -16.5, "home": "BUF", "away": "MIA",
+                            "teams": {"BUF": {"fair": 78.8, "price": 91, "confidence": {"level": "Med"}},
+                                      "MIA": {"fair": 21.2, "price": 9, "confidence": {"level": "High"}}}}}
+    assert BT.refresh_backfilled(snaps) == ["2026-w11|1"]
+    t = snaps["2026-w11|1"]["teams"]
+    assert t["BUF"]["fair"] == 92.0 and t["MIA"]["confidence"]["level"] == "Low"
+    assert BT.refresh_backfilled(snaps) == []          # idempotent
+    L = {"graded": {"2026-w11|1": {"season": 2026, "week": 11}}, "windows": [{"season": 2026, "week": 11}, {"season": 2026, "week": 10}]}
+    assert LR.regrade(L, ["2026-w11|1"]) == 1 and not L["graded"] and len(L["windows"]) == 1

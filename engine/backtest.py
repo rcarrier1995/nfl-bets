@@ -108,6 +108,28 @@ def run(season, last_week, local_games=None, local_team=None):
     return res
 
 
+def refresh_backfilled(snaps):
+    """Backfilled snapshots (games that started before the app existed) were priced with the model of the day.
+    Re-price them from the stored closing spread with the current model, so learning grades the model we use now.
+    EPA is not priced (C.EPA_ADJ_WEIGHT = 0), so the spread alone gives the fair. Returns the keys that changed."""
+    changed = []
+    for key, s in snaps.items():
+        if not s.get("backfilled") or s.get("spreadHome") is None or s.get("model") == C.MODEL_TAG:
+            continue
+        fh, fa, _ = M.fair_pair(-float(s["spreadHome"]))
+        for t, f in ((s["home"], fh), (s["away"], fa)):
+            x = (s.get("teams") or {}).get(t)
+            if x is None:
+                continue
+            cl = M.classify(f, x.get("price"))
+            x.update({"fair": f, "call": cl["call"], "edge": cl["edge"], "buyAt": cl["buyAt"], "fee": cl["fee"],
+                      "confidence": M.confidence(f, cl["edge"], 0.6)})
+        s["model"] = C.MODEL_TAG
+        s["repricedAt"] = iso()
+        changed.append(key)
+    return changed
+
+
 def backfill_snapshots(season, week, sb, snaps, local_games=None):
     """For this week's games that started before the app existed: build the pregame snapshot from
     the closing line (nflverse spread + prior-week EPA, devigged moneyline as price proxy), flagged
@@ -148,6 +170,6 @@ def backfill_snapshots(season, week, sb, snaps, local_games=None):
                      "why": "Backfilled from closing line"}
         snaps[key] = {"spreadHome": -mh, "total": r.total_line, "book": "closing", "kickoff": ev.get("date"),
                       "away": ab["away"], "home": ab["home"], "week": week, "season": season, "at": iso(),
-                      "backfilled": True, "teams": tm}
+                      "backfilled": True, "model": C.MODEL_TAG, "teams": tm}
         n += 1
     return n

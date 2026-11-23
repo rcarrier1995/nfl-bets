@@ -94,7 +94,7 @@ function verdict(c) {
   const buyAt = live ? c.liveBuyAt : c.buyAt;
   const lines = c.liveLines || [];
   let t;
-  if (c.priceStale && live) t = "Don't buy: prices are delayed right now";
+  if (c.priceStale) t = "Don't buy: prices are delayed right now";
   else if (live && c.alertsOff) t = "Too late: under 5 minutes left";
   else if (call === "Value") t = `Buy now: ${ct(edge)} below fair after fees`;
   else if (call === "Wait") t = `Wait: buy only at ${ct(buyAt)} or less — you'll get an alert`;
@@ -391,13 +391,13 @@ const lastName = n => String(n || "").split(" ").slice(-1)[0];
 function tagText(w, g) {
   const t = w.team, o = w.opp || (t === g.away ? g.home : g.away);
   const n = w.n ?? +((/without (\d+)/.exec(w.why || "") || [])[1] || 0);
-  const qb = w.qb ? lastName(w.qb) : "";
+  const qb = w.qb ? lastName(w.qb) : "", fe = Math.round(S.B.watch?.edges?.[w.tag] ?? 3);
   switch (w.tag) {
     case "Elite QB, weak D": return [t, `elite QB${qb ? " " + qb : ""}, ${t}'s own D is weak (market underrates)`];
     case "Their D banged up": return [t, `${o} D banged up${n ? ` (${n} key defenders out)` : ""}`];
     case "QB + WR1 beat their secondary": return [t, `${qb && w.wr ? `${qb} + ${lastName(w.wr)}` : "QB + WR1"} beat ${o}'s pass D`];
-    case "Hot streak overpriced": return [o, `${t} on a hot streak, priced about 4¢ too high`];
-    case "Key WR out": return [o, `${t} missing key WR${w.players?.length ? " " + w.players.map(lastName).join(", ") : ""}, priced about 4¢ too high`];
+    case "Hot streak overpriced": return [o, `${t} on a hot streak, priced about ${fe}¢ too high`];
+    case "Key WR out": return [o, `${t} missing key WR${w.players?.length ? " " + w.players.map(lastName).join(", ") : ""}, priced about ${fe}¢ too high`];
     case "Underdog experts pick": return [t, `underdog experts like ${t}`];
   }
   return [t, w.tag];
@@ -414,7 +414,7 @@ function tagBar(g, id) {
     const [pickT, why] = tagText(w, g);
     if (!items[pickT]) continue;
     const fade = w.kind === "fade";
-    const odds = !fade && w.est != null ? ` · wins about ${Math.round(w.est)}% · costs ${Math.round(w.price)}¢`
+    const odds = !fade && w.est != null && w.est > w.price ? ` · wins about ${Math.round(w.est)}% · costs ${Math.round(w.price)}¢`
       : fade && w.oppPrice != null ? ` · costs ${w.oppPrice}¢` : "";
     items[pickT].push([fade ? "fade" : "good", pickT, why + odds + (w.inGame ? " · now" : ""), w.early]);
   }
@@ -695,8 +695,8 @@ function comboConfJS(hit, cost, legs) {
 // Rick's combo habit: a $5 bonus bet (never more than $10)
 function stake5(cost) {
   if (!cost || cost <= 0) return "";
-  const n = Math.floor(500 / cost), back = n * 1, profit = back - n * cost / 100;
-  return `<div class="small"><b>$5 → about ${n} contracts → wins about $${back.toFixed(0)}</b> <span class="muted">(profit about $${profit.toFixed(0)} before fees)${cost > 10 ? " · over 10¢: not a bonus bet" : ""}</span></div>`;
+  const n = Math.floor(500 / (cost + 2)), back = n * 1, profit = back - 5;   // about 2c a contract in fees (same as the app's fee buffer)
+  return `<div class="small"><b>$5 → about ${n} contracts → wins about $${back.toFixed(0)}</b> <span class="muted">(profit about $${profit.toFixed(0)} after fees)${cost > 10 ? " · over 10¢: not a bonus bet" : ""}</span></div>`;
 }
 function topCard(c, i) {
   return `<div class="card">

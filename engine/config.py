@@ -18,6 +18,7 @@ NFLVERSE = "https://github.com/nflverse/nflverse-data/releases/download"
 # ---- Pricing model (Version B, the one unified algorithm) ----
 SIGMA = 13.5            # points -> probability scale
 EPA_ADJ_CAP = 3.0       # +/- pts
+MODEL_TAG = "k1.15-noepa"   # bump when the fair model changes: backfilled snapshots get re-priced and regraded
 EPA_ADJ_WEIGHT = 0.0    # tested 0-0.75 on 2021-2026 (1,519 games): any weight made fairs worse -> 0 (EPA shown, not priced)
 HOME_FIELD = 1.5        # pts, used only inside the EPA-implied margin
 # Spread-to-probability scale. Fitted on 2021-2025 (1,359 games, log loss), checked on 2026 W1-11:

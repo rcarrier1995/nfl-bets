@@ -266,6 +266,11 @@ def tick(force=()):
         print("clv failed:", e)
     # learning
     snaps = load_json(B.SNAP_FILE, {}) or {}
+    from .backtest import refresh_backfilled
+    rep = refresh_backfilled(snaps)
+    if rep:
+        save_json(B.SNAP_FILE, snaps, compact=True)
+        print("re-priced backfilled snapshots:", len(rep), "regraded:", LR.regrade(L, rep))
     LR.audit(board, prev, L)
     LR.log_combos(board, L)
     LR.grade_finals(board, snaps, L)
