@@ -125,7 +125,6 @@ function betCard(c, opts = {}) {
   const id = "c:" + c.key;
   const buy = call === "Wait" ? buyAt : c.price;
   const tags = [];
-  if (c.aboveRange && call !== "Pass") tags.push(`<span class="tag above">above your usual range</span>`);
   if (c.lag && !live) tags.push(`<span class="tag lag">slow price</span>`);
   if (c.price != null && c.price <= 10) tags.push(`<span class="tag look">longshot — cheap contracts lose most</span>`);
   const open = S.open.has(id);
@@ -311,7 +310,6 @@ function filt(c) {
   if (q && !(c.team.toLowerCase().includes(q) || (c.name || "").toLowerCase().includes(q) || c.opp.toLowerCase().includes(q))) return false;
   if (S.chip === "Value" && callOf(c) !== "Value") return false;
   if (S.chip === "Wait" && callOf(c) !== "Wait") return false;
-  if (S.chip === "Preferred" && !(c.price != null && c.price <= 65)) return false;
   return true;
 }
 function banners(kind) {
@@ -331,7 +329,7 @@ function pregame() {
   const nG = S.B.games.filter(g => g.state !== "post").length;
   let h = `<div class="ptitle">Pregame</div><div class="stats"><div class="stat"><b class="c-Value">${nV}</b><span>Buy now</span></div><div class="stat"><b class="c-Wait">${nW}</b><span>Wait for a dip</span></div><div class="stat"><b>${nG}</b><span>Games left</span></div></div>
     <div class="searchw">${ic("search")}<input class="search" id="q" placeholder="Search team" value="${esc(S.q)}"></div>
-    <div class="chips">${["All", "Value", "Wait", "Preferred"].map(x => `<button class="chip ${S.chip === x ? "on" : ""}" data-chip="${x}">${x === "Preferred" ? "≤65¢" : LBL(x)}</button>`).join("")}</div>`;
+    <div class="chips">${["All", "Value", "Wait"].map(x => `<button class="chip ${S.chip === x ? "on" : ""}" data-chip="${x}">${LBL(x)}</button>`).join("")}</div>`;
   const top = (S.B.top3 || []).map(k => by[k]).filter(Boolean).filter(filt);
   if (top.length) {
     h += `<h2>Top 3 today</h2><div class="rail">${top.map((c, i) => {
@@ -342,11 +340,10 @@ function pregame() {
     }).join("")}</div>`;
   }
   const vw = pre.filter(c => ["Value", "Wait"].includes(c.call)).filter(filt).sort((a, b) => rank(b.call) - rank(a.call) || b.edge - a.edge);
-  const pref = vw.filter(c => c.price <= 65), above = vw.filter(c => c.price > 65), waits = vw.filter(c => c.call === "Wait");
+  const waits = vw.filter(c => c.call === "Wait");
   const closest = pre.filter(c => c.edge != null).sort((a, b) => b.edge - a.edge)[0];
   const hint = closest ? `Closest: ${closest.team} at ${ct(closest.price)}, edge ${ct1(closest.edge)} · ${S.B.nextCheck || ""}` : S.B.nextCheck;
-  h += `<h2>Preferred-price singles</h2>${pref.length ? pref.map(c => betCard(c, { vs: 1 })).join("") : NOREC(hint)}`;
-  h += `<h2>Other bets above 65¢</h2>${above.length ? above.map(c => betCard(c, { vs: 1 })).join("") : NOREC()}`;
+  h += `<h2>Best bets</h2>${vw.length ? vw.map(c => betCard(c, { vs: 1 })).join("") : NOREC(hint)}`;
   h += `<h2>Wait list</h2>${waits.length ? waits.map(c => `<div class="grow" onclick="openBreakdown('${esc(c.key)}')">${badge(c.team, "sm")}<b>${esc(c.team)}</b><span class="small">now ${ct(c.price)}</span><span class="sp"></span><span class="small c-Wait">buy at ${ct(c.buyAt)} → +${ct(100 - c.buyAt)}</span></div>`).join("") : NOREC(closest ? `Closest Wait: ${closest.team} at ${ct(closest.price)}, needs fair − 8¢ after fees` : "")}`;
   const games = S.B.games.filter(g => filt(g.teams.away) || filt(g.teams.home) || (S.chip === "All" && !S.q));
   const up = games.filter(g => g.state === "pre"), lvg = games.filter(g => g.state === "in"), fin = games.filter(g => g.state === "post");
@@ -495,7 +492,7 @@ function learning() {
   if (bt) {
     const id = "bt";
     h += `<h2>Backtest</h2><div class="line u" onclick="toggle('${id}')">${bt.original.right}/${bt.original.games} · ${bt.original.pct}% (Weeks 1–11)</div>`;
-    if (S.open.has(id)) h += `<div class="ig">${tile("By week (rebuilt)", weekBars(bt.byWeek))}${tile("Calls", `<div class="kv"><span>Buy</span><span>${bt.value}</span><span>Wait</span><span>${bt.wait}</span><span>Max edge</span><span>${bt.maxEdge}¢</span><span>≤65¢ favs</span><span>${bt.prefSingles.won}/${bt.prefSingles.n}</span><span>>65¢ favs</span><span>${bt.aboveSingles.won}/${bt.aboveSingles.n}</span><span>Brier</span><span>${bt.brier}</span></div><div class="tiny muted" style="margin-top:4px">Rebuilt ${bt.right}/${bt.games}. Combos hit 10–30%; P&L was Week 9 — not an edge.</div>`)}</div>`;
+    if (S.open.has(id)) h += `<div class="ig">${tile("By week (rebuilt)", weekBars(bt.byWeek))}${tile("Calls", `<div class="kv"><span>Buy</span><span>${bt.value}</span><span>Wait</span><span>${bt.wait}</span><span>Max edge</span><span>${bt.maxEdge}¢</span><span>Brier</span><span>${bt.brier}</span></div><div class="tiny muted" style="margin-top:4px">Rebuilt ${bt.right}/${bt.games}. Combos hit 10–30%; P&L was Week 9 — not an edge.</div>`)}</div>`;
   }
   // injury research (every player)
   const ir = L.injuryResearch;

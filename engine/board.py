@@ -424,7 +424,6 @@ def build_game(ev, tables, kidx, wx_all, pt_idx, live_state, snaps, prev_calls, 
             c["confidence"] = M.confidence(c["fair"], c.get("edge"), completeness, calib)
         if "why" not in c or state == "pre":
             c["why"] = M.why_line(c)
-        c["aboveRange"] = price is not None and price > C.PREF_SINGLE
         c["profit"] = None if price is None else round(100 - price, 2)
         c["reasons"] = reasons(c, g, tables)
         # price move vs last board
