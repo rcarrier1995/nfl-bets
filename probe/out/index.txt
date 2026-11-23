@@ -1,0 +1,18 @@
+nfl 1 ok
+nfl 2 ok
+nfl 3 ok
+nfl 4 ok
+nfl 5 ok
+nfl 6 ok
+nfl 7 ok
+nfl 8 ok
+nfl 9 ok
+nfl 10 ok
+nfl 11 ok
+nfl 12 err HTTP Error 404: Not Found
+nfl 13 err HTTP Error 404: Not Found
+nfl 14 ok
+nfl 15 ok
+nfl 16 ok
+nfl 17 ok
+nfl 18 ok
