@@ -85,8 +85,8 @@ def run(season, last_week, local_games=None, local_team=None):
                         "pred": round(sum(x["pickFair"] for x in rs) / len(rs), 1),
                         "actual": round(100 * sum(x["right"] for x in rs) / len(rs), 1), "n": len(rs)})
     calc = []
-    for lvl in ("Low", "Med", "High"):
-        rs = [x for x in rows if x["conf"] == lvl]
+    for lvl in ("F", "C", "B", "A"):
+        rs = [x for x in rows if M.grade(x["pickFair"]) == lvl]
         if rs:
             calc.append({"bucket": lvl, "pred": round(sum(x["pickFair"] for x in rs) / len(rs), 1),
                          "actual": round(100 * sum(x["right"] for x in rs) / len(rs), 1), "n": len(rs)})

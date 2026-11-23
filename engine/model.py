@@ -123,14 +123,29 @@ def sell_check(fair, bid, fee=None):
 CAL_DEFAULT = {"50": 1.0, "60": 1.0, "70": 1.0, "80": 1.0, "90": 1.0}  # 5-season check: calibrated
 
 
+GRADE_CUTS = ((75, "A"), (60, "B"), (45, "C"))
+GRADE_TESTED = {"A": 84, "B": 67, "C": 54, "F": 32}      # backtest win % per grade, 1,521 games 2021-26
+COMBO_CUTS = ((33, "A"), (15, "B"), (7, "C"))            # combo hit chance: 1 in 3, 1 in 7, 1 in 14
+
+
+def grade(p, cuts=GRADE_CUTS):
+    """Letter grade for a win chance in percent. Never invents: None -> None."""
+    if p is None:
+        return None
+    for lo, g in cuts:
+        if p >= lo:
+            return g
+    return "F"
+
+
 def confidence(fair, edge=None, completeness=1.0, calib=None):
     """Win chance for this team, in plain levels. It is confidence the TEAM WINS, not that the bet is good
-    (Buy / Wait / Pass says that). High = 65%+ to win, Med = 45-65%, Low = under 45%.
-    Checked on 1,515 games 2021-26: High won 77%, Med 59%, Low 32% (the old blended score put
-    big underdogs in High and its High calls won only 50%, so it was replaced)."""
+    (Buy / Wait / Pass says that). Letter grade (Rick 2026-11-23): A = 75%+ to win, B = 60-75%,
+    C = 45-60%, F = under 45%. Checked on 1,521 games 2021-26 (both teams, ties dropped):
+    A won 84%, B 67%, C 54%, F 32%."""
     if fair is None:
-        return {"score": 0, "level": "Low", "win": None, "drivers": [{"k": "Win chance", "v": 0}]}
-    level = "High" if fair >= 65 else "Med" if fair >= 45 else "Low"
+        return {"score": 0, "level": "F", "win": None, "drivers": [{"k": "Win chance", "v": 0}]}
+    level = grade(fair)
     out = {"score": int(round(fair)), "level": level, "win": round(fair, 1),
            "drivers": [{"k": "Win chance", "v": round(fair)}], "max": {"Win chance": 100}}
     if completeness < 1:

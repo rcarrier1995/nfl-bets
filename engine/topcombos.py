@@ -10,6 +10,7 @@ Info only: never changes a Buy/Wait/Pass call. The real Robinhood quote can run 
 import math
 
 from . import config as C
+from . import model as M
 from . import watch as W
 from .fetch import load_json, save_json, iso
 
@@ -86,16 +87,10 @@ def _card(sel):
             "oneIn": round(100 / hit) if hit > 0 else None, "conf": combo_conf(hit, cost, sel)}
 
 
-def combo_conf(hit, cost, sel):
-    """Our confidence in the suggestion: High = every leg 45%+ to win, half or more 65%+, and our chance
-    beats the cost by the 2c fee; Med = no weak leg and chance at least the cost; else Low."""
-    weak = any(l["est"] < 45 for l in sel)
-    strong = sum(1 for l in sel if l["est"] >= 65) >= len(sel) / 2
-    if not weak and strong and hit >= cost + C.FEE_BUFFER_COMBO:
-        return "High"
-    if not weak and hit >= cost:
-        return "Med"
-    return "Low"
+def combo_conf(hit, cost=None, sel=None):
+    """Combo grade from its real hit chance (Rick 2026-11-23): A = 33%+ (1 in 3), B = 15%+ (1 in 7),
+    C = 7%+ (1 in 14), F = rarer. Price value is shown separately."""
+    return M.grade(hit, M.COMBO_CUTS)
 
 
 def pick(legs, kind, n=3):

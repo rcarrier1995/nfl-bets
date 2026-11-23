@@ -49,9 +49,16 @@ function toggle(id) { S.open.has(id) ? S.open.delete(id) : S.open.add(id); rende
 window.toggle = toggle;
 
 // ---------- small visuals ----------
-function meter(conf) {
-  const lvl = conf?.level || "Low";
-  return `<span class="meter ${lvl}"><i></i><i></i><i></i></span><span class="small">Win chance ${lvl}</span>`;
+// Letter grades (Rick 2026-11-23): win chance only. Buy / Wait / Pass is the price.
+const GRADE_CUTS = [[75, "A"], [60, "B"], [45, "C"]], COMBO_CUTS = [[33, "A"], [15, "B"], [7, "C"]];
+const GRADE_TESTED = { A: 84, B: 67, C: 54, F: 32 };
+const gradeOf = (p, cuts = GRADE_CUTS) => p == null ? null : (cuts.find(([lo]) => p >= lo) || [0, "F"])[1];
+const grd = (g, sm) => g ? `<span class="grd g${g}${sm ? " sm" : ""}" title="Grade ${g}">${g}</span>` : "";
+const gradeKey = () => `<div class="gkey tiny muted">${grd("A", 1)} 75%+ to win ${grd("B", 1)} 60–75% ${grd("C", 1)} 45–60% ${grd("F", 1)} under 45% · Buy / Wait / Pass = the price</div>`;
+const comboKey = () => `<div class="gkey tiny muted">Combo grade: ${grd("A", 1)} hits 1 in 3 or better ${grd("B", 1)} 1 in 7 ${grd("C", 1)} 1 in 14 ${grd("F", 1)} rarer</div>`;
+function meter(conf, p) {
+  const g = gradeOf(p ?? conf?.win ?? conf?.score);
+  return `${grd(g)}<span class="small">Win chance</span>`;
 }
 function priceBar(price, fair, lo, hi, start) {
   if (price == null && fair == null) return "";
@@ -161,12 +168,12 @@ function betCard(c, opts = {}) {
   if (c.price != null && c.price <= 10) tags.push(`<span class="tag look">longshot — cheap contracts lose most</span>`);
   const open = S.open.has(id);
   return `<div class="card bg-${call}" data-card="${esc(c.key)}">
-    <div class="row">${badge(c.team)}<div style="min-width:0"><b>${esc(c.name || c.team)}</b>${opts.vs ? `<div class="tiny muted">vs ${esc(c.opp)}</div>` : ""}</div><span class="sp"></span><span class="pill c-${call}">${call === "Wait" ? "Wait for a dip" : LBL(call)}</span></div>
+    <div class="row">${badge(c.team)}<div style="min-width:0"><b>${esc(c.name || c.team)}</b>${opts.vs ? `<div class="tiny muted">vs ${esc(c.opp)}</div>` : ""}</div><span class="sp"></span>${grd(gradeOf(fair))}<span class="pill c-${call}">${call === "Wait" ? "Wait for a dip" : LBL(call)}</span></div>
     ${verdict(c)}
     <div class="row" style="margin-top:12px"><span class="hero">${ct(c.price)}</span><span class="sp"></span><span class="small">${move(c)}</span></div>
     <div class="sub">${fairPay(c, fair, buy, call)}</div>
     ${priceBar(c.price, fair, c.dayLo, c.dayHi)}
-    ${c.confidence ? `<div class="row" style="margin-top:6px">${meter(live && c.liveFair != null ? { level: c.liveFair >= 65 ? "High" : c.liveFair >= 45 ? "Med" : "Low" } : c.confidence)}<span class="small muted">· ${Math.round(fair ?? c.confidence.score)}%</span></div>` : ""}
+    ${fair != null ? `<div class="small muted" style="margin-top:6px">Win chance ${Math.round(fair)}% · grade ${gradeOf(fair)} picks won ${GRADE_TESTED[gradeOf(fair)]}% in testing</div>` : ""}
     ${tags.join("")}
     ${closeTag(c)}
     ${call !== "Pass" && call !== "Sell" ? bestLine(c) : ""}
@@ -404,7 +411,7 @@ function expertsLine(g) {
 // Tags only — they never change the call. Tap the card for the why.
 // our confidence (win chance) for both teams, on every game row
 function winLine(g) {
-  const f = c => c.confidence ? `<b>${esc(c.team)}</b> ${Math.round(c.fair ?? c.confidence.score)}% <span class="cl ${c.confidence.level}">${c.confidence.level}</span>` : "";
+  const f = c => { const p = c.state === "in" && c.liveFair != null ? c.liveFair : c.fair; return p != null ? `<b>${esc(c.team)}</b> ${Math.round(p)}% ${grd(gradeOf(p), 1)}` : ""; };
   const a = f(g.teams.away), h = f(g.teams.home);
   return a || h ? `<div class="winl muted" title="Win chance">${a}${a && h ? " · " : ""}${h}</div>` : "";
 }
@@ -610,7 +617,7 @@ function pregame() {
     ${nw.length ? (nwVal.length ? `<div class="glist">${nwVal.map(gameRow).join("")}</div>` : NOREC("No early value yet: no team wins 5¢+ more than its price")) +
       (nwRest.length ? `<details class="others"${S.othersOpen ? " open" : ""} ontoggle="S.othersOpen = this.open"><summary>Other games next week (${nwRest.length}) · no early value</summary><div class="glist">${nwRest.map(gameRow).join("")}</div></details>` : "")
       : NOREC("Kalshi hasn't listed next week's games yet")}`;
-  h += `<h2>All games this week <span class="cnt">${games.length}</span></h2>${games.length ? `${lvg.map(gameRow).join("")}${up.length ? `<div class="glist">${up.map(gameRow).join("")}</div>` : ""}${fin.length ? `<div class="glist" style="margin-top:10px">${fin.map(gameRow).join("")}</div>` : ""}` : NOREC()}`;
+  h += `<h2>All games this week <span class="cnt">${games.length}</span></h2>${gradeKey()}${games.length ? `${lvg.map(gameRow).join("")}${up.length ? `<div class="glist">${up.map(gameRow).join("")}</div>` : ""}${fin.length ? `<div class="glist" style="margin-top:10px">${fin.map(gameRow).join("")}</div>` : ""}` : NOREC()}`;
   // desktop: games on the left, picks on the right (one column on a phone, picks first)
   const picksEnd = h.indexOf("<h2>All games this week");
   const head = h.slice(0, picksAt), picks = h.slice(picksAt, picksEnd), gamesH = h.slice(picksEnd);
@@ -623,7 +630,7 @@ function live() {
   const al = S.B.alerts || [];
   let h = `<div class="ptitle">Live</div><div class="row"><div class="psub">${lv.length ? `${lv.length} game${lv.length > 1 ? "s" : ""} in progress` : `<b>No games live.</b> ${esc(nextKick() || "")}`}</div><span class="sp"></span><button class="btn" onclick="refreshNow(this)">↻ Refresh</button></div>
     ${lv.length ? `<div class="tiny muted" style="margin:-4px 0 8px">${S.scoreAt ? "Score: live from ESPN · " : ""}Prices &amp; calls: ${esc(ago(S.B.generatedAt))}, checked every 6 min</div>` : ""}` + banners();
-  if (lv.length || al.length) h += `<h2>Live dip alerts</h2>${al.length ? al.map(a => `<div class="card bg-Value"><div class="row"><b>${esc(a.team)}</b><span class="small muted">${esc(a.game)}</span><span class="sp"></span><span class="hero" style="font-size:26px">${ct(a.price)}</span></div><div class="small"><b>+${ct(a.profit)} if it wins</b> · ${esc(a.confidence)}</div><div class="why">${esc(a.why)}</div></div>`).join("") : NOREC(lv.length ? "" : S.B.nextCheck)}`;
+  if (lv.length || al.length) h += `<h2>Live dip alerts</h2>${al.length ? al.map(a => `<div class="card bg-Value"><div class="row"><b>${esc(a.team)}</b><span class="small muted">${esc(a.game)}</span><span class="sp"></span><span class="hero" style="font-size:26px">${ct(a.price)}</span></div><div class="small"><b>+${ct(a.profit)} if it wins</b> · ${/^[ABCF]$/.test(a.confidence) ? `grade ${grd(a.confidence, 1)}` : esc(a.confidence)}</div><div class="why">${esc(a.why)}</div></div>`).join("") : NOREC(lv.length ? "" : S.B.nextCheck)}`;
   if (lv.length) h += `<h2>Live games</h2>${lv.map(liveCard).join("")}`;
   h += `<h2>Final <span class="cnt">${fin.length}</span></h2>${fin.length ? `<div class="tiny muted" style="margin:-4px 0 6px">✓ our pick won · ✗ our pick lost</div>` : ""}${fin.length ? `<div class="glist">${fin.map(finalLine).join("")}</div>` : NOREC()}`;
   return h;
@@ -685,7 +692,7 @@ function comboCard(cat, k, res, safe) {
     <div class="mpbar"><div class="cost ${t.est > t.maxPay ? "over" : ""}" style="width:${w}%"></div><div class="max" style="left:calc(${mx}% - 1px)"></div></div>
     <div class="small" style="margin-top:8px"><b>Pay no more than ${ct1(t.maxPay)} for the combo.</b> ${t.mk > 1 ? `<span class="muted">Teams' prices multiplied ${ct1(t.cost)} + about ${Math.round((t.mk - 1) * 100)}% Robinhood combo markup.</span>` : `<span class="muted">Teams' prices multiplied: ${ct1(t.cost)}.</span>`}</div>
     <div class="kpis"><div><b>${pct(t.hit)}</b><span>Hits</span></div><div><b>${ct1(t.maxPay)}</b><span>Max pay</span></div><div><b class="${t.edge >= 0 ? "c-Value" : "bad"}">${t.edge >= 0 ? "+" : ""}${ct1(t.edge)}</b><span>Edge</span></div></div>
-    <div style="margin-top:8px">${legs.map((l, i) => `<div class="leg" onclick="swapLeg('${ek}',${i})">${badge(l.team, "sm")}<div style="min-width:0"><b>${esc(l.team)}</b> <span class="small muted">vs ${esc(l.opp)}${l.state === "in" ? " · live" : ""}</span><br>${(l.tags || []).map(x => `<span class="tag ${x === "Shoe-in" ? "shoe" : ""}">${esc(x)}</span>`).join("")}</div><span class="sp"></span><span class="small muted">${pct(l.fair)}</span><span class="p">${ct(l.price)}</span>${edit && legs.length > 2 ? `<button class="x" onclick="event.stopPropagation();dropLeg('${ek}',${i})" aria-label="Remove">✕</button>` : ""}</div>`).join("")}</div>
+    <div style="margin-top:8px">${legs.map((l, i) => `<div class="leg" onclick="swapLeg('${ek}',${i})">${badge(l.team, "sm")}<div style="min-width:0"><b>${esc(l.team)}</b> <span class="small muted">vs ${esc(l.opp)}${l.state === "in" ? " · live" : ""}</span><br>${(l.tags || []).map(x => `<span class="tag ${x === "Shoe-in" ? "shoe" : ""}">${esc(x)}</span>`).join("")}</div><span class="sp"></span><span class="small muted">${pct(l.fair)}</span>${grd(gradeOf(l.fair), 1)}<span class="p">${ct(l.price)}</span>${edit && legs.length > 2 ? `<button class="x" onclick="event.stopPropagation();dropLeg('${ek}',${i})" aria-label="Remove">✕</button>` : ""}</div>`).join("")}</div>
     <div class="row" style="margin-top:10px"><button class="btn" onclick="toggle('${id}')">${edit ? "Done" : "Edit"}</button>${edit ? `<button class="btn" onclick="addLeg('${ek}')">+ Add leg</button>` : ""}${S.comboEdits[ek] ? `<button class="btn" onclick="resetCombo('${ek}')">Reset</button>` : ""}</div>
     ${edit ? `<div class="small muted" style="margin-top:8px">Pick any leg to swap it, ✕ to drop it, or add one. Any size from 2 legs.</div>` : ""}
   </div>`;
@@ -730,13 +737,9 @@ function watchCombo(k) {
   return h;
 }
 const ctabTop = () => `<button class="${(S.ccat || "top") === "top" ? "on" : ""}" onclick="setCombo('top')">Top picks</button>`;
-const confChip = l => `<span class="cconf ${l}">Confidence ${l}</span>`;
-// review 2026-11-23: a combo's badge is its real odds, not High/Med/Low
-const hitChip = hit => { const n = Math.max(1, Math.round(100 / Math.max(hit, 0.1))); return `<span class="cconf ${hit >= 33 ? "High" : hit >= 10 ? "Med" : "Low"}">${n <= 1 ? "Hits almost always" : `Hits about 1 in ${n}`}</span>`; };
-function comboConfJS(hit, cost, legs) {
-  const weak = legs.some(l => (l.est ?? l.fair) < 45), strong = legs.filter(l => (l.est ?? l.fair) >= 65).length >= legs.length / 2;
-  return !weak && strong && hit >= cost + 2 ? "High" : !weak && hit >= cost ? "Med" : "Low";
-}
+
+// combo badge: letter grade from its real hit chance + "1 in N"
+const hitChip = hit => { const n = Math.max(1, Math.round(100 / Math.max(hit, 0.1))); return `${grd(gradeOf(hit, COMBO_CUTS))}<span class="cconf">${n <= 1 ? "Hits almost always" : `Hits about 1 in ${n}`}</span>`; };
 // Rick's combo habit: a $5 bonus bet (never more than $10)
 function stake5(cost) {
   if (!cost || cost <= 0) return "";
@@ -749,13 +752,13 @@ function big3(hit, cost) {
   return `<div class="big3"><div><b>${pct(hit)}</b><span>chance it hits</span></div><div><b>${ct1(cost)}</b><span>cost</span></div><div><b>${n ? "$" + n : "—"}</b><span>$5 wins</span></div></div>`;
 }
 const legHead = `<div class="leghead"><span>Team</span><span class="sp"></span><span>Our chance</span><span>Price</span></div>`;
-const comboWarn = () => `<div class="quiet small"><b>Check Robinhood's real price first.</b> <span class="muted">Combo prices there run higher than the teams' prices multiplied. We add about ${Math.round((markup(2) - 1) * 100)}%; skip a combo if Robinhood's price is 10%+ above our cost.</span></div>`;
+const comboWarn = () => `<div class="quiet small"><b>Check Robinhood's real price first.</b> <span class="muted">Combo prices there run higher than the teams' prices multiplied. We add about ${Math.round((markup(2) - 1) * 100)}%; skip a combo if Robinhood's price is 10%+ above our cost.</span></div>${comboKey()}`;
 function topCard(c, i) {
   return `<div class="card">
     <div class="row"><b>#${i + 1} · ${c.size} teams</b><span class="sp"></span>${hitChip(c.hit)}</div>
     ${big3(c.hit, c.cost)}
     <div class="tiny muted">${c.hit >= c.cost + 2 ? `Our chance beats the cost by ${(c.hit - c.cost).toFixed(1)}¢` : c.hit >= c.cost ? "About a fair price" : `Costs ${(c.cost - c.hit).toFixed(1)}¢ more than our chance`}${c.cost > 10 ? " · over 10¢: not a bonus bet" : ""}${c.reused ? ` · shares ${c.reused} game${c.reused > 1 ? "s" : ""} with a pick above` : ""}</div>
-    <div style="margin-top:8px">${legHead}${c.legs.map(l => `<div class="leg">${badge(l.team, "sm")}<div style="min-width:0"><b>${esc(l.team)}</b> <span class="small muted">vs ${esc(l.opp)}</span>${l.dog ? ` <span class="tag look">underdog</span>` : ""}<br>${(l.why || []).map(x => `<span class="tag good">${esc(x)}</span>`).join("")}</div><span class="sp"></span><span class="small muted">${Math.round(l.est)}%</span><span class="p">${ct(l.price)}</span></div>`).join("")}</div>
+    <div style="margin-top:8px">${legHead}${c.legs.map(l => `<div class="leg">${badge(l.team, "sm")}<div style="min-width:0"><b>${esc(l.team)}</b> <span class="small muted">vs ${esc(l.opp)}</span>${l.dog ? ` <span class="tag look">underdog</span>` : ""}<br>${(l.why || []).map(x => `<span class="tag good">${esc(x)}</span>`).join("")}</div><span class="sp"></span><span class="small muted">${Math.round(l.est)}%</span>${grd(gradeOf(l.est), 1)}<span class="p">${ct(l.price)}</span></div>`).join("")}</div>
   </div>`;
 }
 // ---------- build your own combo: Rick taps teams, we analyse it (all in the browser, from the board) ----------
@@ -800,7 +803,7 @@ function buildView() {
   const btn = (g, c) => {
     const l = by[g.id + "|" + c.team];
     if (!l) return `<button class="bt" disabled>${esc(c.team)}<span>no price</span></button>`;
-    return `<button class="bt ${B.sel[g.id] === c.team ? "on" : ""}" onclick="buildTap('${esc(g.id)}','${esc(c.team)}')">${badge(c.team, "sm")}<b>${esc(c.team)}</b><span>${ct(l.price)} · wins ${Math.round(l.est)}%</span></button>`;
+    return `<button class="bt ${B.sel[g.id] === c.team ? "on" : ""}" onclick="buildTap('${esc(g.id)}','${esc(c.team)}')">${badge(c.team, "sm")}<b>${esc(c.team)}</b><span>${ct(l.price)} · wins ${Math.round(l.est)}% ${grd(gradeOf(l.est), 1)}</span></button>`;
   };
   h += `<div class="card" style="padding:8px">${games.map(g => `<div class="bpair"><div class="tiny muted">${esc(g.short || "")} · ${esc(kick(g.kickoff))}</div><div class="brow">${btn(g, g.teams.away)}${btn(g, g.teams.home)}</div></div>`).join("")}</div>`;
   h += `<div class="tiny muted" style="margin-top:8px">Win chance = our fair value, same as Top picks (watch tags are shown, not added). Info only: check each leg's Buy/Wait/Pass, and Robinhood's real combo price.</div>`;
@@ -847,7 +850,7 @@ function buildAnalysis(legs, pool) {
     <div class="row"><b>Your combo · ${k} teams</b><span class="sp"></span>${hitChip(hit)}</div>
     ${big3(hit, cost)}
     <div class="tiny muted">${verdict} · teams' prices multiplied ${r1(legsCost)}¢ + about ${Math.round((markup(k) - 1) * 100)}% Robinhood markup${cost > 10 ? " · over 10¢: not a bonus bet" : ""}</div>
-    <div style="margin-top:8px">${legHead}${legs.map(l => `<div class="leg">${badge(l.team, "sm")}<div style="min-width:0"><b>${esc(l.team)}</b> <span class="small muted">vs ${esc(l.opp)}</span> <span class="small" style="color:var(--${{ Value: "good", Wait: "wait", Pass: "bad", Sell: "sell" }[l.call] || "muted"})">${esc(LBL(l.call) || "")}</span><br>${l.why.map(x => `<span class="tag good">${esc(x)}</span>`).join("")}</div><span class="sp"></span><span class="small muted">${Math.round(l.est)}%</span><span class="p">${ct(l.price)}</span><button class="x" onclick="buildTap('${esc(l.gameId)}','${esc(l.team)}')" aria-label="Remove">✕</button></div>`).join("")}</div>
+    <div style="margin-top:8px">${legHead}${legs.map(l => `<div class="leg">${badge(l.team, "sm")}<div style="min-width:0"><b>${esc(l.team)}</b> <span class="small muted">vs ${esc(l.opp)}</span> <span class="small" style="color:var(--${{ Value: "good", Wait: "wait", Pass: "bad", Sell: "sell" }[l.call] || "muted"})">${esc(LBL(l.call) || "")}</span><br>${l.why.map(x => `<span class="tag good">${esc(x)}</span>`).join("")}</div><span class="sp"></span><span class="small muted">${Math.round(l.est)}%</span>${grd(gradeOf(l.est), 1)}<span class="p">${ct(l.price)}</span><button class="x" onclick="buildTap('${esc(l.gameId)}','${esc(l.team)}')" aria-label="Remove">✕</button></div>`).join("")}</div>
     ${flags.length ? `<div class="small" style="margin-top:8px"><b>Watch out</b>${flags.map(f => `<div class="tiny" style="margin-top:3px">⚠ ${f}</div>`).join("")}</div>` : `<div class="small" style="margin-top:8px;color:var(--good)">No weak legs: every leg is 45%+ and priced at or under its chance.</div>`}${early ? `<div class="tiny muted" style="margin-top:4px">Next week's prices are early: news can still move them.</div>` : ""}
     ${swaps.length ? `<div class="small" style="margin-top:8px"><b>Better swaps</b>${swaps.map(s => `<div class="tiny" style="margin-top:3px">${s.txt} <button class="btn sm" onclick="buildSwap('${esc(s.l.gameId)}','${esc(s.alt.gameId)}','${esc(s.alt.team)}')">Swap</button></div>`).join("")}</div>` : ""}
     <div class="small" style="margin-top:10px"><b>Robinhood's real price?</b> <span class="muted">Type the combo quote you see and we learn the true markup.</span>
@@ -937,7 +940,7 @@ function learning() {
   const calC = (useRev ? L.calibConf : bt?.calibConf) || [];
   const id1 = "cal1";
   const head = calRows.length ? calRows.map(r => `${r.bucket}: ${Math.round(r.actual)}%`).join(" · ") : "—";
-  h += `<h2>Were our chances right?</h2><div class="line u" onclick="toggle('${id1}')">${esc(head)}</div>${S.open.has(id1) ? `<div class="ig">${tile("By fair value", calibChart(calRows))}${tile("By confidence", calibChart(calC))}</div><div class="tiny muted">${useRev ? "Reviewed games" : "Rebuilt backtest (Weeks 1–11) until 20 games are reviewed"}</div>` : ""}`;
+  h += `<h2>Were our chances right?</h2><div class="line u" onclick="toggle('${id1}')">${esc(head)}</div>${S.open.has(id1) ? `<div class="ig">${tile("By fair value", calibChart(calRows))}${tile("By grade", calibChart(calC))}</div><div class="tiny muted">${useRev ? "Reviewed games" : "Rebuilt backtest (Weeks 1–11) until 20 games are reviewed"}</div>` : ""}`;
   if (L.shrink) h += `<div class="line muted small">${esc(L.shrink.note)}</div>`;
   // experts
   const E = S.B.experts;
@@ -1127,7 +1130,7 @@ function edgeTile(price, fair, fee) {
 }
 function confTile(conf) {
   if (!conf) return "";
-  return `<div class="row"><span class="big">${conf.score}%</span>${meter(conf)}</div><div class="small">Chance this team wins the game. Buy / Wait / Pass tells you if the price is good.</div><div class="tiny muted">Tested on 1,515 games: High (65%+) won 77%, Med won 59%, Low won 32%.${conf.missing ? " Some data missing for this game." : ""}</div>`;
+  return `<div class="row"><span class="big">${conf.score}%</span>${meter(conf)}</div><div class="small">Chance this team wins the game. Buy / Wait / Pass tells you if the price is good.</div><div class="tiny muted">Tested on 1,521 games: A (75%+) won 84%, B (60–75%) won 67%, C (45–60%) won 54%, F (under 45%) won 32%.${conf.missing ? " Some data missing for this game." : ""}</div>`;
 }
 function calibChart(rows, title) {
   if (!rows || !rows.length) return `<div class="muted small">No data yet</div>`;
@@ -1315,7 +1318,7 @@ function setup() {
    <p>Weather/run +1.0–1.5 pts to the run-heavy team in open air if wind ≥15 mph or ≤35°F. QB out −3.5, 2+ WR/CB out −1 — only when the news is fresh (not out Thursday, line moved &lt;2 pts); otherwise the line already priced it.</p>
    <p>EPA is shown (matchup bars, breakdown) but not added to the price: every EPA weight tested made the fairs worse.</p>
    <p>Edge = fair − price − fee (fee 2¢: Robinhood commission ≤1¢ + exchange fee ≤1¢). <b>Buy</b> ≥15¢. <b>Wait for a dip</b> 8–15¢, buy-at = fair − 15¢ − fee. Else <b>Pass</b>.</p>
-   <p>Win chance = the chance the team wins the game (from the line). High 65%+, Med 45–65%, Low under 45%. It is not a bet rating: Buy / Wait / Pass is.</p>
+   <p>Grade = the chance the team wins the game (from the line). A 75%+, B 60–75%, C 45–60%, F under 45%. In testing A picks won 84%, B 67%, C 54%, F 32%. It is not a price rating: Buy / Wait / Pass is. Combos are graded by their hit chance: A 1 in 3 or better, B 1 in 7, C 1 in 14, F rarer.</p>
    <p>Combos: every game set, every side (2^N). Hit % = product of fairs. Max pay = fair − 2¢. One leg per game (same-game legs are correlated). Shoe-in = fair ≥70¢ only.</p></div>
   <div class="card doc"><h3>How it works — rules</h3><ul class="small">
    <li>Live dip alert needs: price ≥15¢ under live fair after fees, AND payout up ≥20% vs the pre-drop price (profit = 100 − price; 60¢→52¢ = 40→48 = +20%), AND a lopsided game (spread ≥7).</li>

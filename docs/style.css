@@ -362,3 +362,11 @@ svg text{font-size:10px}
 @media(max-width:1099px){.cols .colR:empty{display:none}}
 @media(max-width:1099px){.cols.q .colL{order:-1}}
 .winl{font-size:12.5px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* letter grades (win chance): filled square badge in a blue scale, so it never looks like Buy/Wait/Pass/Sell pills */
+.grd{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;border-radius:6px;font-weight:800;font-size:14px;margin-right:6px;color:#fff;vertical-align:middle;flex:none}
+.grd.sm{min-width:18px;height:18px;font-size:11px;border-radius:4px;margin:0 4px}
+.grd.gA{background:#2563eb}.grd.gB{background:#5b8def}.grd.gC{background:#94a3b8;color:#0b1220}.grd.gF{background:#475569}
+:root[data-theme="light"] .grd.gC{background:#cbd5e1}
+.gkey{margin:4px 0 8px;line-height:1.9}
+.cconf{color:var(--muted);background:var(--bar)}
