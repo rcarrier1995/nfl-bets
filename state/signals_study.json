@@ -1,0 +1,206 @@
+{
+ "games": 5359,
+ "train": "2006\u20132022",
+ "test": "2023\u20132026",
+ "rows": [
+  {
+   "signal": "Backup QB starting",
+   "z": -2.21,
+   "ptsAll": -0.71,
+   "n": 1283,
+   "pts": -0.69,
+   "se": 0.37,
+   "nTest": 336,
+   "ptsTest": -0.8,
+   "holds": false
+  },
+  {
+   "signal": "Opponent on backup QB",
+   "z": 2.21,
+   "ptsAll": 0.71,
+   "n": 1283,
+   "pts": 0.69,
+   "se": 0.37,
+   "nTest": 336,
+   "ptsTest": 0.8,
+   "holds": false
+  },
+  {
+   "signal": "West team, 1pm ET road game",
+   "z": -1.68,
+   "ptsAll": -1.09,
+   "n": 335,
+   "pts": -1.31,
+   "se": 0.73,
+   "nTest": 82,
+   "ptsTest": -0.18,
+   "holds": false
+  },
+  {
+   "signal": "Rest advantage 3+ days",
+   "z": 1.63,
+   "ptsAll": 0.6,
+   "n": 903,
+   "pts": 0.29,
+   "se": 0.42,
+   "nTest": 218,
+   "ptsTest": 1.89,
+   "holds": false
+  },
+  {
+   "signal": "Home team in freezing outdoor game",
+   "z": 1.43,
+   "ptsAll": 1.3,
+   "n": 191,
+   "pts": 0.96,
+   "se": 0.99,
+   "nTest": 32,
+   "ptsTest": 3.28,
+   "holds": false
+  },
+  {
+   "signal": "After a 20+ pt loss",
+   "z": 1.43,
+   "ptsAll": 0.57,
+   "n": 826,
+   "pts": 0.65,
+   "se": 0.44,
+   "nTest": 177,
+   "ptsTest": 0.15,
+   "holds": false
+  },
+  {
+   "signal": "Off a bye vs normal rest",
+   "z": 1.35,
+   "ptsAll": 0.72,
+   "n": 444,
+   "pts": 0.35,
+   "se": 0.6,
+   "nTest": 88,
+   "ptsTest": 2.57,
+   "holds": false
+  },
+  {
+   "signal": "Prime time \u00b7 favourite",
+   "z": 1.19,
+   "ptsAll": 0.46,
+   "n": 916,
+   "pts": 0.48,
+   "se": 0.44,
+   "nTest": 236,
+   "ptsTest": 0.4,
+   "holds": false
+  },
+  {
+   "signal": "Neutral site \u00b7 favourite",
+   "z": 0.95,
+   "ptsAll": 1.6,
+   "n": 47,
+   "pts": 1.98,
+   "se": 2.29,
+   "nTest": 25,
+   "ptsTest": 0.9,
+   "holds": false
+  },
+  {
+   "signal": "Prime time \u00b7 home underdog",
+   "z": -0.9,
+   "ptsAll": -0.59,
+   "n": 326,
+   "pts": -0.48,
+   "se": 0.75,
+   "nTest": 86,
+   "ptsTest": -0.98,
+   "holds": false
+  },
+  {
+   "signal": "Home underdog",
+   "z": -0.87,
+   "ptsAll": -0.26,
+   "n": 1562,
+   "pts": -0.13,
+   "se": 0.34,
+   "nTest": 393,
+   "ptsTest": -0.74,
+   "holds": false
+  },
+  {
+   "signal": "Windy (15+ mph) \u00b7 favourite",
+   "z": -0.78,
+   "ptsAll": -0.51,
+   "n": 393,
+   "pts": -1.07,
+   "se": 0.7,
+   "nTest": 46,
+   "ptsTest": 4.29,
+   "holds": false
+  },
+  {
+   "signal": "Big favourite (10+ pts)",
+   "z": 0.67,
+   "ptsAll": 0.33,
+   "n": 607,
+   "pts": -0.01,
+   "se": 0.53,
+   "nTest": 94,
+   "ptsTest": 2.52,
+   "holds": false
+  },
+  {
+   "signal": "Home team (all)",
+   "z": -0.54,
+   "ptsAll": -0.1,
+   "n": 4383,
+   "pts": -0.19,
+   "se": 0.2,
+   "nTest": 976,
+   "ptsTest": 0.3,
+   "holds": false
+  },
+  {
+   "signal": "Late season (wk 15+) underdog",
+   "z": -0.53,
+   "ptsAll": -0.22,
+   "n": 847,
+   "pts": 0.07,
+   "se": 0.46,
+   "nTest": 192,
+   "ptsTest": -1.5,
+   "holds": false
+  },
+  {
+   "signal": "After a 20+ pt win",
+   "z": -0.36,
+   "ptsAll": -0.15,
+   "n": 826,
+   "pts": -0.4,
+   "se": 0.48,
+   "nTest": 177,
+   "ptsTest": 1.01,
+   "holds": false
+  },
+  {
+   "signal": "Division game \u00b7 favourite",
+   "z": 0.04,
+   "ptsAll": 0.01,
+   "n": 1632,
+   "pts": -0.06,
+   "se": 0.32,
+   "nTest": 340,
+   "ptsTest": 0.37,
+   "holds": false
+  },
+  {
+   "signal": "Division game \u00b7 underdog",
+   "z": -0.04,
+   "ptsAll": -0.01,
+   "n": 1632,
+   "pts": 0.06,
+   "se": 0.32,
+   "nTest": 340,
+   "ptsTest": -0.37,
+   "holds": false
+  }
+ ],
+ "finding": "None of 18 situations beat the closing line in both samples. Rest, byes, travel, division games, prime time, weather, blowouts and big favourites are already priced. Closest: a team starting a backup QB did ~0.7 pts worse than its line in both samples, too small and too noisy to price (\u22482\u00a2)."
+}

@@ -7,6 +7,7 @@ from . import config as C
 from . import combos as CB
 from . import injuries as I
 from . import model as M
+from . import signals as SG
 from .fetch import (espn_scoreboard, espn_summary, kalshi_events, weather_batch, load_json,
                     save_json, iso, now_utc, HEALTH)
 from .stats import abbrev, load_tables
@@ -314,6 +315,7 @@ def build_game(ev, tables, kidx, wx_all, pt_idx, live_state, snaps, prev_calls, 
          "score": {"away": _int(comps["away"].get("score")), "home": _int(comps["home"].get("score"))},
          "linescores": {s: [_int(x.get("displayValue")) for x in (comps[s].get("linescores") or [])] for s in ("away", "home")},
          "venue": (comp.get("venue") or {}).get("fullName"), "indoor": indoor, "neutral": neutral,
+         "situation": SG.tags(g_season(ev), away, home),
          "colors": {away: "#" + (comps["away"]["team"].get("color") or "334155"),
                     home: "#" + (comps["home"]["team"].get("color") or "334155")},
          "spreadHome": spread_home, "total": total, "book": book,

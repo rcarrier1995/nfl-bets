@@ -130,6 +130,10 @@ function muLine(g) {
   if (S.open.has(id)) out += matchupBars(g);
   return out;
 }
+function sitLine(g) {
+  if (!g.situation?.length) return "";
+  return `<div class="line">${ic("ch")}<span>${g.situation.map(esc).join(" · ")} <span class="muted">— already in the line</span></span></div>`;
+}
 function toLine(g) {
   if (!g.turnovers || g.state === "pre") return "";
   const id = "to:" + g.id;
@@ -178,7 +182,7 @@ function gameRow(g) {
 const rank = c => ({ Value: 3, Wait: 2, Pass: 1 }[c] || 0);
 function gameDetail(g) {
   return `<div class="teams2">${betCard(g.teams.away)}${betCard(g.teams.home)}</div>
-    ${injLine(g)}${wxLine(g)}${muLine(g)}${toLine(g)}${changesLine(g)}${gameCombosLine(g)}
+    ${injLine(g)}${wxLine(g)}${muLine(g)}${sitLine(g)}${toLine(g)}${changesLine(g)}${gameCombosLine(g)}
     ${g.spreadHome != null ? `<div class="line muted">${ic("line")}${esc(g.home)} ${g.spreadHome > 0 ? "+" : ""}${g.spreadHome} · total ${g.total ?? "—"}</div>` : ""}`;
 }
 function finalLine(g) {
@@ -430,6 +434,12 @@ function learning() {
     const id = "ts";
     h += `<h2>Best time to bet</h2><div class="line u" onclick="toggle('${id}')">${ts.games} games tested · no moment is cheap by itself</div>`;
     if (S.open.has(id)) h += `<div class="small" style="margin:6px 0">${esc(ts.finding)} ${esc(ts.note || "")}</div><table class="qt"><tr><th>Spot</th><th>Games</th><th>Priced</th><th>Won</th><th>2026</th></tr>${ts.rows.filter(r => r.n >= 300).map(r => `<tr><td>${esc(r.spot)}</td><td>${r.n}</td><td>${r.price}%</td><td>${r.won}%</td><td>${r.gapTest == null ? "—" : (r.gapTest > 0 ? "+" : "") + r.gapTest}</td></tr>`).join("")}</table><div class="tiny muted">Quarter ends and the play after each TD, 2021–25, checked on 2026. "2026" = won minus priced, in points.</div>`;
+  }
+  const ss = L.signalsStudy;
+  if (ss) {
+    const id = "ss";
+    h += `<h2>Other signals tested</h2><div class="line u" onclick="toggle('${id}')">${ss.games.toLocaleString()} games · ${ss.rows.filter(r => r.holds).length} of ${ss.rows.length} beat the line</div>`;
+    if (S.open.has(id)) h += `<div class="small" style="margin:6px 0">${esc(ss.finding)}</div><table class="qt"><tr><th>#</th><th>Situation</th><th>${esc(ss.train)}</th><th>${esc(ss.test)}</th></tr>${ss.rows.map((r, i) => `<tr><td>${i + 1}</td><td>${esc(r.signal)}</td><td>${r.pts > 0 ? "+" : ""}${r.pts} <span class="muted">(${r.n})</span></td><td>${r.ptsTest > 0 ? "+" : ""}${r.ptsTest} <span class="muted">(${r.nTest})</span></td></tr>`).join("")}</table><div class="tiny muted">Ranked by how steadily each beat (or lost to) the line across both samples. Points vs the closing line per game; ±1 pt is noise at these sizes.</div>`;
   }
   // patterns by call
   const bc = L.byCall || {};
