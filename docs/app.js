@@ -381,7 +381,7 @@ function expertsLine(g) {
 // Tags only — they never change the call. Tap the card for the why.
 function tagBar(g, id) {
   const items = { [g.away]: [], [g.home]: [] };
-  const short = { "QB + WR1 beat their secondary": "QB + WR1 > their pass D", "Hot streak overpriced": "Hot streak · priced ~6¢ high" };
+  const short = { "QB + WR1 beat their secondary": "QB + WR1 > their pass D", "Hot streak overpriced": "Hot streak · priced ~4¢ high" };
   for (const w of g.watch || []) if (items[w.team]) items[w.team].push([w.kind === "fade" ? "fade" : "good",
     (short[w.tag] || w.tag) + (w.est != null ? ` · wins ~${Math.round(w.est)}% · costs ${Math.round(w.price)}¢` : "") + (w.inGame ? " · now" : "")]);
   const e = g.experts;

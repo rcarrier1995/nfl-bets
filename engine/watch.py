@@ -167,8 +167,8 @@ def _key_defenders(season, team, week):
 
 
 # Tested edge before fee in recent years (win % minus price, 2021-26), from the combo study.
-EDGE = {"eqwd": 10, "dbu": 6, "qbwr": 8}
-HOT_PENALTY = 6    # hot-streak teams were priced 4-9c too high
+EDGE = {"eqwd": 6, "dbu": 5, "qbwr": 3}   # shrunk for selection luck (combo study Round 9c)
+HOT_PENALTY = 4    # hot-streak teams were priced 4-9c too high
 FADE_EDGE = 3      # the other side of a hot streak: +1 to +5c, small
 GAP = 5            # a leg counts for the watch-tag combo when the tested win % beats its price by 5c+
 
