@@ -1,18 +1,19 @@
-nfl 1 ok
-nfl 2 ok
-nfl 3 ok
-nfl 4 ok
-nfl 5 ok
-nfl 6 ok
-nfl 7 ok
-nfl 8 ok
-nfl 9 ok
-nfl 10 ok
-nfl 11 ok
-nfl 12 err HTTP Error 404: Not Found
-nfl 13 err HTTP Error 404: Not Found
-nfl 14 ok
-nfl 15 ok
-nfl 16 ok
-nfl 17 ok
-nfl 18 ok
+cbs straight-up 1 20250927064635 nomatch
+cbs straight-up 1 20251007062417 nomatch
+cbs straight-up 1 20251011230300 nomatch
+cbs straight-up 1 MISSING (4 snaps)
+cbs straight-up 2 20250913111809 ok 1s
+cbs straight-up 3 20251007062415 nomatch
+cbs straight-up 3 20251007062418 nomatch
+cbs straight-up 3 20251007062418 nomatch
+cbs straight-up 3 MISSING (4 snaps)
+cbs straight-up 4 20250925230624 nomatch
+cbs straight-up 4 20250926173731 nomatch
+cbs straight-up 4 20250926173809 nomatch
+cbs straight-up 4 MISSING (7 snaps)
+cbs straight-up 5 20251003132544 nomatch
+cbs straight-up 5 20251007062252 nomatch
+cbs straight-up 5 20251007062426 nomatch
+cbs straight-up 5 MISSING (5 snaps)
+cbs straight-up 6 20251011172228 err <urlopen error [Errno 111] Connection refused>
+cbs straight-up 6 MISSING (1 snaps)
