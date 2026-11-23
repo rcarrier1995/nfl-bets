@@ -298,3 +298,18 @@ def test_backfilled_snapshots_repriced_with_current_model():
     assert BT.refresh_backfilled(snaps) == []          # idempotent
     L = {"graded": {"2026-w11|1": {"season": 2026, "week": 11}}, "windows": [{"season": 2026, "week": 11}, {"season": 2026, "week": 10}]}
     assert LR.regrade(L, ["2026-w11|1"]) == 1 and not L["graded"] and len(L["windows"]) == 1
+
+
+def test_stale_line_turns_buy_into_check_the_line():
+    from datetime import datetime, timezone, timedelta
+    from engine import lag
+    now = datetime(2026, 11, 29, 12, tzinfo=timezone.utc)
+    iso = lambda d: d.strftime("%Y-%m-%dT%H:%M:%SZ")
+    g = {"book": "DraftKings", "spreadHome": -3.0}
+    c = {"call": "Value", "price": 40.0, "bid": 39.0, "fee": 2.0, "buyAt": 40, "why": "x"}
+    rows = [[iso(now - timedelta(hours=8)), -3.0, 60, 46], [iso(now), -3.0, 60, 40]]
+    lag.line_check(g, c, "home", rows, now)
+    assert c["call"] == "Wait" and c["buyAt"] == 29 and "no consensus" in c["why"] and "Kalshi fell 6" in c["why"]
+    c2 = {"call": "Value", "price": 40.0, "bid": 39.0, "fee": 2.0}
+    lag.line_check({"book": "Consensus of 9 books", "spreadHome": -3.0}, c2, "home", rows[-1:], now)
+    assert c2["call"] == "Value" and "lineCheck" not in c2

@@ -311,7 +311,7 @@ def tick(force=()):
     # pregame: a team turning Value now (e.g. a Wait price got hit) -> one push
     vsent = rs.setdefault("valueSent", {})
     for c in board["calls"]:
-        if c.get("state") == "pre" and c.get("call") == "Value" and not c.get("priceStale") and vsent.get(c["key"]) != round(c["price"] or 0):
+        if c.get("state") == "pre" and c.get("call") == "Value" and not c.get("priceStale") and not (c.get("lineCheck") and c["price"] > (c["lineCheck"].get("buyUnder") or 0)) and vsent.get(c["key"]) != round(c["price"] or 0):
             P.send(f"{'Slow price' if c.get('lag') else 'Buy now'}: {c['team']} {c['price']:.0f}c",
                    f"{c['team']} vs {c['opp']} {c['price']:.0f}c -> win {100 - c['price']:.0f}c · win chance {c['confidence']['level']}\n{c['why']}")
             vsent[c["key"]] = round(c["price"] or 0)

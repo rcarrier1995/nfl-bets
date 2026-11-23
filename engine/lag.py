@@ -8,6 +8,7 @@ Slow price: the sportsbook spread moved >= LAG_MIN_PTS in the last LAG_WINDOW mi
 the Kalshi ask for the team the line moved toward rose by less than half of what that move
 is worth. That is the realistic edge source (the model itself matches the sportsbook).
 """
+import math
 import os
 from datetime import timedelta
 
@@ -39,6 +40,9 @@ def record_and_detect(board, now):
         lag = detect(rows, now)
         for side, c in (("away", a), ("home", h)):
             c.pop("lag", None)
+            c.pop("lineCheck", None)
+            if not lag:
+                line_check(g, c, side, rows, now)
         if lag:
             c = a if lag["side"] == "away" else h
             c["lag"] = lag["note"]
@@ -47,6 +51,40 @@ def record_and_detect(board, now):
             lags.append(c["key"])
     save_json(FILE, hist, compact=True)
     return lags
+
+
+FROZEN_HOURS = 6      # ESPN line unchanged this long while Kalshi moved = the line is probably behind the news
+FROZEN_MOVE = 4       # cents Kalshi moved against the team in that time
+CHECK_EDGE = 8        # "buy under" leaves this much edge if Kalshi's own price is the right one
+
+
+def line_check(g, c, side, rows, now):
+    """Pregame guard (Rick, 2026-11-23): a 15c+ gap usually means a stale single-book line after news.
+    When the line looks stale, a Buy becomes 'Check the line · buy under X' (a Wait at X), and sends no Buy push.
+    Stale = no many-book consensus, or the line hasn't moved for 6h while this team's Kalshi price fell 4c+.
+    X assumes Kalshi is right: its mid minus 8c minus fees, so it never says to chase."""
+    if c.get("call") != "Value" or c.get("price") is None:
+        return
+    why = []
+    if not str(g.get("book") or "").startswith("Consensus"):
+        why.append(f"only one sportsbook line ({g.get('book') or 'ESPN'}), no consensus")
+    i = 3 if side == "home" else 2
+    t0 = now - timedelta(hours=FROZEN_HOURS)
+    old = [r for r in rows if (parse_dt(r[0]) or now) <= t0]
+    base = old[-1] if old else None
+    if base and None not in (base[1], g.get("spreadHome"), base[i]) and abs(g["spreadHome"] - base[1]) < 0.5 \
+            and base[i] - c["price"] >= FROZEN_MOVE:
+        why.append(f"line unchanged {FROZEN_HOURS}h while Kalshi fell {base[i] - c['price']:.0f}¢")
+    if not why:
+        return
+    mid = (c["price"] + c["bid"]) / 2 if c.get("bid") else c["price"]
+    x = int(math.floor(mid - CHECK_EDGE - (c.get("fee") or 2)))
+    c["lineCheck"] = {"why": "; ".join(why), "buyUnder": x if x >= 1 else None}
+    if x >= 1 and c["price"] <= x:
+        return                         # cheap even if Kalshi is right: keep the Buy
+    c["call"] = "Wait"
+    c["buyAt"] = x if x >= 1 else None
+    c["why"] = f"Check the line: {'; '.join(why)}" + (f". Buy under {x}¢" if x >= 1 else "")
 
 
 def detect(rows, now):

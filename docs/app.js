@@ -97,6 +97,7 @@ function verdict(c) {
   if (c.priceStale) t = "Don't buy: prices are delayed right now";
   else if (live && c.alertsOff) t = "Too late: under 5 minutes left";
   else if (call === "Value") t = `Buy now: ${ct(edge)} below fair after fees`;
+  else if (call === "Wait" && c.lineCheck && !live) t = c.lineCheck.buyUnder ? `Check the line: buy under ${ct(c.lineCheck.buyUnder)} — the sportsbook line may be behind the news` : "Check the line: the sportsbook line may be behind the news";
   else if (call === "Wait") t = `Wait: buy only at ${ct(buyAt)} or less — you'll get an alert`;
   else if (call === "Sell") t = `Sell if you own it: ${ct(c.sell.bid)} now is ${ct(c.sell.edge)} above fair after fees`;
   else if (live && lines.some(l => l.kind === "to")) t = `Don't buy the drop: ${c.team} has ${lines.find(l => l.kind === "to").text.split(" ")[0]} turnovers`;
