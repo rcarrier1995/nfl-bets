@@ -1,0 +1,41 @@
+name: manual
+# One-tap jobs from GitHub: Actions -> manual -> Run workflow.
+on:
+  workflow_dispatch:
+    inputs:
+      job:
+        description: "What to run"
+        type: choice
+        default: inactives
+        options: [inactives, pregame, board, top3, window, weekly, backfill]
+concurrency:
+  group: nfl-state
+  cancel-in-progress: false
+permissions:
+  contents: write
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - run: pip install -r requirements.txt
+      - uses: actions/cache@v4
+        with:
+          path: state/cache
+          key: feeds-${{ github.run_id }}
+          restore-keys: feeds-
+      - run: python -m engine.run ${{ inputs.job }}
+      - run: |
+          git config user.name "nfl-bets-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/data state config.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -q -m "manual ${{ inputs.job }}: $(date -u +%Y-%m-%dT%H:%MZ)"
+          for i in 1 2 3 4; do git pull -q --rebase -X theirs && git push -q && exit 0; sleep $((i*5)); done
+          exit 1

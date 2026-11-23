@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>NFL Bets</title>
+<meta name="description" content="Rick's NFL prediction-market assistant. Suggestions and alerts only.">
+<meta name="theme-color" content="#0b0d10">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="NFL Bets">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand"><span class="logo">🏈</span><span id="weekLabel">NFL Bets</span></div>
+  <div class="top-right"><span id="updated" class="muted small"></span><button id="gear" class="gear" aria-label="Setup">⚙</button></div>
+</header>
+<div id="feedNote" class="feednote" hidden></div>
+<div id="weeklyBanner"></div>
+<main id="view"></main>
+<nav class="tabs" id="tabs">
+  <button data-tab="pregame" class="on"><span>📋</span>Pregame</button>
+  <button data-tab="live"><span>🔴</span>Live</button>
+  <button data-tab="combos"><span>🔗</span>Combos</button>
+  <button data-tab="learning"><span>📈</span>Learning</button>
+</nav>
+<div id="modal" class="modal" hidden><div class="sheet"><button class="close" id="modalClose" aria-label="Close">✕</button><div id="modalBody"></div></div></div>
+<script src="app.js"></script>
+</body>
+</html>

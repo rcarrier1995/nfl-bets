@@ -1,0 +1,26 @@
+{
+ "espn": {
+  "ok": true,
+  "lastOk": "2026-11-23T00:57:59Z",
+  "note": "",
+  "fails": 0
+ },
+ "kalshi": {
+  "ok": true,
+  "lastOk": "2026-11-23T00:57:59Z",
+  "note": "",
+  "fails": 0
+ },
+ "weather": {
+  "ok": true,
+  "lastOk": "2026-11-23T00:57:59Z",
+  "note": "",
+  "fails": 0
+ },
+ "nflverse": {
+  "ok": true,
+  "lastOk": "2026-11-23T00:54:23Z",
+  "note": "roster_2026.csv",
+  "fails": 0
+ }
+}

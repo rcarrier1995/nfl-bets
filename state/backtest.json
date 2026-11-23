@@ -1,0 +1,113 @@
+{
+ "season": 2026,
+ "weeks": "1\u201310",
+ "games": 150,
+ "right": 98,
+ "pct": 65.3,
+ "brier": 0.2231,
+ "byWeek": {
+  "1": {
+   "right": 12,
+   "n": 16
+  },
+  "2": {
+   "right": 9,
+   "n": 16
+  },
+  "3": {
+   "right": 8,
+   "n": 16
+  },
+  "4": {
+   "right": 9,
+   "n": 16
+  },
+  "5": {
+   "right": 9,
+   "n": 15
+  },
+  "6": {
+   "right": 8,
+   "n": 14
+  },
+  "7": {
+   "right": 10,
+   "n": 14
+  },
+  "8": {
+   "right": 10,
+   "n": 14
+  },
+  "9": {
+   "right": 14,
+   "n": 15
+  },
+  "10": {
+   "right": 9,
+   "n": 14
+  }
+ },
+ "calibration": [
+  {
+   "bucket": "50\u201360",
+   "lo": 50,
+   "pred": 55.4,
+   "actual": 61.5,
+   "n": 96
+  },
+  {
+   "bucket": "60\u201370",
+   "lo": 60,
+   "pred": 64.7,
+   "actual": 69.0,
+   "n": 42
+  },
+  {
+   "bucket": "70\u201380",
+   "lo": 70,
+   "pred": 72.3,
+   "actual": 83.3,
+   "n": 12
+  }
+ ],
+ "calibConf": [
+  {
+   "bucket": "Low",
+   "pred": 51.6,
+   "actual": 50.0,
+   "n": 6
+  },
+  {
+   "bucket": "Med",
+   "pred": 57.8,
+   "actual": 63.7,
+   "n": 113
+  },
+  {
+   "bucket": "High",
+   "pred": 66.6,
+   "actual": 74.2,
+   "n": 31
+  }
+ ],
+ "value": 0,
+ "wait": 35,
+ "maxEdge": 14.0,
+ "prefSingles": {
+  "n": 83,
+  "won": 47
+ },
+ "aboveSingles": {
+  "n": 70,
+  "won": 53
+ },
+ "builtAt": "2026-11-23T00:48:57Z",
+ "method": "Rebuilt: nflverse spread + prior-week EPA, devigged moneyline as market proxy",
+ "original": {
+  "right": 97,
+  "games": 151,
+  "pct": 64.2,
+  "brierB": 0.2197,
+  "note": "Original backtest (your files): 97/151 = 64.2%; 80%+ favourites won 66.7% (n=12)"
+ }
+}
