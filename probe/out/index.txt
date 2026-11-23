@@ -17,3 +17,20 @@ cbs straight-up 5 20251007062426 nomatch
 cbs straight-up 5 MISSING (5 snaps)
 cbs straight-up 6 20251011172228 err <urlopen error [Errno 111] Connection refused>
 cbs straight-up 6 MISSING (1 snaps)
+cbs straight-up 7 cdx err <urlopen error [Errno 111] Connection refused>
+cbs straight-up 8 cdx err <urlopen error [Errno 111] Connection refused>
+cbs straight-up 9 cdx err <urlopen error [Errno 111] Connection refused>
+cbs straight-up 10 cdx err <urlopen error [Errno 111] Connection refused>
+cbs straight-up 11 cdx err <urlopen error [Errno 111] Connection refused>
+cbs straight-up 12 cdx err <urlopen error [Errno 111] Connection refused>
+cbs straight-up 13 cdx err <urlopen error [Errno 111] Connection refused>
+cbs straight-up 14 20260217182504 nomatch
+cbs straight-up 14 20260613224024 ok 6s
+cbs straight-up 15 20251212145211 nomatch
+cbs straight-up 15 MISSING (1 snaps)
+cbs straight-up 16 20251219174045 nomatch
+cbs straight-up 16 20260309142210 ok 1s
+cbs straight-up 17 20260103045403 nomatch
+cbs straight-up 17 20260103153657 ok 4s
+cbs straight-up 18 20260102162331 nomatch
+cbs straight-up 18 20260311185916 ok 1s
