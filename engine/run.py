@@ -151,6 +151,53 @@ def retest_rules(season, week):
     save_json(C.OVERRIDES, ov)
 
 
+def news_alerts(board, rs, now):
+    """Buzz the moment a starter is ruled out (pregame report / inactives) or confirmed out
+    in-game, or the QB changes — so Rick can act before the price catches up. One push each.
+    First run only records what is already known (no flood of old news)."""
+    sent = rs.setdefault("newsSent", {})
+    seed = not rs.get("newsSeeded")
+    by = {(c["gameId"], c["team"]): c for c in board["calls"]}
+    def px(team, gid):
+        c = by.get((gid, team)) or {}
+        fair = c.get("liveFair") if c.get("state") == "in" else c.get("fair")
+        return f"{team} {c['price']:.0f}c (fair {fair:.0f}c)" if c.get("price") is not None and fair is not None else team
+    for g in board["games"]:
+        if g["state"] == "post":
+            continue
+        opp = lambda t: g["home"] if t == g["away"] else g["away"]  # noqa
+        items = []
+        if g["state"] == "pre":
+            ko = board_dt(g.get("kickoff"))
+            if ko and (ko - now).total_seconds() < 4 * 86400:
+                for i in g.get("injuries") or []:
+                    if i.get("starter") and i.get("status") in ("Out", "Doubtful"):
+                        items.append((f"{g['id']}|{i['team']}|{i['player']}|{i['status']}", i["team"],
+                                      f"{i['team']} {i['pos']} {i['player']} {i['status'].upper()}"))
+        else:
+            for side in ("away", "home"):
+                c = g["teams"][side]
+                for ln in c.get("liveLines") or []:
+                    if ln.get("kind") == "inj" or (ln.get("kind") == "pause" and "QB change" in ln.get("text", "")):
+                        items.append((f"{g['id']}|{c['team']}|{ln['text']}", c["team"], f"{c['team']}: {ln['text']}"))
+        for key, team, head in items:
+            if key in sent:
+                continue
+            sent[key] = iso(now)
+            if seed:
+                continue
+            P.send(f"News: {head}"[:120], f"{g['short']} · {px(team, g['id'])} · {px(opp(team), g['id'])}\n"
+                   "Price may not have caught up yet.", priority="high")
+    rs["newsSeeded"] = True
+    if len(sent) > 600:
+        rs["newsSent"] = dict(list(sent.items())[-600:])
+
+
+def board_dt(s):
+    from .board import parse_dt
+    return parse_dt(s)
+
+
 def tick(force=()):
     now = now_utc()
     rs = load_json(RUN, {}) or {}
@@ -251,6 +298,7 @@ def tick(force=()):
             P.send(f"Buy now (live): {c['team']} {c['price']:.0f}c",
                    f"{c['team']} vs {c['opp']} {c['price']:.0f}c -> win {100 - c['price']:.0f}c · fair {c.get('liveFair')}c", priority="high")
             vsent[c["key"] + ":live"] = round(c["price"])
+    news_alerts(board, rs, now)
     if len(vsent) > 400:
         rs["valueSent"] = dict(list(vsent.items())[-400:])
     board["nextCheck"] = next_check(now)

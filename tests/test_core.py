@@ -134,6 +134,26 @@ def test_best_time_lines():
     assert best_time({"state": "post"}) is None
 
 
+def test_news_alerts_once_and_seeded():
+    from datetime import datetime, timezone
+    from engine import run as R
+    sent = []
+    R.P.send = lambda t, b, **k: sent.append(t)
+    now = datetime(2026, 11, 22, 15, 0, tzinfo=timezone.utc)
+    c = lambda t, side: {"gameId": "1", "team": t, "state": "pre", "price": 60, "fair": 62, "key": t, "liveLines": []}
+    g = {"id": "1", "short": "A @ B", "away": "A", "home": "B", "state": "pre", "kickoff": "2026-11-23T18:00Z",
+         "injuries": [], "teams": {"away": c("A", "away"), "home": c("B", "home")}}
+    board = {"games": [g], "calls": [g["teams"]["away"], g["teams"]["home"]]}
+    rs = {}
+    g["injuries"] = [{"team": "A", "pos": "WR", "player": "Old News", "status": "Out", "starter": True}]
+    R.news_alerts(board, rs, now)
+    assert sent == []                                   # first run only records
+    g["injuries"].append({"team": "A", "pos": "QB", "player": "Joe Q", "status": "Out", "starter": True})
+    R.news_alerts(board, rs, now)
+    R.news_alerts(board, rs, now)
+    assert len(sent) == 1 and "Joe Q" in sent[0]
+
+
 if __name__ == "__main__":
     for k, f in list(globals().items()):
         if k.startswith("test_"):

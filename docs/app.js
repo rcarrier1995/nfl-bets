@@ -670,6 +670,7 @@ function setup() {
    <div class="small">Status: ${p.topic ? `<span class="ok">topic saved on server</span>` : `<span class="bad">no topic on server</span>`}${p.lastNote ? `<br>${esc(p.lastNote)}` : ""}</div>
    <div class="row" style="margin-top:8px"><input id="topic" placeholder="ntfy topic" value="${esc(topic)}" style="flex:1"><button class="btn pri" onclick="testPush()">Test</button></div>
    <div id="testRes" class="small"></div>
+   <div class="small" style="margin:8px 0">Buzzes for: Value now · Wait prices hit · slow prices · live dips · <b>injury news</b> (starter ruled out, confirmed out in-game, QB change).</div>
    <ol class="small"><li>Install the free <b>ntfy</b> app (App Store / Google Play).</li><li>Tap <b>+</b>, type the topic above, Subscribe.</li><li>Tap <b>Test</b> here — your phone should buzz.</li></ol>
    <div class="small"><a href="https://github.com/${REPO}/edit/main/config.json" target="_blank" rel="noopener">Change the server topic</a> (edit <code>ntfyTopic</code>, Commit).</div>
   </div>
