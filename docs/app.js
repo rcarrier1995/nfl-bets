@@ -207,7 +207,7 @@ function gradesBlock(g) {
 }
 function gradeLines(g) {
   const ml = g.matchupLines || [];
-  const mk = [g.lineMoveLine, g.bookRangeLine].filter(Boolean);
+  const mk = [g.bookRangeLine].filter(Boolean);
   if (!ml.length && !mk.length) return "";
   const id = "gl:" + g.id;
   let h = ml.length ? `<div class="line u" onclick="toggle('${id}')">${ic("mu")}<span>${esc(ml[0])} <span class="muted">· last 17 games${ml.length > 1 ? ` · +${ml.length - 1} more` : ""}</span></span></div>` : "";
@@ -245,6 +245,15 @@ function liveInjLines(c) {
   }).join("");
 }
 
+// "SF −3.5 (opened −3) · O/U 45.5" — the sportsbook line, favourite first
+function spreadTxt(g) {
+  const sp = g.spreadHome;
+  if (sp == null) return "";
+  const fav = sp < 0 ? g.home : g.away, n = x => Math.abs(x) === 0 ? "PK" : "−" + Math.abs(x);
+  const op = g.openSpread;
+  const moved = op != null && Math.abs(op - sp) >= 0.5 ? ` (opened ${(op < 0) === (sp < 0) ? n(op) : `${op < 0 ? g.home : g.away} ${n(op)}`})` : "";
+  return `${sp === 0 ? "Pick'em" : `${fav} ${n(sp)}`}${moved}${g.total != null ? ` · O/U ${g.total}` : ""}`;
+}
 function gameRow(g) {
   const a = g.teams.away, h = g.teams.home;
   const best = [a, h].sort((x, y) => rank(callOf(y)) - rank(callOf(x)) || (y.edge ?? -99) - (x.edge ?? -99))[0];
@@ -254,7 +263,7 @@ function gameRow(g) {
   const bc = callOf(best);
   const o = S.open.has(id);
   const tm = c => `<div class="tm">${badge(c.team, "sm")}<span>${esc(c.name || c.team)}</span><span class="sp"></span></div>`;
-  let row = `<div class="grow" onclick="toggle('${id}')"><div class="mt sp">${tm(a)}${tm(h)}</div>
+  let row = `<div class="grow" onclick="toggle('${id}')"><div class="mt sp">${tm(a)}${tm(h)}${spreadTxt(g) ? `<div class="tiny muted" style="margin-top:2px">${esc(spreadTxt(g))}</div>` : ""}</div>
     <div class="rt"><span class="kt">${kick(g.kickoff)}</span><span class="pill c-${bc}">${esc(best.team)} ${LBL(bc)}</span></div>
     <span class="chev ${o ? "open" : ""}">›</span></div>`;
   if (o) row += `<div class="card">${gameDetail(g)}</div>`;
@@ -263,8 +272,7 @@ function gameRow(g) {
 const rank = c => ({ Value: 3, Wait: 2, Sell: 2, Pass: 1 }[c] || 0);
 function gameDetail(g) {
   return `<div class="teams2">${betCard(g.teams.away)}${betCard(g.teams.home)}</div>
-    ${injLine(g)}${wxLine(g)}${muLine(g)}${gradesBlock(g)}${gradeLines(g)}${sitLine(g)}${toLine(g)}${changesLine(g)}${gameCombosLine(g)}
-    ${g.spreadHome != null ? `<div class="line muted">${ic("line")}${esc(g.home)} ${g.spreadHome > 0 ? "+" : ""}${g.spreadHome} · total ${g.total ?? "—"}</div>` : ""}`;
+    ${injLine(g)}${wxLine(g)}${muLine(g)}${gradesBlock(g)}${gradeLines(g)}${sitLine(g)}${toLine(g)}${changesLine(g)}${gameCombosLine(g)}`;
 }
 function finalLine(g) {
   const id = "f:" + g.id;
@@ -307,7 +315,8 @@ function liveCard(g) {
   };
   const wa = g.teams.away.liveFair, wh = g.teams.home.liveFair;
   const wp = wa != null && wh != null ? `<div class="wpbar"><i style="width:${wa / (wa + wh) * 100}%;background:${esc(COLORS()[g.away] || "#556")}"></i><i style="flex:1;background:${esc(COLORS()[g.home] || "#889")}"></i></div><div class="row tiny muted" style="margin:-6px 0 8px"><span>${pct(wa)} win</span><span class="sp"></span><span>${pct(wh)} win</span></div>` : "";
-  return `<div class="card">${scoreBlock(g)}${wp}
+  const spr = spreadTxt(g) ? `<div class="tiny muted" style="text-align:center;margin:-4px 0 8px">Pregame line: ${esc(spreadTxt(g))}</div>` : "";
+  return `<div class="card">${scoreBlock(g)}${spr}${wp}
     <div class="teams2">${tc(g.teams.away)}${tc(g.teams.home)}</div>
     <div class="line u" onclick="toggle('${id}')">Quarters · ${(g.quarters || []).map(q => `Q${q.q} ${q.cumAway}-${q.cumHome}`).join(" · ") || "—"}</div>
     ${S.open.has(id) ? quarterTable(g) : ""}
