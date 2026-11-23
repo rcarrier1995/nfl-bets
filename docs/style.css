@@ -299,3 +299,11 @@ input:focus,select:focus{border-color:color-mix(in srgb,var(--accent) 55%,var(--
 .wl li{margin:2px 0}
 
 .safehit{display:flex;align-items:baseline;gap:8px;margin-top:10px}.safehit b{font-size:28px;font-weight:800;color:var(--good)}.safehit span{font-size:13px;color:var(--muted)}
+
+.wban{display:flex;gap:6px;justify-content:space-between;margin:6px 0 -2px;cursor:pointer}
+.wcol{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.wcol.r{align-items:flex-end;text-align:right}
+.wchip{font-size:10.5px;font-weight:600;line-height:1.3;padding:2px 7px;border-radius:6px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wchip.good{color:var(--good);background:color-mix(in srgb,var(--good) 13%,transparent)}
+.wchip.fade{color:var(--wait);background:color-mix(in srgb,var(--wait) 14%,transparent)}
+.wchip.exp{color:var(--gold);background:color-mix(in srgb,var(--gold) 13%,transparent)}

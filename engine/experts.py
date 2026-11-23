@@ -21,6 +21,7 @@ from . import config as C
 from .fetch import load_json, save_json, iso, HEALTH, espn_scoreboard
 
 FILE = f"{C.STATE}/experts.json"
+PAST = f"{C.STATE}/experts_past.json"   # earlier seasons (2025 from NFL.com + archived CBS pages), read once
 CBS_URL = "https://www.cbssports.com/nfl/picks/experts/{kind}/{week}/"
 CBS_KINDS = {"su": "straight-up", "ats": "against-the-spread"}
 NFL_URLS = ["https://www.nfl.com/news/nfl-picks-week-{week}-{season}-nfl-season",
@@ -262,15 +263,23 @@ def stats(st):
     """Per expert: W-L, favourites vs underdogs (picks, wins, units), profit per 1-unit pick (ROI) at the
     listed moneyline. Baselines: always the favourite / always the underdog. 'Experts agree': every
     expert (8+) on one side — does it win more than its price says?"""
-    res = st.get("results") or {}
+    past = (load_json(PAST, {}) or {}).get("seasons") or {}
+    allw, res = {}, {}
+    for ps in past.values():
+        allw.update(ps.get("weeks") or {})
+        res.update(ps.get("results") or {})
+    allw.update(st.get("weeks") or {})
+    res.update(st.get("results") or {})
     ex, base, agree, seen, by_game = {}, {"fav": _blank(), "dog": _blank()}, {}, set(), {}
-    for p in picks(st):
+    for p in picks({"weeks": allw}):
         r = (res.get(p["week"]) or {}).get(f"{p['away']}@{p['home']}")
         if r is None or r == "TIE":
             continue
         win = r == p["team"]
         s = ex.setdefault(p["expert"], dict(_blank(), source=p["source"], byWeek={}))
         _add(s, p["price"], win)
+        ss = s.setdefault("bySeason", {}).setdefault(p["week"].split("-")[0], _blank())
+        _add(ss, p["price"], win)
         bw = s["byWeek"].setdefault(p["week"], [0, 0])
         bw[0] += 1
         bw[1] += win
@@ -297,6 +306,8 @@ def stats(st):
             a["impliedSum"] += price
     for s in list(ex.values()) + list(base.values()) + list(agree.values()):
         _finish(s)
+        for v in (s.get("bySeason") or {}).values():
+            _finish(v)
     ranked = sorted([n for n, s in ex.items() if s["n"] >= MIN_PICKS and s["roi"] is not None],
                     key=lambda n: (-ex[n]["roi"], -ex[n]["pct"]))
     for i, n in enumerate(ranked):
@@ -312,7 +323,8 @@ def stats(st):
     _finish(dg)
     return {"experts": ex, "baseline": base, "agree": agree, "top": ranked[:SHOW], "count": len(ex),
             "dogExperts": dogs, "dogGroup": dg,
-            "sources": ["CBS Sports expert picks", "NFL.com weekly picks"]}
+            "seasons": sorted({k.split("-")[0] for k in allw}),
+            "sources": ["CBS Sports expert picks", "NFL.com weekly picks"] + (["2025 CBS pages via the Internet Archive"] if past else [])}
 
 
 # ---------------- board ----------------
@@ -377,7 +389,110 @@ def tag_legs(board):
 def public(st):
     s = st.get("stats") or {}
     rows = [{"name": n, "source": v.get("source"), "rank": v.get("rank"), "w": v["w"], "n": v["n"], "pct": v["pct"],
-             "roi": v["roi"], "fav": v["fav"], "dog": v["dog"]} for n, v in (s.get("experts") or {}).items()]
+             "roi": v["roi"], "fav": v["fav"], "dog": v["dog"],
+             "bySeason": {k: {"n": x["n"], "w": x["w"], "roi": x["roi"], "dog": x["dog"]} for k, x in (v.get("bySeason") or {}).items()}} for n, v in (s.get("experts") or {}).items()]
     rows.sort(key=lambda r: (r["rank"] or 99, -(r["roi"] or -99)))
-    return {"table": rows, "top": s.get("top"), "dogExperts": s.get("dogExperts"), "dogGroup": s.get("dogGroup"), "baseline": s.get("baseline"), "agree": s.get("agree"),
+    return {"table": rows, "top": s.get("top"), "dogExperts": s.get("dogExperts"), "dogGroup": s.get("dogGroup"), "baseline": s.get("baseline"), "agree": s.get("agree"), "seasons": s.get("seasons"),
             "sources": s.get("sources"), "at": st.get("at"), "minPicks": MIN_PICKS}
+
+
+def _results_nflverse(season, week):
+    """Final scores from nflverse games.csv (ESPN's scoreboard only serves the current season reliably)."""
+    from .form import games
+    T = games()
+    T = T[(T.season == season) & (T.week == week) & ~T.home & T.result.notna()]
+    return {f"{r.team}@{r.opp}": (r.team if r.pf > r.pa else r.opp if r.pa > r.pf else "TIE") for r in T.itertuples()}
+
+
+def build_past(src, season):
+    """One-time: parse saved 2025 pages (NFL.com articles + archived CBS tables) and grade with ESPN scores."""
+    import os
+    out = {"weeks": {}, "results": {}}
+    pages = {w: open(os.path.join(src, f"nfl-{w}.html"), encoding="utf-8", errors="ignore").read()
+             for w in range(1, 19) if os.path.exists(os.path.join(src, f"nfl-{w}.html"))}
+    nfl25 = parse_nfl_2025(pages)
+    for w in range(1, 19):
+        key = f"{season}-w{w}"
+        wk = {}
+        for k, kind in CBS_KINDS.items():
+            f = os.path.join(src, f"cbs-{kind}-{w}.html")
+            if os.path.exists(f):
+                p = parse_cbs(open(f, encoding="utf-8", errors="ignore").read())
+                if p["games"]:
+                    wk.setdefault("cbs", {})[k] = p
+        p = parse_nfl(pages[w], season, w) if w in pages else {"games": []}
+        if not p["games"]:
+            p = nfl25.get(w) or {"games": []}
+        if p["games"]:
+            wk["nfl"] = p
+        if wk:
+            out["weeks"][key] = wk
+            out["results"][key] = _results_nflverse(season, w)
+    st = load_json(PAST, {}) or {}
+    st.setdefault("seasons", {})[str(season)] = out
+    st["at"] = iso()
+    save_json(PAST, st, compact=True)
+    return out
+
+
+def parse_nfl_2025(pages):
+    """2025 NFL.com layout: each editor's pick is a team-logo image with an opaque id. Learn id -> team from
+    the games each id appears in (a logo only ever shows up in its own team's games), then read the picks.
+    pages: {week: html} -> {week: {"experts": [...], "games": [...]}}"""
+    from .odds import FULL
+    nick = {k.split()[-1]: v for k, v in FULL.items()}
+    raw, cand = {}, {}
+    for w, page in pages.items():
+        authors = {n.split()[0]: n for n in (H.unescape(x).strip() for x in re.findall(r'/author/[^"]+"[^>]*>([^<]+)<', page))}
+        secs = page.split("MONEYLINE:")
+        out = []
+        for i in range(1, len(secs)):
+            pre, sec = re.sub(r"<[^>]+>", "|", secs[i - 1][-3000:]), secs[i]
+            names = re.findall(r"\|(" + "|".join(re.escape(k) for k in FULL) + r")\|", pre)
+            if len(names) < 2:
+                continue
+            away, home = FULL[names[-2]], FULL[names[-1]]
+            mt = re.sub(r"<[^>]+>", " ", sec[:300]).replace("\u2212", "-").split("SPREAD")[0]
+            ml = {}
+            for nk, v in re.findall(r"([A-Za-z0-9]+)\s*([+-]\d+|EVEN|PK)", mt):
+                if nick.get(nk) in (away, home):
+                    ml[nick[nk]] = "+100" if v in ("EVEN", "PK") else v
+            tb = sec.split("</table>")[0]
+            heads = [H.unescape(x).strip() for x in re.findall(r'<th[^>]*>([^<]+)</th>', tb)]
+            ids = re.findall(r'<td.*?league/([a-z0-9]+)"', tb, re.S)
+            if not heads or len(ids) != len(heads):
+                continue
+            g = {"away": away, "home": home, "ml": ml if len(ml) == 2 else {}, "ids": dict(zip(heads, ids)),
+                 "reasons": {}, "authors": authors}
+            m = re.search(r"Why (\w+) picked the ([^:<]+):</strong>(.*?)(?=MONEYLINE:|$)", sec, re.S)
+            if m:
+                txt = _text(m.group(3).split("<table")[0])
+                g["reasons"][authors.get(m.group(1), m.group(1))] = txt[:600] + ("…" if len(txt) > 600 else "")
+                t = nick.get(m.group(2).strip().split()[-1])
+                who = g["ids"].get(m.group(1))
+                if t and who:
+                    cand.setdefault(who, []).append({t})      # a known pick pins the logo
+            for x in set(ids):
+                cand.setdefault(x, []).append({away, home})
+            out.append(g)
+        raw[w] = out
+    logo = {}
+    for x, sets in cand.items():
+        s = set.intersection(*sets)
+        if len(s) == 1:
+            logo[x] = s.pop()
+    res = {}
+    for w, out in raw.items():
+        ex, games = [], []
+        for g in out:
+            picks = {}
+            for first, x in g["ids"].items():
+                t = logo.get(x)
+                if t in (g["away"], g["home"]):
+                    name = g["authors"].get(first, first)
+                    picks[name] = {"team": t}
+                    if name not in ex:
+                        ex.append(name)
+            games.append({"away": g["away"], "home": g["home"], "ml": g["ml"], "picks": picks, "reasons": g["reasons"]})
+        res[w] = {"experts": ex, "games": games}
+    return res

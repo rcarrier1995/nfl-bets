@@ -256,3 +256,17 @@ def test_expert_stats_profit_at_price():
     assert s["A"]["w"] == 1 and abs(s["A"]["profit"] - 2.0) < 0.01     # +200 underdog paid 2 units
     assert s["B"]["w"] == 0 and s["B"]["profit"] == -1.0
     assert s["A"]["dog"][:2] == [1, 1] and s["B"]["fav"][:2] == [1, 0]
+
+
+def test_watch_track_fade_bets_other_side(tmp_path, monkeypatch):
+    from engine import watch as W
+    monkeypatch.setattr(W, "LOG", str(tmp_path / "log.json"))
+    g = {"id": "1", "short": "A @ B", "state": "pre", "teams": {"away": {"team": "A", "price": 30}, "home": {"team": "B", "price": 72}},
+         "watch": [{"team": "B", "tag": W.TAGS["hot"], "kind": "fade", "why": "x"}, {"team": "B", "tag": W.TAGS["qbwr"], "kind": "good", "why": "y"}]}
+    b = {"season": 2026, "week": 12, "games": [g]}
+    W.track(b)
+    g["state"], g["result"] = "post", {"winner": "A", "tie": False}
+    out = W.track(b)["live"]
+    assert out[W.TAGS["hot"]]["w"] == 1 and out[W.TAGS["hot"]]["price"] == 30      # bet on A at A's price
+    assert out[W.TAGS["qbwr"]]["w"] == 0 and out[W.TAGS["qbwr"]]["n"] == 1
+    assert W._pct_rank({"x": 1, "y": 2, "z": 3})["z"] > W._pct_rank({"x": 1, "y": 2, "z": 3})["x"]

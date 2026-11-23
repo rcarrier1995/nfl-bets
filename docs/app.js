@@ -375,18 +375,30 @@ function expertsLine(g) {
   const c = {};
   for (const r of e.top) c[r.team] = (c[r.team] || 0) + 1;
   const txt = Object.entries(c).sort((a, b) => b[1] - a[1]).map(([t, n]) => `${t} ${n}`).join(" · ");
-  const dp = e.dogPicks?.length ? `<div class="tiny" style="margin-top:2px;color:var(--gold)">Underdog pick: <b>${esc(e.dog)}</b> by ${esc(e.dogPicks.map(n => n.split(" ").slice(-1)[0]).join(", "))}</div>` : "";
-  return `<div class="tiny muted" style="margin-top:2px">Top ${e.top.length} experts: <b>${esc(txt)}</b>${e.agree ? ` <span class="tag">All ${e.n} agree</span>` : ""}</div>${dp}`;
+  return `<div class="tiny muted" style="margin-top:2px">Top ${e.top.length} experts: <b>${esc(txt)}</b></div>`;
 }
-// watch tags (combo study): tag only, tracked live
+// watch tags (combo study) + expert spots: one skinny banner at the top of the card, on that team's side.
+// Tags only — they never change the call. Tap the card for the why.
+function tagBar(g, id) {
+  const items = { [g.away]: [], [g.home]: [] };
+  for (const w of g.watch || []) if (items[w.team]) items[w.team].push([w.kind === "fade" ? "fade" : "good", ({ "QB + WR1 beat their secondary": "QB + WR1 > their pass D" }[w.tag] || w.tag) + (w.inGame ? " · now" : "")]);
+  const e = g.experts;
+  if (e?.agree && items[e.agree]) items[e.agree].push(["exp", `All ${e.n} experts pick`]);
+  if (e?.dogPicks?.length && items[e.dog]) items[e.dog].push(["exp", `Underdog pick: ${e.dogPicks.map(n => n.split(" ").slice(-1)[0]).join(", ")}`]);
+  if (!items[g.away].length && !items[g.home].length) return "";
+  const col = (t, al) => `<div class="wcol ${al}">${items[t].map(([k, x]) => `<span class="wchip ${k}">${al === "l" ? `<b>${esc(t)}</b> ` : ""}${esc(x)}${al === "r" ? ` <b>${esc(t)}</b>` : ""}</span>`).join("")}</div>`;
+  return `<div class="wban"${id ? ` onclick="toggle('${id}')"` : ""}>${col(g.away, "l")}${col(g.home, "r")}</div>`;
+}
 function watchLine(g) {
-  return (g.watch || []).map(w => `<div class="tiny" style="margin-top:2px;color:var(--gold)"><span class="tag">${esc(w.tag)}</span> <b>${esc(w.team)}</b> · ${esc(w.why)}</div>`).join("");
+  if (!g.watch?.length) return "";
+  return `<div class="small" style="margin:8px 0 2px"><b>Watch tags</b> <span class="muted">· tags only, tracked live (see Learning)</span></div>` +
+    g.watch.map(w => `<div class="tiny" style="margin-top:2px"><span class="tag ${w.kind === "fade" ? "above" : "good"}">${esc(w.tag)}</span> <b>${esc(w.team)}</b> · ${esc(w.why)}</div>`).join("");
 }
 function expertsBlock(g) {
   const e = g.experts;
   if (!e || !e.n) return "";
   const pc = x => x == null ? "" : `${x >= 0 ? "+" : ""}${x.toFixed(1)}%`;
-  let h = `<div class="small" style="margin:8px 0 2px"><b>Expert picks</b> <span class="muted">· top ${e.top.length} by profit this season</span></div>`;
+  let h = `<div class="small" style="margin:8px 0 2px"><b>Expert picks</b> <span class="muted">· top ${e.top.length} by profit, ${esc((S.B.experts?.seasons || []).join(" + ") || "this season")}</span></div>`;
   h += e.top.map(r => `<div class="small">#${r.rank} ${esc(r.name)} → <b>${esc(r.team)}</b>${r.score ? ` (${esc(r.score)})` : ""}${r.ats ? ` · ATS ${esc(r.ats)}` : ""} <span class="muted">· ${r.pct}% right, ${pc(r.roi)} profit</span></div>`).join("");
   h += `<div class="small muted">All ${e.n} experts: ${Object.entries(e.count).map(([t, n]) => `${esc(t)} ${n}`).join(" · ")}</div>`;
   for (const r of e.reasons || []) h += `<div class="note small">“${esc(r.text)}” <span class="muted">— ${esc(r.name)}, NFL.com (picked ${esc(r.team || "")})</span></div>`;
@@ -422,7 +434,7 @@ function gameRow(g) {
   const bc = callOf(best);
   const o = S.open.has(id);
   const tm = c => `<div class="tm">${badge(c.team, "sm")}<span>${esc(c.name || c.team)}</span><span class="sp"></span></div>`;
-  let row = `<div class="grow" onclick="toggle('${id}')"><div class="mt sp">${tm(a)}${tm(h)}${spreadTxt(g) ? `<div class="tiny muted" style="margin-top:2px">${esc(spreadTxt(g))}</div>` : ""}${expertsLine(g)}${watchLine(g)}</div>
+  let row = `${tagBar(g, id)}<div class="grow" onclick="toggle('${id}')"><div class="mt sp">${tm(a)}${tm(h)}${spreadTxt(g) ? `<div class="tiny muted" style="margin-top:2px">${esc(spreadTxt(g))}</div>` : ""}${expertsLine(g)}</div>
     <div class="rt"><span class="kt">${kick(g.kickoff)}</span><span class="pill c-${bc}">${esc(best.team)} ${LBL(bc)}</span></div>
     <span class="chev ${o ? "open" : ""}">›</span></div>`;
   if (o) row += `<div class="card">${gameDetail(g)}</div>`;
@@ -475,12 +487,12 @@ function liveCard(g) {
   };
   const wa = g.teams.away.liveFair, wh = g.teams.home.liveFair;
   const wp = wa != null && wh != null ? `<div class="wpbar"><i style="width:${wa / (wa + wh) * 100}%;background:${esc(COLORS()[g.away] || "#556")}"></i><i style="flex:1;background:${esc(COLORS()[g.home] || "#889")}"></i></div><div class="row tiny muted" style="margin:-6px 0 8px"><span>${pct(wa)} win</span><span class="sp"></span><span>${pct(wh)} win</span></div>` : "";
-  const spr = spreadTxt(g) ? `<div class="tiny muted" style="text-align:center;margin:-4px 0 8px">Pregame line: ${esc(spreadTxt(g))}${expertsLine(g)}${watchLine(g)}</div>` : "";
-  return `<div class="card">${scoreBlock(g)}${spr}${wp}
+  const spr = spreadTxt(g) ? `<div class="tiny muted" style="text-align:center;margin:-4px 0 8px">Pregame line: ${esc(spreadTxt(g))}${expertsLine(g)}</div>` : "";
+  return `<div class="card">${tagBar(g)}${scoreBlock(g)}${spr}${wp}
     <div class="teams2">${tc(g.teams.away)}${tc(g.teams.home)}</div>
     <div class="line u" onclick="toggle('${id}')">Quarters · ${(g.quarters || []).map(q => `Q${q.q} ${q.cumAway}-${q.cumHome}`).join(" · ") || "—"}</div>
     ${S.open.has(id) ? quarterTable(g) : ""}
-    ${h2hDetails(g, `${injLine(g)}${muLine(g)}${gradesBlock(g)}${gradeLines(g)}${toLine(g)}${wxLine(g)}${h2hHist(g)}${expertsBlock(g)}`)}</div>`;
+    ${h2hDetails(g, `${injLine(g)}${muLine(g)}${gradesBlock(g)}${gradeLines(g)}${toLine(g)}${wxLine(g)}${h2hHist(g)}${watchLine(g)}${expertsBlock(g)}`)}</div>`;
 }
 
 // ---------- tabs ----------
@@ -691,9 +703,9 @@ function learning() {
     const top = E.table.filter(r => r.rank && r.rank <= (E.top || []).length);
     h += `<h2>Expert picks</h2><div class="line u" onclick="toggle('${id}')">Showing top ${top.length} of ${E.table.length}: ${esc(top.map(r => r.name.split(" ").slice(-1)[0]).join(", "))}</div>`;
     if (S.open.has(id)) {
-      h += `<table class="qt"><tr><th>#</th><th>Expert</th><th>Right</th><th>Profit</th><th>Underdogs</th></tr>${E.table.map(r => `<tr><td>${r.rank || "–"}</td><td>${esc(r.name)} <span class="muted">${esc(r.source)}</span></td><td>${r.w}-${r.n - r.w} (${r.pct}%)</td><td class="${(r.roi ?? 0) >= 0 ? "ok" : "bad"}">${pc(r.roi)}</td><td>${r.dog[1]}/${r.dog[0]} · ${r.dog[2] >= 0 ? "+" : ""}${r.dog[2]}u</td></tr>`).join("")}</table>`;
+      h += `<table class="qt"><tr><th>#</th><th>Expert</th><th>Right</th><th>Profit</th><th>Underdogs</th></tr>${E.table.map(r => `<tr><td>${r.rank || "–"}</td><td>${esc(r.name)} <span class="muted">${esc(r.source)}</span></td><td>${r.w}-${r.n - r.w} (${r.pct}%)</td><td class="${(r.roi ?? 0) >= 0 ? "ok" : "bad"}">${pc(r.roi)}${Object.keys(r.bySeason || {}).length > 1 ? `<div class="tiny muted">${Object.entries(r.bySeason).sort((a, b) => b[0] - a[0]).map(([y, v]) => `${y.slice(2)}: ${pc(v.roi)}`).join(" · ")}</div>` : ""}</td><td>${r.dog[1]}/${r.dog[0]} · ${r.dog[2] >= 0 ? "+" : ""}${r.dog[2]}u</td></tr>`).join("")}</table>`;
       const b = E.baseline || {}, a = E.agree || {};
-      h += `<div class="small muted" style="margin-top:6px">Profit = per 1-unit pick at the moneyline when they picked. Always picking the favourite: ${pc(b.fav?.roi)}. Always the underdog: ${pc(b.dog?.roi)}.${a.all ? ` When every expert agreed: won ${a.all.pct}% vs ${a.all.implied}% the price implied (${a.all.n} games) — no extra edge, so it's a tag only.` : ""} ${E.dogExperts?.length && E.dogGroup?.n ? ` Underdog experts (${esc(E.dogExperts.map(n => n.split(" ").slice(-1)[0]).join(", "))}): their underdog picks won ${E.dogGroup.w} of ${E.dogGroup.n}, ${E.dogGroup.profit >= 0 ? "+" : ""}${E.dogGroup.profit} units — small sample, picked after the fact.` : ""} Ranked by profit, re-ranked every week. Sources: ${esc((E.sources || []).join(", "))}.</div>`;
+      h += `<div class="small muted" style="margin-top:6px">Profit = per 1-unit pick at the moneyline when they picked. Always picking the favourite: ${pc(b.fav?.roi)}. Always the underdog: ${pc(b.dog?.roi)}.${a.all ? ` When every expert agreed: won ${a.all.pct}% vs ${a.all.implied}% the price implied (${a.all.n} games) — no extra edge, so it's a tag only.` : ""} ${E.dogExperts?.length && E.dogGroup?.n ? ` Underdog experts (${esc(E.dogExperts.map(n => n.split(" ").slice(-1)[0]).join(", "))}): their underdog picks won ${E.dogGroup.w} of ${E.dogGroup.n}, ${E.dogGroup.profit >= 0 ? "+" : ""}${E.dogGroup.profit} units — small sample, picked after the fact.` : ""} Ranked by profit over ${esc((E.seasons || []).join(" + "))}, re-ranked every week. Sources: ${esc((E.sources || []).join(", "))}.</div>`;
     }
   }
   // watch tags
