@@ -123,8 +123,8 @@ def sell_check(fair, bid, fee=None):
 CAL_DEFAULT = {"50": 1.0, "60": 1.0, "70": 1.0, "80": 1.0, "90": 1.0}  # 5-season check: calibrated
 
 
-GRADE_CUTS = ((75, "A"), (60, "B"), (45, "C"))
-GRADE_TESTED = {"A": 84, "B": 67, "C": 54, "F": 32}      # backtest win % per grade, 1,521 games 2021-26
+GRADE_CUTS = ((85, "A+"), (75, "A"), (60, "B"), (45, "C"))
+GRADE_TESTED = {"A+": 92, "A": 80, "B": 67, "C": 54, "F": 32}      # backtest win % per grade, 1,521 games 2021-26
 COMBO_CUTS = ((33, "A"), (15, "B"), (7, "C"))            # combo hit chance: 1 in 3, 1 in 7, 1 in 14
 
 
@@ -140,7 +140,7 @@ def grade(p, cuts=GRADE_CUTS):
 
 def confidence(fair, edge=None, completeness=1.0, calib=None):
     """Win chance for this team, in plain levels. It is confidence the TEAM WINS, not that the bet is good
-    (Buy / Wait / Pass says that). Letter grade (Rick 2026-11-23): A = 75%+ to win, B = 60-75%,
+    (Buy / Wait / Pass says that). Letter grade (Rick 2026-11-23/24): A+ = 85%+ (won 92%), A = 75-85% (won 80%), B = 60-75%,
     C = 45-60%, F = under 45%. Checked on 1,521 games 2021-26 (both teams, ties dropped):
     A won 84%, B 67%, C 54%, F 32%."""
     if fair is None:

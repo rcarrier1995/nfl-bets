@@ -191,7 +191,7 @@ def calibration(recs):
 
 def calibration_conf(recs):
     rows = []
-    for lvl in ("F", "C", "B", "A"):          # graded from the pick's fair, so older records count too
+    for lvl in ("F", "C", "B", "A", "A+"):          # graded from the pick's fair, so older records count too
         rs = [r for r in recs if M.grade(r.get("pickFair")) == lvl]
         if rs:
             rows.append({"bucket": lvl, "pred": round(sum(r["pickFair"] for r in rs) / len(rs), 1),

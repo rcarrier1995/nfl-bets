@@ -50,11 +50,11 @@ window.toggle = toggle;
 
 // ---------- small visuals ----------
 // Letter grades (Rick 2026-11-23): win chance only. Buy / Wait / Pass is the price.
-const GRADE_CUTS = [[75, "A"], [60, "B"], [45, "C"]], COMBO_CUTS = [[33, "A"], [15, "B"], [7, "C"]];
-const GRADE_TESTED = { A: 84, B: 67, C: 54, F: 32 };
+const GRADE_CUTS = [[85, "A+"], [75, "A"], [60, "B"], [45, "C"]], COMBO_CUTS = [[33, "A"], [15, "B"], [7, "C"]];
+const GRADE_TESTED = { "A+": 92, A: 80, B: 67, C: 54, F: 32 };
 const gradeOf = (p, cuts = GRADE_CUTS) => p == null ? null : (cuts.find(([lo]) => p >= lo) || [0, "F"])[1];
-const grd = (g, sm) => g ? `<span class="grd g${g}${sm ? " sm" : ""}" title="Grade ${g}">${g}</span>` : "";
-const gradeKey = () => `<div class="gkey tiny muted">${grd("A", 1)} 75%+ to win ${grd("B", 1)} 60–75% ${grd("C", 1)} 45–60% ${grd("F", 1)} under 45% · Buy / Wait / Pass = the price</div>`;
+const grd = (g, sm) => g ? `<span class="grd g${g.replace("+", "p")}${sm ? " sm" : ""}" title="Grade ${g}">${g}</span>` : "";
+const gradeKey = () => `<div class="gkey tiny muted">${grd("A+", 1)} 85%+ to win ${grd("A", 1)} 75–85% ${grd("B", 1)} 60–75% ${grd("C", 1)} 45–60% ${grd("F", 1)} under 45% · Buy / Wait / Pass = the price</div>`;
 const comboKey = () => `<div class="gkey tiny muted">Combo grade: ${grd("A", 1)} hits 1 in 3 or better ${grd("B", 1)} 1 in 7 ${grd("C", 1)} 1 in 14 ${grd("F", 1)} rarer</div>`;
 function meter(conf, p) {
   const g = gradeOf(p ?? conf?.win ?? conf?.score);
@@ -795,7 +795,7 @@ const comboRank = (x, y) => (y.hit - x.hit) || (x.cost - y.cost);
 // Rick 2026-11-24: one-tap combos. "A" = every A-graded team (75%+ to win).
 // "AB" = every A and B team (60%+), no cap. Legs are listed best to worst.
 function gradePick(pool, mode) {
-  const ok = mode === "A" ? ["A"] : ["A", "B"];
+  const ok = mode === "A+" ? ["A+"] : mode === "A" ? ["A+", "A"] : ["A+", "A", "B"];
   return pool.filter(l => ok.includes(gradeOf(l.est))).sort(legRank);
 }
 window.buildGrade = mode => {
@@ -804,7 +804,7 @@ window.buildGrade = mode => {
   let pick = gradePick(legsOf(S.bld.week), mode);
   if (pick.length < 2) {   // none left this week (or next): use the other week if it has some
     const other = S.bld.week === "nextWeek" ? "thisWeek" : "nextWeek", op = gradePick(legsOf(other), mode);
-    if (op.length >= 2) { S.bld.week = other; pick = op; }
+    if (op.length > pick.length) { S.bld.week = other; pick = op; }
   }
   S.bld.sel = {};
   for (const l of pick) S.bld.sel[l.gameId] = l.team;
@@ -824,8 +824,8 @@ function buildView() {
   h += buildAnalysis(legs, pool);
   const best = g => Math.max(...pool.filter(l => l.gameId === g.id).map(l => l.est));
   const games = (gl || []).filter(g => pool.some(l => l.gameId === g.id)).sort((x, y) => best(y) - best(x));
-  const nA = gradePick(pool, "A").length, nAB = gradePick(pool, "AB").length;
-  h += `<div class="row" style="margin:10px 0 2px;flex-wrap:wrap"><button class="btn pri" onclick="buildGrade('A')"${nA ? "" : " disabled"}>${grd("A", 1)}Select all A picks (${nA})</button><button class="btn pri" onclick="buildGrade('AB')"${nAB >= 2 ? "" : " disabled"}>${grd("A", 1)}${grd("B", 1)}All A + B picks (${nAB})</button></div><div class="tiny muted">Teams are listed best to worst. Tap ✕ on the weakest to raise the chance it hits.</div>${nA ? "" : `<div class="tiny muted">No team is graded A ${B.week === "nextWeek" ? "next week" : "in the games left this week"}.</div>`}`;
+  const nAp = gradePick(pool, "A+").length, nA = gradePick(pool, "A").length, nAB = gradePick(pool, "AB").length;
+  h += `<div class="row" style="margin:10px 0 2px;flex-wrap:wrap"><button class="btn pri" onclick="buildGrade('A+')"${nAp ? "" : " disabled"}>${grd("A+", 1)}All A+ picks (${nAp})</button><button class="btn pri" onclick="buildGrade('A')"${nA ? "" : " disabled"}>${grd("A", 1)}Select all A picks (${nA})</button><button class="btn pri" onclick="buildGrade('AB')"${nAB >= 2 ? "" : " disabled"}>${grd("A", 1)}${grd("B", 1)}All A + B picks (${nAB})</button></div><div class="tiny muted">Teams are listed best to worst. Tap ✕ on the weakest to raise the chance it hits.</div>${nA ? "" : `<div class="tiny muted">No team is graded A ${B.week === "nextWeek" ? "next week" : "in the games left this week"}.</div>`}`;
   h += `<h2>Pick teams <span class="cnt">${games.length}</span></h2>`;
   if (!games.length) return h + NOREC(B.week === "nextWeek" ? "Kalshi hasn't listed next week's games yet" : "No upcoming games with prices right now");
   const btn = (g, c) => {
@@ -890,7 +890,7 @@ function buildAnalysis(legs, pool) {
 const comboTabs = cat => `<div class="ctabs">${ctabTop()}<button class="${cat === "build" ? "on" : ""}" onclick="setCombo('build')">Build your own</button><button class="${cat === "standard" ? "on" : ""}" onclick="setCombo('standard')">All games</button><button class="${cat === "combined" ? "on" : ""}" onclick="setCombo('combined')">Sure things + dips</button></div>`;
 function topCombosView() {
   const T = S.B.topCombos || {};
-  let h = `<div class="ptitle">Combos</div><div class="psub">Top picks · this week and next week</div>${comboTabs("top")}${comboWarn()}<div class="row" style="margin:6px 0;flex-wrap:wrap"><button class="btn pri" onclick="buildGrade('A')">${grd("A", 1)}Combo of all A picks →</button><button class="btn pri" onclick="buildGrade('AB')">${grd("A", 1)}${grd("B", 1)}Combo of all A + B picks →</button></div>`;
+  let h = `<div class="ptitle">Combos</div><div class="psub">Top picks · this week and next week</div>${comboTabs("top")}${comboWarn()}<div class="row" style="margin:6px 0;flex-wrap:wrap"><button class="btn pri" onclick="buildGrade('A+')">${grd("A+", 1)}Combo of all A+ picks →</button><button class="btn pri" onclick="buildGrade('A')">${grd("A", 1)}Combo of all A picks →</button><button class="btn pri" onclick="buildGrade('AB')">${grd("A", 1)}${grd("B", 1)}Combo of all A + B picks →</button></div>`;
   const sec = (w, title, early) => {
     const x = T[w] || {};
     h += `<h2>${title} · 3 under ${T.cheapMax || 10}¢</h2><div class="small muted" style="margin:-4px 0 8px">Best chance to hit for under ${T.cheapMax || 10}¢, using as few of the same games as possible. Built mostly from favourites (they've been slightly underpriced); an underdog only when we expect it to win.${early ? " Early prices: news can change these." : ""}</div>`;
@@ -1158,7 +1158,7 @@ function edgeTile(price, fair, fee) {
 }
 function confTile(conf) {
   if (!conf) return "";
-  return `<div class="row"><span class="big">${conf.score}%</span>${meter(conf)}</div><div class="small">Chance this team wins the game. Buy / Wait / Pass tells you if the price is good.</div><div class="tiny muted">Tested on 1,521 games: A (75%+) won 84%, B (60–75%) won 67%, C (45–60%) won 54%, F (under 45%) won 32%.${conf.missing ? " Some data missing for this game." : ""}</div>`;
+  return `<div class="row"><span class="big">${conf.score}%</span>${meter(conf)}</div><div class="small">Chance this team wins the game. Buy / Wait / Pass tells you if the price is good.</div><div class="tiny muted">Tested on 1,521 games: A+ (85%+) won 92%, A (75–85%) won 80%, B (60–75%) won 67%, C (45–60%) won 54%, F (under 45%) won 32%.${conf.missing ? " Some data missing for this game." : ""}</div>`;
 }
 function calibChart(rows, title) {
   if (!rows || !rows.length) return `<div class="muted small">No data yet</div>`;
@@ -1346,7 +1346,7 @@ function setup() {
    <p>Weather/run +1.0–1.5 pts to the run-heavy team in open air if wind ≥15 mph or ≤35°F. QB out −3.5, 2+ WR/CB out −1 — only when the news is fresh (not out Thursday, line moved &lt;2 pts); otherwise the line already priced it.</p>
    <p>EPA is shown (matchup bars, breakdown) but not added to the price: every EPA weight tested made the fairs worse.</p>
    <p>Edge = fair − price − fee (fee 2¢: Robinhood commission ≤1¢ + exchange fee ≤1¢). <b>Buy</b> ≥15¢. <b>Wait for a dip</b> 8–15¢, buy-at = fair − 15¢ − fee. Else <b>Pass</b>.</p>
-   <p>Grade = the chance the team wins the game (from the line). A 75%+, B 60–75%, C 45–60%, F under 45%. In testing A picks won 84%, B 67%, C 54%, F 32%. It is not a price rating: Buy / Wait / Pass is. Combos are graded by their hit chance: A 1 in 3 or better, B 1 in 7, C 1 in 14, F rarer.</p>
+   <p>Grade = the chance the team wins the game (from the line). A+ 85%+, A 75–85%, B 60–75%, C 45–60%, F under 45%. In testing A+ picks won 92%, A 80%, B 67%, C 54%, F 32%. It is not a price rating: Buy / Wait / Pass is. Combos are graded by their hit chance: A 1 in 3 or better, B 1 in 7, C 1 in 14, F rarer.</p>
    <p>Combos: every game set, every side (2^N). Hit % = product of fairs. Max pay = fair − 2¢. One leg per game (same-game legs are correlated). Shoe-in = fair ≥70¢ only.</p></div>
   <div class="card doc"><h3>How it works — rules</h3><ul class="small">
    <li>Live dip alert needs: price ≥15¢ under live fair after fees, AND payout up ≥20% vs the pre-drop price (profit = 100 − price; 60¢→52¢ = 40→48 = +20%), AND a lopsided game (spread ≥7).</li>
