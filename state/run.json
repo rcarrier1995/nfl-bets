@@ -4,7 +4,7 @@
  "pregameAt": "2026-11-23T00:48:37Z",
  "window-early": "2026-11-22",
  "alertsSent": [],
- "light": "2026-11-24T05:44:18Z",
+ "light": "2026-11-24T05:54:24Z",
  "window-late": "2026-11-22",
  "inactives": "2026-11-22",
  "valueSent": {},
@@ -18,6 +18,7 @@
  "newsSeeded": true,
  "window-snf": "2026-11-22",
  "expertsAt": {
-  "2026-w11": 1795488686.135724
- }
+  "2026-w11": 1795499664.45706
+ },
+ "weekly": "2026-w11"
 }
