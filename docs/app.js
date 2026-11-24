@@ -649,8 +649,13 @@ function nextKick() {
 // Rick's own Robinhood quotes (saved on this device), shrunk toward 26% until there are several
 const MK0 = 1.26, MK_K = 5;
 const quotes = () => { try { return JSON.parse(localStorage.getItem("quotes") || "[]"); } catch (e) { return []; } };
-const mkLearned = () => { const q = quotes().filter(x => x.legs > 0 && x.quote > 0); return q.length ? (MK0 * MK_K + q.reduce((a, x) => a + x.quote / x.legs, 0)) / (MK_K + q.length) : (S.B?.comboMarkup || MK0); };
-const markup = n => n < 2 ? 1 : Math.max(mkLearned(), n <= 10 ? 1 : 1.22 * Math.pow(1.08, n - 10));
+// Markup shrinks as the combo gets pricier (Rick's quote 2026-11-24: JAX+CIN+DAL legs 61.2¢, Robinhood 60.1¢).
+// ~26% on 1¢ longshots, ~20% at 8¢, ~1.5% at 61¢; then scaled by real quotes (Rick's saved + the app's shared list).
+const mkCurve = c => 1 + ((S.B?.comboMarkup || MK0) - 1) * Math.pow(1 - Math.min(99, Math.max(0, c)) / 100, 3);
+const allQuotes = () => [...(S.B?.comboQuotes || []), ...quotes()].filter(x => x.legs > 0 && x.quote > 0);
+const mkFactor = () => { const q = allQuotes(); return q.length ? (MK_K + q.reduce((a, x) => a + x.quote / (x.legs * mkCurve(x.legs)), 0)) / (MK_K + q.length) : 1; };
+const mkLearned = (c = 8) => mkCurve(c) * mkFactor();
+const markup = (n, c = 8) => n < 2 ? 1 : Math.max(mkLearned(c), n <= 10 ? 1 : 1.22 * Math.pow(1.08, n - 10));
 window.saveQuote = () => {
   const el = document.getElementById("rhq"), v = parseFloat(el?.value);
   if (!(v > 0 && v < 100) || !S.lastLegs) return;
@@ -662,7 +667,7 @@ window.clearQuotes = () => { try { localStorage.removeItem("quotes"); } catch (e
 function comboTotals(legs) {
   const hit = legs.reduce((p, l) => p * l.fair / 100, 1) * 100;
   const cost = legs.reduce((p, l) => p * l.price / 100, 1) * 100;
-  const mk = markup(legs.length), est = cost * mk;
+  const mk = markup(legs.length, cost), est = cost * mk;
   return { hit, cost, est, mk, maxPay: hit - 2, edge: hit - 2 - est };
 }
 function tierTag(cost) {
@@ -755,7 +760,7 @@ function big3(hit, cost) {
   return `<div class="big3"><div><b>${pct(hit)}</b><span>chance it hits</span></div><div><b>${ct1(cost)}</b><span>cost</span></div><div><b>${n ? "$" + n : "—"}</b><span>$5 wins</span></div></div>`;
 }
 const legHead = `<div class="leghead"><span>Team</span><span class="sp"></span><span>Our chance</span><span>Price</span></div>`;
-const comboWarn = () => `<div class="quiet small"><b>Check Robinhood's real price first.</b> <span class="muted">Combo prices there run higher than the teams' prices multiplied. We add about ${Math.round((markup(2) - 1) * 100)}%; skip a combo if Robinhood's price is 10%+ above our cost.</span></div>${comboKey()}`;
+const comboWarn = () => `<div class="quiet small"><b>Check Robinhood's real price first.</b> <span class="muted">Cheap combos there cost more than the teams' prices multiplied (we add about ${Math.round((markup(2, 8) - 1) * 100)}% at 8¢); pricey favourite combos are close to the product (your 60.1¢ JAX+CIN+DAL quote). Skip a combo if Robinhood's price is 10%+ above our cost.</span></div>${comboKey()}`;
 function topCard(c, i) {
   return `<div class="card">
     <div class="row"><b>#${i + 1} · ${c.size} teams</b><span class="sp"></span>${hitChip(c.hit)}</div>
@@ -844,7 +849,7 @@ function buildView() {
 function buildAnalysis(legs, pool) {
   if (legs.length < 2) return `<div class="card"><div class="small"><b>${legs.length ? "Pick at least one more team." : "Tap teams below to build a combo."}</b> <span class="muted">We'll show the chance it hits, what it costs, what $5 wins, weak legs and better swaps.</span></div></div>`;
   const k = legs.length, prod = f => legs.reduce((a, l) => a * f(l) / 100, 1) * 100;
-  const hit = prod(l => l.est), legsCost = prod(l => l.price), cost = legsCost * markup(k);
+  const hit = prod(l => l.est), legsCost = prod(l => l.price), cost = legsCost * markup(k, legsCost);
   S.lastLegs = legsCost; S.lastN = k;
   const r1 = x => Math.round(x * 10) / 10;
   // one line per leg that has a problem; Pass/Sell only flagged this week (next week's early calls are mostly Pass)
@@ -881,13 +886,13 @@ function buildAnalysis(legs, pool) {
   return `<div class="card">
     <div class="row"><b>Your combo · ${k} teams</b><span class="sp"></span>${hitChip(hit)}</div>
     ${big3(hit, cost)}
-    <div class="tiny muted">${verdict} · teams' prices multiplied ${r1(legsCost)}¢ + about ${Math.round((markup(k) - 1) * 100)}% Robinhood markup${cost > 10 ? " · over 10¢: not a bonus bet" : ""}</div>
+    <div class="tiny muted">${verdict} · teams' prices multiplied ${r1(legsCost)}¢ + about ${Math.round((markup(k, legsCost) - 1) * 100)}% Robinhood markup${cost > 10 ? " · over 10¢: not a bonus bet" : ""}</div>
     <div style="margin-top:8px">${legHead}${legs.map(l => `<div class="leg">${badge(l.team, "sm")}<div style="min-width:0"><b>${esc(l.team)}</b> <span class="small muted">vs ${esc(l.opp)}</span> <span class="small" style="color:var(--${{ Value: "good", Wait: "wait", Pass: "bad", Sell: "sell" }[l.call] || "muted"})">${esc(LBL(l.call) || "")}</span><br>${l.why.map(x => `<span class="tag good">${esc(x)}</span>`).join("")}</div><span class="sp"></span><span class="small muted">${Math.round(l.est)}%</span>${grd(gradeOf(l.est), 1)}<span class="p">${ct(l.price)}</span><button class="x" onclick="buildTap('${esc(l.gameId)}','${esc(l.team)}')" aria-label="Remove">✕</button></div>`).join("")}</div>
     ${flags.length ? `<div class="small" style="margin-top:8px"><b>Watch out</b>${flags.map(f => `<div class="tiny" style="margin-top:3px">⚠ ${f}</div>`).join("")}</div>` : `<div class="small" style="margin-top:8px;color:var(--good)">No weak legs: every leg is 45%+ and priced at or under its chance.</div>`}${early ? `<div class="tiny muted" style="margin-top:4px">Next week's prices are early: news can still move them.</div>` : ""}
     ${swaps.length ? `<div class="small" style="margin-top:8px"><b>Better swaps</b>${swaps.map(s => `<div class="tiny" style="margin-top:3px">${s.txt} <button class="btn sm" onclick="buildSwap('${esc(s.l.gameId)}','${esc(s.alt.gameId)}','${esc(s.alt.team)}')">Swap</button></div>`).join("")}</div>` : ""}
     <div class="small" style="margin-top:10px"><b>Robinhood's real price?</b> <span class="muted">Type the combo quote you see and we learn the true markup.</span>
       <div class="row" style="margin-top:6px;gap:6px"><input id="rhq" type="number" inputmode="decimal" step="0.1" min="0.1" max="99" placeholder="e.g. 11.5" style="width:90px">¢ <button class="btn sm" onclick="saveQuote()">Save</button></div>
-      <div class="tiny muted" style="margin-top:4px">Markup now: +${Math.round((mkLearned() - 1) * 100)}% ${quotes().length ? `from your ${quotes().length} quote${quotes().length > 1 ? "s" : ""} (<a href="#" onclick="event.preventDefault();clearQuotes()">reset</a>)` : "(starting estimate)"}.</div></div>
+      <div class="tiny muted" style="margin-top:4px">Markup now: +${Math.round((mkLearned(8) - 1) * 100)}% on an 8¢ combo, +${Math.round((mkLearned(60) - 1) * 100)}% on a 60¢ one ${quotes().length ? `from your ${quotes().length} quote${quotes().length > 1 ? "s" : ""} (<a href="#" onclick="event.preventDefault();clearQuotes()">reset</a>)` : "(starting estimate)"}.</div></div>
     <div class="row" style="margin-top:10px"><button class="btn" onclick="buildClear()">Clear</button></div>
   </div>`;
 }

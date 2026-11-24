@@ -399,7 +399,8 @@ def watch_combos(board, games_list=None, pool=None):
     for k in range(2, min(len(legs), 6) + 1):
         sel = legs[:k]
         hit = math.prod(l["est"] / 100 for l in sel) * 100
-        cost = math.prod(l["price"] / 100 for l in sel) * 100 * CC.combo_markup(k)
+        lc = math.prod(l["price"] / 100 for l in sel) * 100
+        cost = lc * CC.combo_markup(k, lc)
         out[str(k)] = {"size": k, "combo": {"size": k, "legs": sel, "hit": round(math.prod(l["fair"] / 100 for l in sel) * 100, 2)},
                        "est": round(hit, 1), "cost": round(cost, 1)}
     return out

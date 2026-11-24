@@ -448,6 +448,9 @@ def tick(force=()):
         print("top combos failed:", e)
     board["schedule"] = {"pregameAt": rs.get("pregameAt"), "thursdayBaseline": rs.get("pregame") == wk}
     LR.save(L)
+    cfg = C._cfg()   # real Robinhood combo quotes feed the app's markup estimate
+    board["comboQuotes"] = cfg.get("comboQuotes") or []
+    board["comboMarkup"] = float(cfg.get("comboMarkup") or C.COMBO_MARKUP)
     save_json(TOP_FILE, board, compact=True)
     pub = LR.public(L, backtest)
     ih = load_json(os.path.join(C.STATE, "injury_history.json"), {}) or {}

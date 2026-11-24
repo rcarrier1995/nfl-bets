@@ -80,7 +80,7 @@ def _card(sel):
     k = len(sel)
     hit = math.prod(l["est"] / 100 for l in sel) * 100
     legs_cost = math.prod(l["price"] / 100 for l in sel) * 100
-    cost = legs_cost * C.combo_markup(k)
+    cost = legs_cost * C.combo_markup(k, legs_cost)
     fair = math.prod(l["fair"] / 100 for l in sel) * 100
     return {"size": k, "legs": [dict(l) for l in sel], "hit": round(hit, 1), "cost": round(cost, 1), "legsCost": round(legs_cost, 1),
             "fair": round(fair, 1), "edge": round(hit - C.FEE_BUFFER_COMBO - cost, 1), "dogs": sum(1 for l in sel if l["dog"]),

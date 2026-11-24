@@ -192,7 +192,7 @@ def test_combo_markup_estimate():
     assert C.combo_markup(12) > C.COMBO_MARKUP
     legs = [L(i, f"T{i}", 80, 60) for i in range(9)]
     card = combos.card_from(legs, 80 ** 9 / 100 ** 8, 60 ** 9 / 100 ** 8)
-    assert card["est"] > card["cost"] and card["edge"] == round(card["maxPay"] - card["est"], 2)
+    assert card["est"] > card["cost"] and abs(card["edge"] - (card["maxPay"] - card["est"])) <= 0.011
 
 
 def test_our_live_wp_sane():
@@ -336,3 +336,9 @@ def test_price_archive_appends_only_changes(tmp_path, monkeypatch):
     A = AR.record(b, now)
     assert len(A["1"]["pre"]) == 2 and A["1"]["pre"][0][1] == 40 and A["1"]["pre"][-1][1] == 38
     assert A["1"]["live"][0][3:5] == [7, 0]
+
+
+def test_markup_shrinks_for_pricey_combos():
+    # Rick's real quote: JAX+CIN+DAL legs 61.2c, Robinhood 60.1c -> near-zero markup on favourite combos
+    from engine import config as C
+    assert C.combo_markup(3, 61.2) < 1.03 and C.combo_markup(3, 5) > 1.15

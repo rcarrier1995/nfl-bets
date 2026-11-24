@@ -120,20 +120,54 @@ except Exception:
 COMBO_MARKUP = 1.26   # review 2026-11-23: Kalshi combo quotes ran ~26% above legs multiplied (Sept 2026 report)
 
 
-def combo_markup(n):
-    """Estimated combo quote vs legs multiplied. ~26% for any combo (config.json "comboMarkup" overrides it
-    once Rick's real Robinhood quotes show the true number); very big combos keep the old steeper curve."""
-    if n < 2:
-        return 1.0
+MK_SHRINK = 5   # each real quote counts like 1 of 6 votes vs the prior until more arrive
+
+
+def markup_curve(m, legs_cost):
+    """Markup shrinks as the combo gets pricier (Rick's quote 2026-11-24: JAX+CIN+DAL legs 61.2c, Robinhood 60.1c,
+    so ~0% on favourite combos; the ~26% hold is a cheap-longshot number). 26% at ~1c, ~20% at 8c, ~1.5% at 61c."""
+    return 1 + (m - 1) * (1 - legs_cost / 100) ** 3
+
+
+def _cfg():
     try:
         import json
-        m = float((json.load(open(os.path.join(ROOT, "config.json"))) or {}).get("comboMarkup") or COMBO_MARKUP)
+        return json.load(open(os.path.join(ROOT, "config.json"))) or {}
     except Exception:
-        m = COMBO_MARKUP
-    return max(m, _old_markup(n))
+        return {}
 
 
-def _old_markup(n):
+def quote_factor(cfg=None):
+    """Real Robinhood quotes vs the curve: shrunk average of quote / (legs x curve)."""
+    cfg = _cfg() if cfg is None else cfg
+    m = float(cfg.get("comboMarkup") or COMBO_MARKUP)
+    q = [x for x in cfg.get("comboQuotes") or [] if x.get("legs") and x.get("quote")]
+    if not q:
+        return 1.0
+    r = sum(x["quote"] / (x["legs"] * markup_curve(m, x["legs"])) for x in q)
+    return (MK_SHRINK + r) / (MK_SHRINK + len(q))
+
+
+def combo_markup(n, legs_cost=None):
+    """Estimated Robinhood combo quote vs legs multiplied. Without a cost: flat ~26% (old behaviour).
+    With the legs' cost: the curve above, scaled by Rick's real quotes. Huge combos keep the old steeper curve."""
+    if n < 2:
+        return 1.0
+    cfg = _cfg()
+    m = float(cfg.get("comboMarkup") or COMBO_MARKUP)
+    if legs_cost is not None:
+        m = markup_curve(m, legs_cost) * quote_factor(cfg)
+    old = _old_markup(n)
+    try:
+        import numpy as np
+        if isinstance(m, np.ndarray):
+            return np.maximum(m, old)
+    except Exception:
+        pass
+    return max(m, old)
+
+
+def _old_markup(n, legs_cost=None):
     """Estimated combo quote vs the legs multiplied (Robinhood prices big combos above the product).
     Estimate only: ~1.0 up to 3 legs, ~1.07 at 8, ~1.22 at 10, +8% a leg beyond. Always check the real quote."""
     if n <= 3:

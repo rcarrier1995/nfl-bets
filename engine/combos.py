@@ -54,7 +54,8 @@ def _best_for_size(games, k, top_n=1):
         f = fa[sub[:, None, :], bits[None, :, :]]          # (m, 2^k, k)
         p = pa[sub[:, None, :], bits[None, :, :]]
         hit = f.prod(axis=2) * 100.0
-        cost = p.prod(axis=2) * 100.0 * C.combo_markup(k)
+        lc = p.prod(axis=2) * 100.0
+        cost = lc * C.combo_markup(k, lc)
         edge = (hit - C.FEE_BUFFER_COMBO) - cost
         checked += edge.size
         flat = edge.ravel()
@@ -82,9 +83,10 @@ def card_from(legs, hit, cost):
     """cost = legs multiplied; est = estimated real quote (markup); edge uses the estimate."""
     k = len(legs)
     maxpay = hit - C.FEE_BUFFER_COMBO
-    est = cost * C.combo_markup(k)
+    mk = float(C.combo_markup(k, cost))
+    est = cost * mk
     return {"size": k, "legs": legs, "hit": round(hit, 2), "fair": round(hit, 2),
-            "maxPay": round(maxpay, 2), "cost": round(cost, 2), "est": round(est, 2), "markup": round(C.combo_markup(k), 3),
+            "maxPay": round(maxpay, 2), "cost": round(cost, 2), "est": round(est, 2), "markup": round(mk, 3),
             "edge": round(maxpay - est, 2), "profit": round(100 - est, 2), "tier": tier(est)}
 
 
@@ -136,7 +138,8 @@ def search_legs(legs, sizes=None):
             if len({legs[i]["gameId"] for i in sub}) < k:
                 continue
             hit = math.prod(legs[i]["fair"] / 100 for i in sub) * 100
-            cost = math.prod(legs[i]["price"] / 100 for i in sub) * 100 * C.combo_markup(k)
+            lc = math.prod(legs[i]["price"] / 100 for i in sub) * 100
+            cost = lc * C.combo_markup(k, lc)
             e = hit - C.FEE_BUFFER_COMBO - cost
             checked += 1
             if best is None or e > best[0]:
@@ -180,7 +183,8 @@ def search_safe(pool_games, min_fair=None, sizes=None):
             hit = math.prod(legs[i]["fair"] / 100 for i in sub) * 100
             if best is not None and hit <= best[0]:
                 continue   # can't beat the safest one already found
-            cost = math.prod(legs[i]["price"] / 100 for i in sub) * 100 * C.combo_markup(k)
+            lc = math.prod(legs[i]["price"] / 100 for i in sub) * 100
+            cost = lc * C.combo_markup(k, lc)
             checked += 1
             gap = hit - C.FEE_BUFFER_COMBO - cost
             if gap >= 0:
