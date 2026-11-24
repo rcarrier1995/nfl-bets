@@ -374,3 +374,4 @@ svg text{font-size:10px}
 /* win-chance line: never cut off; each team stays together and wraps as a unit on narrow phones */
 .winl{white-space:normal;overflow:visible;text-overflow:clip;display:flex;flex-wrap:wrap;gap:2px 12px}
 .winl .wt{white-space:nowrap}
+.cconf{white-space:nowrap}
