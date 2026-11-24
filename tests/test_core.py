@@ -318,3 +318,21 @@ def test_stale_line_turns_buy_into_check_the_line():
     c2 = {"call": "Value", "price": 40.0, "bid": 39.0, "fee": 2.0}
     lag.line_check({"book": "Consensus of 9 books", "spreadHome": -3.0}, c2, "home", rows[-1:], now)
     assert c2["call"] == "Value" and "lineCheck" not in c2
+
+
+def test_price_archive_appends_only_changes(tmp_path, monkeypatch):
+    from datetime import datetime, timezone
+    from engine import archive as AR
+    monkeypatch.setattr(AR, "FILE", str(tmp_path / "a.json"))
+    g = {"id": "1", "away": "A", "home": "H", "kickoff": "k", "state": "pre", "espnSpread": -3, "total": 44.5,
+         "teams": {"away": {"price": 40, "fair": 41}, "home": {"price": 61, "fair": 59}}}
+    b = {"season": 2026, "week": 12, "games": [g]}
+    now = datetime(2026, 11, 24, tzinfo=timezone.utc)
+    AR.record(b, now); AR.record(b, now)
+    g["teams"]["away"]["price"] = 38
+    AR.record(b, now)
+    g.update(state="in", period=1, clock="9:00", score={"away": 7, "home": 0})
+    g["teams"]["away"]["liveFair"] = 55
+    A = AR.record(b, now)
+    assert len(A["1"]["pre"]) == 2 and A["1"]["pre"][0][1] == 40 and A["1"]["pre"][-1][1] == 38
+    assert A["1"]["live"][0][3:5] == [7, 0]

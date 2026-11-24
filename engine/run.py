@@ -302,6 +302,11 @@ def tick(force=()):
         B.set_thursday_baseline(board)
         rs["pregame"] = wk
         rs["pregameAt"] = iso(now)
+    try:   # research archive: every game's pregame + in-game prices for the season (logging only)
+        from .archive import record as archive_record
+        archive_record(board, now)
+    except Exception as e:
+        print("archive failed:", e)
     try:
         from .clv import update as clv_update
         board["clv"] = clv_update(board, now)
