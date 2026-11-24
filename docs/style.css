@@ -370,3 +370,7 @@ svg text{font-size:10px}
 :root[data-theme="light"] .grd.gC{background:#cbd5e1}
 .gkey{margin:4px 0 8px;line-height:1.9}
 .cconf{color:var(--muted);background:var(--bar)}
+
+/* win-chance line: never cut off; each team stays together and wraps as a unit on narrow phones */
+.winl{white-space:normal;overflow:visible;text-overflow:clip;display:flex;flex-wrap:wrap;gap:2px 12px}
+.winl .wt{white-space:nowrap}

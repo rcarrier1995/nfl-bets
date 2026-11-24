@@ -391,12 +391,15 @@ function liveInjLines(c) {
 
 // "SF −3.5 (opened −3) · O/U 45.5" — the sportsbook line, favourite first
 function spreadTxt(g) {
-  const sp = g.spreadHome;
+  // show the real market line (ESPN's book), not our model-equivalent spread
+  const real = g.espnSpread != null;
+  let sp = real ? g.espnSpread : g.spreadHome;
   if (sp == null) return "";
+  if (!real) sp = Math.round(sp * 2) / 2;
   const fav = sp < 0 ? g.home : g.away, n = x => Math.abs(x) === 0 ? "PK" : "−" + Math.abs(x);
   const op = g.openSpread;
   const moved = op != null && Math.abs(op - sp) >= 0.5 ? ` (opened ${(op < 0) === (sp < 0) ? n(op) : `${op < 0 ? g.home : g.away} ${n(op)}`})` : "";
-  return `${sp === 0 ? "Pick'em" : `${fav} ${n(sp)}`}${moved}${g.total != null ? ` · total points ${g.total}` : ""}`;
+  return `Spread ${sp === 0 ? "Pick'em" : `${fav} ${n(sp)}`}${moved}${g.total != null ? ` · Over/under ${g.total}` : ""}`;
 }
 // expert picks (CBS + NFL.com): one short line by the spread, full list in head-to-head details
 function expertsLine(g) {
@@ -411,9 +414,9 @@ function expertsLine(g) {
 // Tags only — they never change the call. Tap the card for the why.
 // our confidence (win chance) for both teams, on every game row
 function winLine(g) {
-  const f = c => { const p = c.state === "in" && c.liveFair != null ? c.liveFair : c.fair; return p != null ? `<b>${esc(c.team)}</b> ${Math.round(p)}% ${grd(gradeOf(p), 1)}` : ""; };
+  const f = c => { const p = c.state === "in" && c.liveFair != null ? c.liveFair : c.fair; return p != null ? `<span class="wt"><b>${esc(c.team)}</b> ${Math.round(p)}%${grd(gradeOf(p), 1)}</span>` : ""; };
   const a = f(g.teams.away), h = f(g.teams.home);
-  return a || h ? `<div class="winl muted" title="Win chance">${a}${a && h ? " · " : ""}${h}</div>` : "";
+  return a || h ? `<div class="winl muted" title="Win chance">${a}${h}</div>` : "";
 }
 // every chip names the team to bet on first, then the reason (naming the team it's about)
 const lastName = n => String(n || "").split(" ").slice(-1)[0];
@@ -549,7 +552,7 @@ function liveCard(g) {
   };
   const wa = g.teams.away.liveFair, wh = g.teams.home.liveFair;
   const wp = wa != null && wh != null ? `<div class="wpbar"><i style="width:${wa / (wa + wh) * 100}%;background:${esc(COLORS()[g.away] || "#556")}"></i><i style="flex:1;background:${esc(COLORS()[g.home] || "#889")}"></i></div><div class="row tiny muted" style="margin:-6px 0 8px"><span>${pct(wa)} win</span><span class="sp"></span><span>${pct(wh)} win</span></div>` : "";
-  const spr = spreadTxt(g) ? `<div class="tiny muted" style="text-align:center;margin:-4px 0 8px">Pregame line: ${esc(spreadTxt(g))}${expertsLine(g)}</div>` : "";
+  const spr = spreadTxt(g) ? `<div class="tiny muted" style="text-align:center;margin:-4px 0 8px">Pregame: ${esc(spreadTxt(g))}${expertsLine(g)}</div>` : "";
   return `<div class="card">${tagBar(g)}${scoreBlock(g)}${spr}${wp}
     <div class="teams2">${tc(g.teams.away)}${tc(g.teams.home)}</div>
     <div class="line u" onclick="toggle('${id}')">Quarters · ${(g.quarters || []).map(q => `Q${q.q} ${q.cumAway}-${q.cumHome}`).join(" · ") || "—"}</div>
