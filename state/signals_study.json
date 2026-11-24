@@ -1,28 +1,39 @@
 {
- "games": 5360,
+ "games": 5362,
  "train": "2006\u20132022",
  "test": "2023\u20132026",
  "rows": [
   {
    "signal": "Backup QB starting",
-   "z": -2.19,
-   "ptsAll": -0.71,
+   "z": -2.23,
+   "ptsAll": -0.72,
    "n": 1283,
    "pts": -0.69,
    "se": 0.37,
-   "nTest": 337,
-   "ptsTest": -0.77,
+   "nTest": 338,
+   "ptsTest": -0.82,
    "holds": false
   },
   {
    "signal": "Opponent on backup QB",
-   "z": 2.19,
-   "ptsAll": 0.71,
+   "z": 2.23,
+   "ptsAll": 0.72,
    "n": 1283,
    "pts": 0.69,
    "se": 0.37,
-   "nTest": 337,
-   "ptsTest": 0.77,
+   "nTest": 338,
+   "ptsTest": 0.82,
+   "holds": false
+  },
+  {
+   "signal": "Rest advantage 3+ days",
+   "z": 1.68,
+   "ptsAll": 0.62,
+   "n": 903,
+   "pts": 0.29,
+   "se": 0.42,
+   "nTest": 220,
+   "ptsTest": 1.96,
    "holds": false
   },
   {
@@ -34,17 +45,6 @@
    "se": 0.73,
    "nTest": 82,
    "ptsTest": -0.18,
-   "holds": false
-  },
-  {
-   "signal": "Rest advantage 3+ days",
-   "z": 1.66,
-   "ptsAll": 0.61,
-   "n": 903,
-   "pts": 0.29,
-   "se": 0.42,
-   "nTest": 219,
-   "ptsTest": 1.93,
    "holds": false
   },
   {
@@ -82,46 +82,46 @@
   },
   {
    "signal": "Prime time \u00b7 favourite",
-   "z": 1.19,
-   "ptsAll": 0.46,
+   "z": 1.22,
+   "ptsAll": 0.47,
    "n": 916,
    "pts": 0.48,
    "se": 0.44,
-   "nTest": 236,
-   "ptsTest": 0.4,
+   "nTest": 238,
+   "ptsTest": 0.45,
    "holds": false
   },
   {
    "signal": "Neutral site \u00b7 favourite",
-   "z": 0.95,
-   "ptsAll": 1.6,
+   "z": 1.11,
+   "ptsAll": 1.86,
    "n": 47,
    "pts": 1.98,
    "se": 2.29,
-   "nTest": 25,
-   "ptsTest": 0.9,
+   "nTest": 26,
+   "ptsTest": 1.65,
    "holds": false
   },
   {
    "signal": "Prime time \u00b7 home underdog",
-   "z": -0.9,
-   "ptsAll": -0.59,
+   "z": -0.87,
+   "ptsAll": -0.57,
    "n": 326,
    "pts": -0.48,
    "se": 0.75,
-   "nTest": 86,
-   "ptsTest": -0.98,
+   "nTest": 87,
+   "ptsTest": -0.88,
    "holds": false
   },
   {
    "signal": "Home underdog",
-   "z": -0.85,
+   "z": -0.83,
    "ptsAll": -0.25,
    "n": 1562,
    "pts": -0.13,
    "se": 0.34,
-   "nTest": 394,
-   "ptsTest": -0.71,
+   "nTest": 395,
+   "ptsTest": -0.69,
    "holds": false
   },
   {
@@ -158,17 +158,6 @@
    "holds": false
   },
   {
-   "signal": "Home team (all)",
-   "z": -0.53,
-   "ptsAll": -0.09,
-   "n": 4383,
-   "pts": -0.19,
-   "se": 0.2,
-   "nTest": 977,
-   "ptsTest": 0.31,
-   "holds": false
-  },
-  {
    "signal": "Late season (wk 15+) underdog",
    "z": -0.53,
    "ptsAll": -0.22,
@@ -180,25 +169,36 @@
    "holds": false
   },
   {
+   "signal": "Home team (all)",
+   "z": -0.5,
+   "ptsAll": -0.09,
+   "n": 4383,
+   "pts": -0.19,
+   "se": 0.2,
+   "nTest": 979,
+   "ptsTest": 0.34,
+   "holds": false
+  },
+  {
    "signal": "Dome team on the road outdoors",
-   "z": 0.52,
-   "ptsAll": 0.2,
+   "z": 0.47,
+   "ptsAll": 0.18,
    "n": 885,
    "pts": 0.27,
    "se": 0.44,
-   "nTest": 231,
-   "ptsTest": -0.05,
+   "nTest": 232,
+   "ptsTest": -0.14,
    "holds": false
   },
   {
    "signal": "After a 20+ pt win",
-   "z": -0.36,
-   "ptsAll": -0.15,
+   "z": -0.43,
+   "ptsAll": -0.18,
    "n": 826,
    "pts": -0.4,
    "se": 0.48,
-   "nTest": 177,
-   "ptsTest": 1.01,
+   "nTest": 179,
+   "ptsTest": 0.84,
    "holds": false
   },
   {

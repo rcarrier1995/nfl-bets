@@ -1,5 +1,5 @@
 {
- "at": "2026-11-23T05:27:01Z",
+ "at": "2026-11-24T21:01:31Z",
  "rows": [
   {
    "group": "Streaks",
@@ -14,13 +14,13 @@
     "vsLine": 0.28
    },
    "check": {
-    "n": 409,
-    "won": 62.3,
+    "n": 410,
+    "won": 62.2,
     "price": 60.3,
-    "diff": 2.1,
+    "diff": 1.9,
     "se": 2.3,
-    "z": 0.91,
-    "vsLine": 0.51
+    "z": 0.84,
+    "vsLine": 0.49
    },
    "holds": false,
    "note": ""
@@ -38,13 +38,13 @@
     "vsLine": 0.84
    },
    "check": {
-    "n": 125,
-    "won": 64.0,
-    "price": 62.4,
-    "diff": 1.6,
+    "n": 126,
+    "won": 63.5,
+    "price": 62.5,
+    "diff": 1.0,
     "se": 4.0,
-    "z": 0.4,
-    "vsLine": -0.11
+    "z": 0.26,
+    "vsLine": -0.17
    },
    "holds": false,
    "note": ""
@@ -110,13 +110,13 @@
     "vsLine": -0.4
    },
    "check": {
-    "n": 269,
-    "won": 59.9,
+    "n": 271,
+    "won": 59.4,
     "price": 58.4,
-    "diff": 1.4,
+    "diff": 1.0,
     "se": 2.8,
-    "z": 0.51,
-    "vsLine": 0.51
+    "z": 0.37,
+    "vsLine": 0.4
    },
    "holds": false,
    "note": ""
@@ -134,13 +134,13 @@
     "vsLine": 0.25
    },
    "check": {
-    "n": 129,
-    "won": 52.7,
-    "price": 47.1,
-    "diff": 5.6,
+    "n": 130,
+    "won": 53.1,
+    "price": 47.0,
+    "diff": 6.1,
     "se": 4.0,
-    "z": 1.39,
-    "vsLine": 1.34
+    "z": 1.52,
+    "vsLine": 1.4
    },
    "holds": false,
    "note": "fit 2021-24, check 2025-26"
@@ -230,13 +230,13 @@
     "vsLine": -0.9
    },
    "check": {
-    "n": 514,
+    "n": 515,
     "won": 37.5,
     "price": 39.0,
-    "diff": -1.4,
+    "diff": -1.5,
     "se": 2.0,
-    "z": -0.72,
-    "vsLine": -0.27
+    "z": -0.75,
+    "vsLine": -0.31
    },
    "holds": false,
    "note": ""
@@ -326,13 +326,13 @@
     "vsLine": -1.15
    },
    "check": {
-    "n": 328,
-    "won": 40.9,
+    "n": 329,
+    "won": 40.7,
     "price": 40.7,
-    "diff": 0.1,
+    "diff": 0.0,
     "se": 2.5,
-    "z": 0.05,
-    "vsLine": -0.26
+    "z": 0.01,
+    "vsLine": -0.32
    },
    "holds": false,
    "note": ""
@@ -375,7 +375,7 @@
    },
    "check": null,
    "holds": false,
-   "note": "Against the line: -0.20 pts per point of expected drop (SE 0.18, n=446) \u2014 the line already prices it"
+   "note": "Against the line: -0.19 pts per point of expected drop (SE 0.18, n=447) \u2014 the line already prices it"
   }
  ],
  "coach": [
@@ -384,9 +384,9 @@
    "per1sd": -0.38,
    "z": -0.93,
    "n": 956,
-   "per1sdTest": 0.47,
-   "zTest": 0.72,
-   "nTest": 433,
+   "per1sdTest": 0.48,
+   "zTest": 0.74,
+   "nTest": 435,
    "unit": "pts",
    "sd": 6.924637858262447,
    "holds": false,
@@ -398,9 +398,9 @@
    "per1sd": 0.07,
    "z": 0.16,
    "n": 956,
-   "per1sdTest": -0.72,
-   "zTest": -1.14,
-   "nTest": 433,
+   "per1sdTest": -0.73,
+   "zTest": -1.16,
+   "nTest": 435,
    "unit": "pts",
    "sd": 1.7968896039102584,
    "holds": false,
@@ -412,9 +412,9 @@
    "per1sd": -0.4,
    "z": -0.98,
    "n": 956,
-   "per1sdTest": -0.3,
-   "zTest": -0.78,
-   "nTest": 433,
+   "per1sdTest": -0.28,
+   "zTest": -0.73,
+   "nTest": 435,
    "unit": "pts",
    "sd": 0.09080740360911983,
    "holds": false,
@@ -426,9 +426,9 @@
    "per1sd": -0.04,
    "z": -0.09,
    "n": 956,
-   "per1sdTest": 1.22,
-   "zTest": 1.95,
-   "nTest": 433,
+   "per1sdTest": 1.26,
+   "zTest": 2.03,
+   "nTest": 435,
    "unit": "pts",
    "sd": 0.20217524389776279,
    "holds": false,
@@ -440,9 +440,9 @@
    "per1sd": -0.11,
    "z": -0.28,
    "n": 956,
-   "per1sdTest": -0.48,
-   "zTest": -0.72,
-   "nTest": 433,
+   "per1sdTest": -0.44,
+   "zTest": -0.67,
+   "nTest": 435,
    "unit": "pts",
    "sd": 0.096713165997538,
    "holds": false,
@@ -454,9 +454,9 @@
    "per1sd": -0.27,
    "z": -0.67,
    "n": 956,
-   "per1sdTest": 0.46,
-   "zTest": 0.58,
-   "nTest": 433,
+   "per1sdTest": 0.53,
+   "zTest": 0.66,
+   "nTest": 435,
    "unit": "pts",
    "sd": 8.926432477327221,
    "holds": false,
@@ -468,9 +468,9 @@
    "per1sd": 0.2,
    "z": 0.5,
    "n": 942,
-   "per1sdTest": 0.77,
-   "zTest": 1.22,
-   "nTest": 433,
+   "per1sdTest": 0.76,
+   "zTest": 1.19,
+   "nTest": 435,
    "unit": "pts",
    "sd": 11.240266693715293,
    "holds": false,
@@ -482,8 +482,8 @@
   "EPA per dropback": 0.44,
   "Sack rate": 0.53,
   "INT rate": 0.01,
-  "Q1 better/worse than usual": -0.06,
-  "Q2 better/worse than usual": -0.09,
+  "Q1 better/worse than usual": -0.05,
+  "Q2 better/worse than usual": -0.08,
   "Q3 better/worse than usual": 0.04,
   "Q4 better/worse than usual": 0.09,
   "n": 132

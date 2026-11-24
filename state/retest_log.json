@@ -1,5 +1,5 @@
 {
- "at": "2026-11-23T02:56:21Z",
+ "at": "2026-11-24T21:01:03Z",
  "season": 2026,
  "studies": {
   "grades": {
@@ -15,15 +15,27 @@
   "signals": {
    "ok": true,
    "held": []
+  },
+  "form": {
+   "ok": true,
+   "held": []
+  },
+  "h2h": {
+   "ok": true,
+   "held": []
   }
  },
- "summary": "Re-tested 3 studies with the newest games: no change \u2014 nothing beats the line yet, prices unchanged.",
+ "summary": "Re-tested 5 studies with the newest games: no change \u2014 nothing beats the line yet, prices unchanged.",
  "added": [],
  "dropped": [],
  "history": [
   {
    "at": "2026-11-23T02:56:21Z",
    "summary": "Re-tested 3 studies with the newest games: no change \u2014 nothing beats the line yet, prices unchanged."
+  },
+  {
+   "at": "2026-11-24T21:01:03Z",
+   "summary": "Re-tested 5 studies with the newest games: no change \u2014 nothing beats the line yet, prices unchanged."
   }
  ]
 }

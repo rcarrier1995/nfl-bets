@@ -1,12 +1,12 @@
 {
  "weights": [
-  0.030834485937553942,
+  0.030834485937554147,
   1.355465418153178,
   0.6897454154129681,
-  0.011782789146956527,
+  0.01178278914695652,
   1.4025545807648057,
-  -0.04681994589186876,
-  -0.1372412801377656
+  -0.04681994589186871,
+  -0.13724128013776588
  ],
  "feats": [
   "l0f",
@@ -17,9 +17,9 @@
   "tom",
   "frac"
  ],
- "brier": 0.1498,
- "brierRef": 0.1474,
- "nTest": 25733,
+ "brier": 0.1511,
+ "brierRef": 0.1489,
+ "nTest": 26039,
  "medianGap": 2.5,
  "note": "Our own live win % from the pregame line, score, time left, who has the ball, field position and timeouts. Checked on every play of the current season."
 }
