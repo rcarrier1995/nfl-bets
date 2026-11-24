@@ -695,7 +695,7 @@ function comboCard(cat, k, res, safe) {
     <div class="mpbar"><div class="cost ${t.est > t.maxPay ? "over" : ""}" style="width:${w}%"></div><div class="max" style="left:calc(${mx}% - 1px)"></div></div>
     <div class="small" style="margin-top:8px"><b>Pay no more than ${ct1(t.maxPay)} for the combo.</b> ${t.mk > 1 ? `<span class="muted">Teams' prices multiplied ${ct1(t.cost)} + about ${Math.round((t.mk - 1) * 100)}% Robinhood combo markup.</span>` : `<span class="muted">Teams' prices multiplied: ${ct1(t.cost)}.</span>`}</div>
     <div class="kpis"><div><b>${pct(t.hit)}</b><span>Hits</span></div><div><b>${ct1(t.maxPay)}</b><span>Max pay</span></div><div><b class="${t.edge >= 0 ? "c-Value" : "bad"}">${t.edge >= 0 ? "+" : ""}${ct1(t.edge)}</b><span>Edge</span></div></div>
-    <div style="margin-top:8px">${legs.map((l, i) => `<div class="leg" onclick="swapLeg('${ek}',${i})">${badge(l.team, "sm")}<div style="min-width:0"><b>${esc(l.team)}</b> <span class="small muted">vs ${esc(l.opp)}${l.state === "in" ? " · live" : ""}</span><br>${(l.tags || []).map(x => `<span class="tag ${x === "Shoe-in" ? "shoe" : ""}">${esc(x)}</span>`).join("")}</div><span class="sp"></span><span class="small muted">${pct(l.fair)}</span>${grd(gradeOf(l.fair), 1)}<span class="p">${ct(l.price)}</span>${edit && legs.length > 2 ? `<button class="x" onclick="event.stopPropagation();dropLeg('${ek}',${i})" aria-label="Remove">✕</button>` : ""}</div>`).join("")}</div>
+    <div style="margin-top:8px">${legs.map((l, i) => [l, i]).sort((x, y) => legRank(x[0], y[0])).map(([l, i]) => `<div class="leg" onclick="swapLeg('${ek}',${i})">${badge(l.team, "sm")}<div style="min-width:0"><b>${esc(l.team)}</b> <span class="small muted">vs ${esc(l.opp)}${l.state === "in" ? " · live" : ""}</span><br>${(l.tags || []).map(x => `<span class="tag ${x === "Shoe-in" ? "shoe" : ""}">${esc(x)}</span>`).join("")}</div><span class="sp"></span><span class="small muted">${pct(l.fair)}</span>${grd(gradeOf(l.fair), 1)}<span class="p">${ct(l.price)}</span>${edit && legs.length > 2 ? `<button class="x" onclick="event.stopPropagation();dropLeg('${ek}',${i})" aria-label="Remove">✕</button>` : ""}</div>`).join("")}</div>
     <div class="row" style="margin-top:10px"><button class="btn" onclick="toggle('${id}')">${edit ? "Done" : "Edit"}</button>${edit ? `<button class="btn" onclick="addLeg('${ek}')">+ Add leg</button>` : ""}${S.comboEdits[ek] ? `<button class="btn" onclick="resetCombo('${ek}')">Reset</button>` : ""}</div>
     ${edit ? `<div class="small muted" style="margin-top:8px">Pick any leg to swap it, ✕ to drop it, or add one. Any size from 2 legs.</div>` : ""}
   </div>`;
@@ -706,7 +706,7 @@ window.dropLeg = (ek, i) => { const l = comboLegs(ek).slice(); l.splice(i, 1); S
 function legPicker(ek, i, title) {
   const legs = comboLegs(ek);
   const used = new Set(legs.map((l, j) => j === i ? null : l.gameId));
-  const alts = (S.B.combos.pool || []).filter(l => !used.has(l.gameId)).sort((a, b) => (b.fair - b.price) - (a.fair - a.price));
+  const alts = (S.B.combos.pool || []).filter(l => !used.has(l.gameId)).sort(legRank);
   openModal(`<h2>${title}</h2>${alts.length ? alts.map((l, j) => `<div class="leg" onclick="pickLeg('${ek}',${i},${j})">${badge(l.team, "sm")}<div><b>${esc(l.team)}</b> <span class="small muted">vs ${esc(l.opp)}</span><br>${(l.tags || []).map(x => `<span class="tag">${esc(x)}</span>`).join("")}</div><span class="sp"></span><span class="small muted">${pct(l.fair)}</span><span class="p">${ct(l.price)}</span></div>`).join("") : NOREC("Every game is already in this combo")}`);
   window._alts = alts;
 }
@@ -761,7 +761,7 @@ function topCard(c, i) {
     <div class="row"><b>#${i + 1} · ${c.size} teams</b><span class="sp"></span>${hitChip(c.hit)}</div>
     ${big3(c.hit, c.cost)}
     <div class="tiny muted">${c.hit >= c.cost + 2 ? `Our chance beats the cost by ${(c.hit - c.cost).toFixed(1)}¢` : c.hit >= c.cost ? "About a fair price" : `Costs ${(c.cost - c.hit).toFixed(1)}¢ more than our chance`}${c.cost > 10 ? " · over 10¢: not a bonus bet" : ""}${c.reused ? ` · shares ${c.reused} game${c.reused > 1 ? "s" : ""} with a pick above` : ""}</div>
-    <div style="margin-top:8px">${legHead}${c.legs.map(l => `<div class="leg">${badge(l.team, "sm")}<div style="min-width:0"><b>${esc(l.team)}</b> <span class="small muted">vs ${esc(l.opp)}</span>${l.dog ? ` <span class="tag look">underdog</span>` : ""}<br>${(l.why || []).map(x => `<span class="tag good">${esc(x)}</span>`).join("")}</div><span class="sp"></span><span class="small muted">${Math.round(l.est)}%</span>${grd(gradeOf(l.est), 1)}<span class="p">${ct(l.price)}</span></div>`).join("")}</div>
+    <div style="margin-top:8px">${legHead}${c.legs.slice().sort(legRank).map(l => `<div class="leg">${badge(l.team, "sm")}<div style="min-width:0"><b>${esc(l.team)}</b> <span class="small muted">vs ${esc(l.opp)}</span>${l.dog ? ` <span class="tag look">underdog</span>` : ""}<br>${(l.why || []).map(x => `<span class="tag good">${esc(x)}</span>`).join("")}</div><span class="sp"></span><span class="small muted">${Math.round(l.est)}%</span>${grd(gradeOf(l.est), 1)}<span class="p">${ct(l.price)}</span></div>`).join("")}</div>
   </div>`;
 }
 // ---------- build your own combo: Rick taps teams, we analyse it (all in the browser, from the board) ----------
@@ -789,14 +789,14 @@ function buildLegs(gl) {
 }
 window.buildWeek = w => { S.bld = { week: w, sel: {} }; lsSet("bld", S.bld); render(); };
 window.buildTap = (gid, team) => { const s = S.bld.sel; s[gid] === team ? delete s[gid] : s[gid] = team; lsSet("bld", S.bld); render(); };
+// Rick 2026-11-24: every combo list best to worst — win chance first, then cheaper
+const legRank = (x, y) => ((y.est ?? y.fair) - (x.est ?? x.fair)) || (x.price - y.price);
+const comboRank = (x, y) => (y.hit - x.hit) || (x.cost - y.cost);
 // Rick 2026-11-24: one-tap combos. "A" = every A-graded team (75%+ to win).
-// "AB" = best A + B combo: A and B teams (60%+) whose price is at or below our chance (not overpriced);
-// if fewer than 2 qualify, the 3 A/B teams closest to a fair price.
+// "AB" = every A and B team (60%+), no cap. Legs are listed best to worst.
 function gradePick(pool, mode) {
-  if (mode === "A") return pool.filter(l => gradeOf(l.est) === "A");
-  const ab = pool.filter(l => ["A", "B"].includes(gradeOf(l.est)));
-  const val = ab.filter(l => l.est >= l.price);
-  return val.length >= 2 ? val : ab.sort((x, y) => (x.price - x.est) - (y.price - y.est) || y.est - x.est).slice(0, 3);
+  const ok = mode === "A" ? ["A"] : ["A", "B"];
+  return pool.filter(l => ok.includes(gradeOf(l.est))).sort(legRank);
 }
 window.buildGrade = mode => {
   S.bld = S.bld || lsGet("bld") || { week: "thisWeek", sel: {} };
@@ -818,13 +818,14 @@ function buildView() {
   const B = S.bld, gl = B.week === "nextWeek" ? S.B.nextWeek : S.B.games;
   const pool = buildLegs(gl), by = Object.fromEntries(pool.map(l => [l.gameId + "|" + l.team, l]));
   for (const gid of Object.keys(B.sel)) if (!by[gid + "|" + B.sel[gid]]) delete B.sel[gid];   // game started or no price
-  const legs = Object.entries(B.sel).map(([gid, t]) => by[gid + "|" + t]);
+  const legs = Object.entries(B.sel).map(([gid, t]) => by[gid + "|" + t]).sort(legRank);
   let h = `<div class="ptitle">Combos</div><div class="psub">Build your own · tap a team in each game you want</div>${comboTabs("build")}${comboWarn()}
     <div class="ctabs" style="margin-top:6px"><button class="${B.week === "thisWeek" ? "on" : ""}" onclick="buildWeek('thisWeek')">This week</button><button class="${B.week === "nextWeek" ? "on" : ""}" onclick="buildWeek('nextWeek')">Next week (early)</button></div>`;
   h += buildAnalysis(legs, pool);
-  const games = (gl || []).filter(g => pool.some(l => l.gameId === g.id));
+  const best = g => Math.max(...pool.filter(l => l.gameId === g.id).map(l => l.est));
+  const games = (gl || []).filter(g => pool.some(l => l.gameId === g.id)).sort((x, y) => best(y) - best(x));
   const nA = gradePick(pool, "A").length, nAB = gradePick(pool, "AB").length;
-  h += `<div class="row" style="margin:10px 0 2px;flex-wrap:wrap"><button class="btn pri" onclick="buildGrade('A')"${nA ? "" : " disabled"}>${grd("A", 1)}Select all A picks (${nA})</button><button class="btn pri" onclick="buildGrade('AB')"${nAB >= 2 ? "" : " disabled"}>${grd("A", 1)}${grd("B", 1)}Best A + B combo</button></div><div class="tiny muted">Best A + B = A and B teams priced at or below our chance (or the 3 closest to it).</div>${nA ? "" : `<div class="tiny muted">No team is graded A ${B.week === "nextWeek" ? "next week" : "in the games left this week"}.</div>`}`;
+  h += `<div class="row" style="margin:10px 0 2px;flex-wrap:wrap"><button class="btn pri" onclick="buildGrade('A')"${nA ? "" : " disabled"}>${grd("A", 1)}Select all A picks (${nA})</button><button class="btn pri" onclick="buildGrade('AB')"${nAB >= 2 ? "" : " disabled"}>${grd("A", 1)}${grd("B", 1)}All A + B picks (${nAB})</button></div><div class="tiny muted">Teams are listed best to worst. Tap ✕ on the weakest to raise the chance it hits.</div>${nA ? "" : `<div class="tiny muted">No team is graded A ${B.week === "nextWeek" ? "next week" : "in the games left this week"}.</div>`}`;
   h += `<h2>Pick teams <span class="cnt">${games.length}</span></h2>`;
   if (!games.length) return h + NOREC(B.week === "nextWeek" ? "Kalshi hasn't listed next week's games yet" : "No upcoming games with prices right now");
   const btn = (g, c) => {
@@ -889,13 +890,13 @@ function buildAnalysis(legs, pool) {
 const comboTabs = cat => `<div class="ctabs">${ctabTop()}<button class="${cat === "build" ? "on" : ""}" onclick="setCombo('build')">Build your own</button><button class="${cat === "standard" ? "on" : ""}" onclick="setCombo('standard')">All games</button><button class="${cat === "combined" ? "on" : ""}" onclick="setCombo('combined')">Sure things + dips</button></div>`;
 function topCombosView() {
   const T = S.B.topCombos || {};
-  let h = `<div class="ptitle">Combos</div><div class="psub">Top picks · this week and next week</div>${comboTabs("top")}${comboWarn()}<div class="row" style="margin:6px 0;flex-wrap:wrap"><button class="btn pri" onclick="buildGrade('A')">${grd("A", 1)}Combo of all A picks →</button><button class="btn pri" onclick="buildGrade('AB')">${grd("A", 1)}${grd("B", 1)}Best A + B combo →</button></div>`;
+  let h = `<div class="ptitle">Combos</div><div class="psub">Top picks · this week and next week</div>${comboTabs("top")}${comboWarn()}<div class="row" style="margin:6px 0;flex-wrap:wrap"><button class="btn pri" onclick="buildGrade('A')">${grd("A", 1)}Combo of all A picks →</button><button class="btn pri" onclick="buildGrade('AB')">${grd("A", 1)}${grd("B", 1)}Combo of all A + B picks →</button></div>`;
   const sec = (w, title, early) => {
     const x = T[w] || {};
     h += `<h2>${title} · 3 under ${T.cheapMax || 10}¢</h2><div class="small muted" style="margin:-4px 0 8px">Best chance to hit for under ${T.cheapMax || 10}¢, using as few of the same games as possible. Built mostly from favourites (they've been slightly underpriced); an underdog only when we expect it to win.${early ? " Early prices: news can change these." : ""}</div>`;
-    h += (x.cheap || []).length ? x.cheap.map(topCard).join("") : NOREC(`${x.legs || 0} teams with prices`);
+    h += (x.cheap || []).length ? x.cheap.slice().sort(comboRank).map(topCard).join("") : NOREC(`${x.legs || 0} teams with prices`);
     h += `<h2>${title} · best value + chance</h2><div class="small muted" style="margin:-4px 0 8px">Any price: the best mix of our win chance and what it costs.</div>`;
-    h += (x.value || []).length ? x.value.map(topCard).join("") : NOREC();
+    h += (x.value || []).length ? x.value.slice().sort(comboRank).map(topCard).join("") : NOREC();
   };
   sec("thisWeek", "This week");
   sec("nextWeek", "Next week (early)", true);
