@@ -1,13 +1,13 @@
 {
  "espn": {
   "ok": true,
-  "lastOk": "2026-11-24T13:29:35Z",
+  "lastOk": "2026-11-24T13:39:41Z",
   "note": "",
   "fails": 0
  },
  "kalshi": {
   "ok": true,
-  "lastOk": "2026-11-24T13:29:34Z",
+  "lastOk": "2026-11-24T13:39:39Z",
   "note": "",
   "fails": 0,
   "lastFail": "2026-11-23T02:19:30Z",
@@ -23,8 +23,8 @@
  },
  "nflverse": {
   "ok": true,
-  "lastOk": "2026-11-23T13:39:03Z",
-  "note": "stats_player_week_2026.csv.gz",
+  "lastOk": "2026-11-24T13:39:41Z",
+  "note": "games.csv",
   "fails": 0
  },
  "cbs-experts": {
