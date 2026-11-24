@@ -789,19 +789,28 @@ function buildLegs(gl) {
 }
 window.buildWeek = w => { S.bld = { week: w, sel: {} }; lsSet("bld", S.bld); render(); };
 window.buildTap = (gid, team) => { const s = S.bld.sel; s[gid] === team ? delete s[gid] : s[gid] = team; lsSet("bld", S.bld); render(); };
-// Rick 2026-11-24: one tap puts every A-graded team (75%+ to win) into the combo
-window.buildAllA = () => {
+// Rick 2026-11-24: one-tap combos. "A" = every A-graded team (75%+ to win).
+// "AB" = best A + B combo: A and B teams (60%+) whose price is at or below our chance (not overpriced);
+// if fewer than 2 qualify, the 3 A/B teams closest to a fair price.
+function gradePick(pool, mode) {
+  if (mode === "A") return pool.filter(l => gradeOf(l.est) === "A");
+  const ab = pool.filter(l => ["A", "B"].includes(gradeOf(l.est)));
+  const val = ab.filter(l => l.est >= l.price);
+  return val.length >= 2 ? val : ab.sort((x, y) => (x.price - x.est) - (y.price - y.est) || y.est - x.est).slice(0, 3);
+}
+window.buildGrade = mode => {
   S.bld = S.bld || lsGet("bld") || { week: "thisWeek", sel: {} };
-  const isA = l => gradeOf(l.est) === "A";
-  let pool = buildLegs(S.bld.week === "nextWeek" ? S.B.nextWeek : S.B.games);
-  if (!pool.some(isA)) {   // none left this week (or next): use the other week if it has some
-    const other = S.bld.week === "nextWeek" ? "thisWeek" : "nextWeek", op = buildLegs(other === "nextWeek" ? S.B.nextWeek : S.B.games);
-    if (op.some(isA)) { S.bld.week = other; pool = op; }
+  const legsOf = w => buildLegs(w === "nextWeek" ? S.B.nextWeek : S.B.games);
+  let pick = gradePick(legsOf(S.bld.week), mode);
+  if (pick.length < 2) {   // none left this week (or next): use the other week if it has some
+    const other = S.bld.week === "nextWeek" ? "thisWeek" : "nextWeek", op = gradePick(legsOf(other), mode);
+    if (op.length >= 2) { S.bld.week = other; pick = op; }
   }
   S.bld.sel = {};
-  for (const l of pool) if (gradeOf(l.est) === "A") S.bld.sel[l.gameId] = l.team;
+  for (const l of pick) S.bld.sel[l.gameId] = l.team;
   lsSet("bld", S.bld); S.ccat = "build"; render(); window.scrollTo(0, 0);
 };
+window.buildAllA = () => buildGrade("A");
 window.buildClear = () => { S.bld.sel = {}; lsSet("bld", S.bld); render(); };
 window.buildSwap = (gid, ngid, team) => { delete S.bld.sel[gid]; S.bld.sel[ngid] = team; lsSet("bld", S.bld); render(); };
 function buildView() {
@@ -814,8 +823,8 @@ function buildView() {
     <div class="ctabs" style="margin-top:6px"><button class="${B.week === "thisWeek" ? "on" : ""}" onclick="buildWeek('thisWeek')">This week</button><button class="${B.week === "nextWeek" ? "on" : ""}" onclick="buildWeek('nextWeek')">Next week (early)</button></div>`;
   h += buildAnalysis(legs, pool);
   const games = (gl || []).filter(g => pool.some(l => l.gameId === g.id));
-  const nA = pool.filter(l => gradeOf(l.est) === "A").length;
-  h += `<div class="row" style="margin:10px 0 2px"><button class="btn pri" onclick="buildAllA()"${nA ? "" : " disabled"}>${grd("A", 1)}Select all A picks (${nA})</button></div>${nA ? "" : `<div class="tiny muted">No team is graded A ${B.week === "nextWeek" ? "next week" : "in the games left this week"}.</div>`}`;
+  const nA = gradePick(pool, "A").length, nAB = gradePick(pool, "AB").length;
+  h += `<div class="row" style="margin:10px 0 2px;flex-wrap:wrap"><button class="btn pri" onclick="buildGrade('A')"${nA ? "" : " disabled"}>${grd("A", 1)}Select all A picks (${nA})</button><button class="btn pri" onclick="buildGrade('AB')"${nAB >= 2 ? "" : " disabled"}>${grd("A", 1)}${grd("B", 1)}Best A + B combo</button></div><div class="tiny muted">Best A + B = A and B teams priced at or below our chance (or the 3 closest to it).</div>${nA ? "" : `<div class="tiny muted">No team is graded A ${B.week === "nextWeek" ? "next week" : "in the games left this week"}.</div>`}`;
   h += `<h2>Pick teams <span class="cnt">${games.length}</span></h2>`;
   if (!games.length) return h + NOREC(B.week === "nextWeek" ? "Kalshi hasn't listed next week's games yet" : "No upcoming games with prices right now");
   const btn = (g, c) => {
@@ -880,7 +889,7 @@ function buildAnalysis(legs, pool) {
 const comboTabs = cat => `<div class="ctabs">${ctabTop()}<button class="${cat === "build" ? "on" : ""}" onclick="setCombo('build')">Build your own</button><button class="${cat === "standard" ? "on" : ""}" onclick="setCombo('standard')">All games</button><button class="${cat === "combined" ? "on" : ""}" onclick="setCombo('combined')">Sure things + dips</button></div>`;
 function topCombosView() {
   const T = S.B.topCombos || {};
-  let h = `<div class="ptitle">Combos</div><div class="psub">Top picks · this week and next week</div>${comboTabs("top")}${comboWarn()}<div class="row" style="margin:6px 0"><button class="btn pri" onclick="buildAllA()">${grd("A", 1)}Combo of all A picks →</button></div>`;
+  let h = `<div class="ptitle">Combos</div><div class="psub">Top picks · this week and next week</div>${comboTabs("top")}${comboWarn()}<div class="row" style="margin:6px 0;flex-wrap:wrap"><button class="btn pri" onclick="buildGrade('A')">${grd("A", 1)}Combo of all A picks →</button><button class="btn pri" onclick="buildGrade('AB')">${grd("A", 1)}${grd("B", 1)}Best A + B combo →</button></div>`;
   const sec = (w, title, early) => {
     const x = T[w] || {};
     h += `<h2>${title} · 3 under ${T.cheapMax || 10}¢</h2><div class="small muted" style="margin:-4px 0 8px">Best chance to hit for under ${T.cheapMax || 10}¢, using as few of the same games as possible. Built mostly from favourites (they've been slightly underpriced); an underdog only when we expect it to win.${early ? " Early prices: news can change these." : ""}</div>`;
