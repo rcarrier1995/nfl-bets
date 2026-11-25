@@ -479,3 +479,31 @@ def test_fpi_missing_stays_missing():
     g = {"state": "pre", "teams": {"away": {"team": "A", "price": 40}, "home": {"team": "B", "price": 60}}}
     FD.fpi_attach(g, {"predictor": {"homeTeam": {"gameProjection": "61.0"}}})   # away side missing
     assert g["teams"]["home"]["fpi"] is None and g["teams"]["away"]["fpi"] is None
+
+
+def test_sportsbook_mode():
+    """Sports Book mode: American odds -> implied %, Buy/Wait/Pass vs the book's odds, ESPN moneyline parse."""
+    from engine.board import espn_ml
+    assert M.american_imp(-150) == 60.0 and M.american_imp("+150") == 40.0 and M.american_imp(None) is None
+    assert M.american_from_p(60) == -150 and M.american_from_p(40) == 150
+    assert M.sb_classify(60, -150)["call"] == "Pass"          # fair == book: the vig makes it a Pass
+    assert M.sb_classify(60, 200)["call"] == "Value"          # 60% at +200 (33%)
+    w = M.sb_classify(50, 110)                                # 50% vs 47.6%... Pass; 58% vs 47.6 -> Wait
+    assert w["call"] == "Pass"
+    w = M.sb_classify(58, 110)
+    assert w["call"] == "Wait" and w["betAt"] >= 135
+    assert M.sb_classify(None, -110)["call"] == "Pass" and M.sb_classify(55, None)["imp"] is None
+    odds = {"moneyline": {"home": {"close": {"odds": "-141"}}, "away": {"close": {"odds": "+119"}}}}
+    assert espn_ml(odds) == {"home": -141, "away": 119}
+    assert espn_ml({}) == {}
+
+
+def test_consensus_best_price():
+    from engine.odds import consensus_from
+    ev = [{"home_team": "Denver Broncos", "away_team": "Las Vegas Raiders", "bookmakers": [
+        {"key": "draftkings", "title": "DraftKings", "markets": [{"key": "h2h", "outcomes": [
+            {"name": "Denver Broncos", "price": -200}, {"name": "Las Vegas Raiders", "price": 170}]}]},
+        {"key": "fanduel", "title": "FanDuel", "markets": [{"key": "h2h", "outcomes": [
+            {"name": "Denver Broncos", "price": -190}, {"name": "Las Vegas Raiders", "price": 160}]}]}]}]
+    b = consensus_from(ev)["LV@DEN"]["best"]
+    assert b["DEN"] == {"odds": -190, "book": "FanDuel"} and b["LV"] == {"odds": 170, "book": "DraftKings"}

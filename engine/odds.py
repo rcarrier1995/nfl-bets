@@ -54,6 +54,7 @@ def consensus_from(events):
         if not home or not away:
             continue
         ps, w, pin = [], [], False
+        best = {}   # Sports Book mode: the best real moneyline per team across the books, and where
         for bk in ev.get("bookmakers", []):
             m = next((m for m in bk.get("markets", []) if m.get("key") == "h2h"), None)
             if not m:
@@ -63,13 +64,16 @@ def consensus_from(events):
                 continue
             ph, pa = _imp(pr[home]), _imp(pr[away])
             ps.append(ph / (ph + pa))
+            for t in (home, away):
+                if t not in best or _imp(pr[t]) < _imp(best[t]["odds"]):
+                    best[t] = {"odds": int(round(float(pr[t]))), "book": bk.get("title") or bk.get("key")}
             sharp = bk.get("key") == "pinnacle"
             pin = pin or sharp
             w.append(2.0 if sharp else 1.0)
         if ps:
             out[f"{away}@{home}"] = {"pHome": round(sum(p * x for p, x in zip(ps, w)) / sum(w), 4),
                                      "books": len(ps), "pinnacle": pin, "kickoff": ev.get("commence_time"),
-                                     "pMin": round(min(ps), 4), "pMax": round(max(ps), 4)}
+                                     "pMin": round(min(ps), 4), "pMax": round(max(ps), 4), "best": best}
     return out
 
 

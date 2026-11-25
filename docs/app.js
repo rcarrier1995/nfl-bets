@@ -631,21 +631,23 @@ function h2hHist(g) {
 }
 function gameRow(g) {
   const a = g.teams.away, h = g.teams.home;
-  const best = [a, h].sort((x, y) => rank(callOf(y)) - rank(callOf(x)) || (y.edge ?? -99) - (x.edge ?? -99))[0];
+  const sb = SBM(), ed = c => (sb ? c.sb?.edge : c.edge) ?? -99;
+  const best = [a, h].sort((x, y) => rank(cOf(y)) - rank(cOf(x)) || ed(y) - ed(x))[0];
   const id = "g:" + g.id;
   if (g.state === "post") return finalLine(g);
   if (g.state === "in") return liveCard(g);
-  const bc = callOf(best);
+  const bc = cOf(best);
   const o = S.open.has(id);
-  const tm = c => { const p = c.fair; return `<div class="tm">${badge(c.team, "sm")}<span class="nm">${esc(c.name || c.team)}</span>${recOf(g, c.team) ? `<span class="rec">${esc(recOf(g, c.team))}</span>` : ""}<span class="sp"></span>${p != null ? `<span class="wpct">${Math.round(p)}%</span>${grd(gradeOf(p), 1)}` : ""}${c.price != null ? `<span class="wp">${ct(c.price)}</span>` : ""}</div>`; };
+  const tm = c => { const p = c.fair; return `<div class="tm">${badge(c.team, "sm")}<span class="nm">${esc(c.name || c.team)}</span>${recOf(g, c.team) ? `<span class="rec">${esc(recOf(g, c.team))}</span>` : ""}<span class="sp"></span>${p != null ? `<span class="wpct">${Math.round(p)}%</span>${grd(gradeOf(p), 1)}` : ""}${sb ? `<span class="wp">${am(c.sbOdds)}</span>` : c.price != null ? `<span class="wp">${ct(c.price)}</span>` : ""}</div>`; };
   const meta = [spreadTxt(g), expertsTxt(g)].filter(Boolean).join(" · ");
-  let row = `${tagBar(g, id, o)}<div class="grow g2" onclick="toggle('${id}')"><div class="ghead"><span class="kt">${soon(g.kickoff) || kick(g.kickoff)}</span><span class="sp"></span><span class="pill c-${bc}">${esc(best.team)} ${LBL(bc)}</span>${FCHEV}</div>${tm(a)}${tm(h)}${meta ? `<div class="tiny muted meta">${esc(meta)}</div>` : ""}${rowGap(g)}</div>`;
+  let row = `${tagBar(g, id, o)}<div class="grow g2" onclick="toggle('${id}')"><div class="ghead"><span class="kt">${soon(g.kickoff) || kick(g.kickoff)}</span><span class="sp"></span><span class="pill c-${bc}">${esc(best.team)} ${LBL(bc)}</span>${FCHEV}</div>${tm(a)}${tm(h)}${meta ? `<div class="tiny muted meta">${esc(meta)}</div>` : ""}${sb ? "" : rowGap(g)}</div>`;
   if (o) row += `<div class="card">${gameDetail(g)}</div>`;
   return row;
 }
 const rank = c => ({ Value: 3, Wait: 2, Sell: 2, Pass: 1 }[c] || 0);
 function gameDetail(g) {
-  return `<div class="teams2">${betCard(g.teams.away)}${betCard(g.teams.home)}</div>
+  const card = SBM() ? sbCard : betCard;
+  return `<div class="teams2">${card(g.teams.away)}${card(g.teams.home)}</div>
     ${h2hDetails(g, `${priceChart(g)}${injLine(g)}${wxLine(g)}${muLine(g)}${gradesBlock(g)}${gradeLines(g)}${sitLine(g)}${toLine(g)}${changesLine(g)}${gameCombosLine(g)}${h2hHist(g)}${expertsBlock(g)}`)}`;
 }
 function finalLine(g) {
@@ -673,6 +675,7 @@ function quarterTable(g, only) {
 function liveCard(g) {
   const id = "q:" + g.id;
   const tc = c => {
+    if (SBM()) return sbLiveTeam(c);
     const call = callOf(c);
     const ctx = (c.liveLines || []).filter(l => l.kind !== "to" && l.kind !== "pause");
     return `<div class="card bg-${call}" style="margin:6px 0">
@@ -933,8 +936,8 @@ function driveBox(g) {
 function filt(c) {
   const q = S.q.trim().toLowerCase();
   if (q && !(c.team.toLowerCase().includes(q) || (c.name || "").toLowerCase().includes(q) || c.opp.toLowerCase().includes(q))) return false;
-  if (S.chip === "Value" && callOf(c) !== "Value") return false;
-  if (S.chip === "Wait" && callOf(c) !== "Wait") return false;
+  if (!SBM() && S.chip === "Value" && callOf(c) !== "Value") return false;
+  if (!SBM() && S.chip === "Wait" && callOf(c) !== "Wait") return false;
   return true;
 }
 function banners(kind) {
@@ -1002,7 +1005,8 @@ function live() {
   const al = S.B.alerts || [];
   let h = `<div class="ptitle">Live</div><div class="row"><div class="psub">${lv.length ? `${lv.length} game${lv.length > 1 ? "s" : ""} in progress` : `<b>No games live yet.</b> ${esc(nextKick() || "")}`}</div><span class="sp"></span><button class="btn" onclick="refreshNow(this)">↻ Refresh</button></div>
     ${lv.length ? `<div class="tiny muted" style="margin:-4px 0 8px">${S.scoreAt ? "Score: live from ESPN · " : ""}Prices &amp; calls: ${esc(ago(S.B.generatedAt))}, checked every 6 min</div>` : ""}` + banners();
-  if (al.length) h += `<h2>Live dip alerts</h2>${al.length ? al.map(a => `<div class="card bg-Value"><div class="row"><b>${esc(a.team)}</b><span class="small muted">${esc(a.game)}</span><span class="sp"></span><span class="hero" style="font-size:26px">${ct(a.price)}</span></div><div class="small"><b>+${ct(a.profit)} if it wins</b> · ${/^[ABCF]$/.test(a.confidence) ? `grade ${grd(a.confidence, 1)}` : esc(a.confidence)}</div><div class="why">${esc(a.why)}</div></div>`).join("") : NOREC(lv.length ? "" : S.B.nextCheck)}`;
+  if (SBM() && lv.length) h += `<div class="quiet small">Sports Book mode: live sportsbook odds aren't free, so there are no live calls here. Win chances and the drive tracker still update. Live calls are in Predictions mode.</div>`;
+  if (al.length && !SBM()) h += `<h2>Live dip alerts</h2>${al.length ? al.map(a => `<div class="card bg-Value"><div class="row"><b>${esc(a.team)}</b><span class="small muted">${esc(a.game)}</span><span class="sp"></span><span class="hero" style="font-size:26px">${ct(a.price)}</span></div><div class="small"><b>+${ct(a.profit)} if it wins</b> · ${/^[ABCF]$/.test(a.confidence) ? `grade ${grd(a.confidence, 1)}` : esc(a.confidence)}</div><div class="why">${esc(a.why)}</div></div>`).join("") : NOREC(lv.length ? "" : S.B.nextCheck)}`;
   if (lv.length) h += `<h2>Live games</h2>${lv.map(liveCard).join("")}`;
   if (fin.length) h += `<div style="margin-top:14px">${pastGames(fin.slice().sort(byKick), "live")}</div>`;
   return h;
@@ -1800,11 +1804,198 @@ function openModal(html) { $("#modalBody").innerHTML = html; foldify($("#modalBo
 function closeModal() { $("#modal").hidden = true; }
 window.closeModal = closeModal;
 
+// ---------- Sports Book mode (Rick 2026-11-25) ----------
+// Same win chance and grades; prices are the sportsbook's real moneyline (American odds). The odds include the
+// book's cut (~4-5% a game), so Buy/Wait/Pass compares our chance with the odds' implied chance (engine: model.sb_classify).
+// Parlays: the legs' decimal odds multiplied (no Robinhood combo markup). Never invented: no odds -> shown as missing.
+S.mode = localGet("mode") === "sb" ? "sb" : "pred";
+const SBM = () => S.mode === "sb";
+window.setMode = m => { if (S.mode === m) return; S.mode = m; localSet("mode", m); window.scrollTo(0, 0); render(); };
+const am = o => o == null ? "—" : Math.abs(o) === 100 ? "+100" : (o > 0 ? "+" : "−") + Math.abs(Math.round(o));
+const amDec = o => o > 0 ? 1 + o / 100 : 1 + 100 / -o;
+const decAm = d => d >= 2 ? Math.round((d - 1) * 100) : Math.round(-100 / (d - 1));
+const pAm = p => { if (p == null || p <= 0 || p >= 100) return null; const q = p / 100, o = q >= 0.5 ? -100 * q / (1 - q) : 100 * (1 - q) / q, r = Math.ceil(o / 5 - 1e-9) * 5; return Math.abs(r) >= 100 ? r : 100; };
+const usd = x => "$" + (x >= 100 ? Math.round(x).toLocaleString() : x.toFixed(2));
+const sbCall = c => c.sb?.call || "Pass";
+const cOf = c => SBM() ? sbCall(c) : callOf(c);
+const sbImp = c => c.sb?.imp ?? (c.sbOdds != null ? 100 / amDec(c.sbOdds) : null);
+function sbVerdict(c) {
+  const call = sbCall(c), f = c.fair, e = c.sb?.edge;
+  let t;
+  if (c.sbOdds == null) t = "No sportsbook odds yet";
+  else if (f == null) t = "Don't bet: no win chance yet";
+  else if (call === "Value") t = `Bet now: our chance beats the odds by ${Math.round(e)} points`;
+  else if (call === "Wait") t = `Wait: bet only at ${am(c.sb.betAt)} or better`;
+  else if (e != null && e < 1) t = `Don't bet: ${am(c.sbOdds)} pays less than a fair ${am(pAm(f))}`;
+  else t = `Don't bet: only ${Math.round(e)} points better than the odds`;
+  return `<div class="verdict v-${call}">${esc(t)}</div>`;
+}
+function sbBar(imp, fair) {
+  if (imp == null && fair == null) return "";
+  let h = `<div class="pbar">`;
+  if (imp != null && fair != null) h += `<div class="gap ${fair < imp ? "neg" : ""}" style="left:${Math.min(imp, fair)}%;width:${Math.abs(fair - imp)}%"></div>`;
+  if (imp != null) h += `<div class="mk" style="left:calc(${imp}% - 1px)" title="Odds say"></div>`;
+  if (fair != null) h += `<div class="mk f" style="left:calc(${fair}% - 1px)" title="Our chance"></div>`;
+  return h + `</div><div class="pkey">${imp != null ? `<span><i></i>odds say ${Math.round(imp)}%</span>` : ""}${fair != null ? `<span><i class="f"></i>our chance ${Math.round(fair)}%</span>` : ""}</div>`;
+}
+function sbCard(c, opts = {}) {
+  const call = sbCall(c), f = c.fair, id = "c:" + c.key, g = gameBy()[c.gameId], target = f != null ? pAm(f - 15) : null;
+  return `<div class="card bg-${call}" data-card="${esc(c.key)}">
+    <div class="row">${badge(c.team)}<div style="min-width:0"><b>${esc(c.name || c.team)}</b>${recOf(g, c.team) ? ` <span class="rec">${esc(recOf(g, c.team))}</span>` : ""}${opts.vs ? `<div class="tiny muted">vs ${esc(c.opp)}</div>` : ""}</div><span class="sp"></span>${grd(gradeOf(f))}<span class="pill c-${call}">${call === "Wait" ? "Wait for better odds" : LBL(call)}</span></div>
+    ${sbVerdict(c)}
+    <div class="row" style="margin-top:12px"><span class="hero">${am(c.sbOdds)}</span><span class="sp"></span><span class="small muted">${esc(c.sbBook || "")}</span></div>
+    <div class="sub">${c.sbOdds != null ? `<b>$10 wins ${usd(10 * (amDec(c.sbOdds) - 1))}</b>` : "No odds"}${f != null ? ` · fair odds ${am(pAm(f))}` : ""}</div>
+    ${sbBar(sbImp(c), f)}
+    ${f != null ? `<div class="small muted" style="margin-top:6px">Win chance ${Math.round(f)}% · grade ${gradeOf(f)} picks won ${GRADE_TESTED[gradeOf(f)]}% in testing${call === "Pass" && target != null && target > 0 && c.sbOdds != null && target > c.sbOdds ? ` · a Buy at ${am(target)} or longer` : ""}</div>` : ""}
+    ${feedLines(c)}
+    <div class="why u" onclick="toggle('${esc(id)}')">Details</div>
+    ${S.open.has(id) ? cardMore(c) : ""}
+  </div>`;
+}
+function sbSource() {
+  const bk = [...new Set((S.B.calls || []).filter(c => c.state === "pre" && c.sbBook).map(c => c.sbBook))];
+  const src = !bk.length ? "no sportsbook odds yet" : bk.length === 1 ? `${bk[0]} odds` : `best odds across ${bk.length} books`;
+  return `<div class="tiny muted" style="margin:-2px 0 8px">Sports Book mode · ${esc(src)}. Same win chances; the odds include the book's cut (about 4–5%), so fewer games clear the bar.</div>`;
+}
+function sbPregame() {
+  const pre = S.B.calls.filter(c => c.state === "pre");
+  const vw = pre.filter(c => ["Value", "Wait"].includes(sbCall(c))).filter(filt).sort((a, b) => rank(sbCall(b)) - rank(sbCall(a)) || b.sb.edge - a.sb.edge);
+  const nV = vw.filter(c => sbCall(c) === "Value").length, nW = vw.length - nV;
+  const closest = pre.filter(c => c.sb?.edge != null).sort((a, b) => b.sb.edge - a.sb.edge)[0];
+  const hint = closest ? `Closest: ${closest.team} at ${am(closest.sbOdds)} — it would need about ${am(pAm(closest.fair - 15))} to be a Buy.` : "";
+  let h = `<div class="ptitle">Pregame</div>${sbSource()}`;
+  if (vw.length) h += `<div class="stats"><div class="stat"><b class="c-Value">${nV}</b><span>Bet now</span></div><div class="stat"><b class="c-Wait">${nW}</b><span>Wait for better odds</span></div><div class="stat"><b>${S.B.games.filter(g => g.state !== "post").length}</b><span>Games left</span></div></div>`;
+  else h += `<div class="quiet"><b>Nothing to bet right now.</b> <span class="muted">${esc(hint)}</span></div>`;
+  h += `<div class="searchw">${ic("search")}<input class="search" id="q" placeholder="Search team" value="${esc(S.q)}"></div>`;
+  const picks = vw.length ? `<h2>Best bets</h2>${vw.map(c => sbCard(c, { vs: 1 })).join("")}` : "";
+  const games = S.B.games.filter(g => filt(g.teams.away) || filt(g.teams.home) || !S.q);
+  const up = games.filter(g => g.state === "pre").sort(byKick), lvg = games.filter(g => g.state === "in").sort(byKick), fin = games.filter(g => g.state === "post").sort(byKick);
+  const nw = (S.B.nextWeek || []).filter(g => filt(g.teams.away) || filt(g.teams.home) || !S.q);
+  const gamesH = `<h2>All games this week <span class="cnt">${games.length}</span></h2>${gradeKey()}${games.length ? `${lvg.map(gameRow).join("")}${up.length ? `<div class="glist${vw.length ? "" : " wide"}">${up.map(g => `<div class="gitem${S.open.has("g:" + g.id) ? " open" : ""}">${gameRow(g)}</div>`).join("")}</div>` : ""}${pastGames(fin, "pre")}` : NOREC()}`
+    + `<h2 data-fold="closed">Next week (early) <span class="cnt">${nw.length}</span></h2>${nw.length ? `<div class="tiny muted" style="margin:-4px 0 8px">Early odds: injury news can still move these.</div><div class="glist">${nw.map(gameRow).join("")}</div>` : NOREC("No odds for next week's games yet")}`;
+  return vw.length ? `${h}<div class="cols"><div class="colR">${picks}</div><div class="colL">${gamesH}</div></div>` : h + gamesH;
+}
+function sbLiveTeam(c) {
+  const f = c.liveFair ?? c.fair;
+  return `<div class="card" style="margin:6px 0"><div class="row">${badge(c.team, "sm")}<b>${esc(c.team)}</b><span class="sp"></span>${f != null ? `<span class="wpct">${pct(f)}</span>${grd(gradeOf(f), 1)}` : ""}</div>
+    <div class="tiny muted" style="margin-top:6px">Pregame odds ${am(c.sbOdds)}${c.sbBook ? ` (${esc(c.sbBook)})` : ""} · pregame call ${esc(LBL(sbCall(c)))}</div>${liveInjLines({ ...c, liveLines: (c.liveLines || []).filter(l => l.kind === "inj") })}</div>`;
+}
+// ---- sportsbook parlays ----
+function sbLegs(gl) {
+  const out = [];
+  for (const g of gl || []) {
+    if (g.state !== "pre") continue;
+    for (const c of [g.teams.away, g.teams.home]) {
+      if (c.sbOdds == null || c.fair == null) continue;
+      out.push({ gameId: g.id, team: c.team, opp: c.opp, odds: c.sbOdds, dec: amDec(c.sbOdds), est: c.fair, call: sbCall(c), book: c.sbBook });
+    }
+  }
+  return out;
+}
+function parlay(legs) {
+  const hit = legs.reduce((a, l) => a * l.est / 100, 1) * 100, dec = legs.reduce((a, l) => a * l.dec, 1);
+  return { legs, size: legs.length, hit, dec, odds: decAm(dec), imp: 100 / dec, fairOdds: pAm(hit), edge: hit - 100 / dec };
+}
+const sbRank = (x, y) => (y.hit - x.hit) || (y.dec - x.dec);
+const sbLegRank = (x, y) => (y.est - x.est) || (y.dec - x.dec);
+// every set of favourites (one team per game, our chance 50%+), then 3 picks that share as few games as possible
+function sbTop(gl) {
+  const fav = sbLegs(gl).filter(l => l.est >= 50).sort(sbLegRank).slice(0, 16);
+  const all = [];
+  for (let m = 1; m < (1 << fav.length); m++) {
+    const legs = fav.filter((_, i) => m >> i & 1);
+    if (legs.length >= 2) all.push(parlay(legs));
+  }
+  const pick3 = list => {
+    const out = [];
+    while (out.length < 3 && list.length) {
+      const used = new Set(out.flatMap(p => p.legs.map(l => l.gameId)));
+      const ov = p => p.legs.filter(l => used.has(l.gameId)).length;
+      const pool = list.filter(p => p.hit >= list[0].hit * 0.6 && !out.includes(p));
+      if (!pool.length) break;
+      const best = pool.reduce((b, p) => ov(p) < ov(b) || (ov(p) === ov(b) && sbRank(p, b) < 0) ? p : b);
+      best.reused = ov(best); out.push(best);
+      list = list.filter(p => p !== best);
+    }
+    return out.sort(sbRank);
+  };
+  const long = pick3(all.filter(p => p.dec >= 10).sort(sbRank));
+  const val = pick3(all.slice().sort((x, y) => (y.edge + 0.15 * y.hit) - (x.edge + 0.15 * x.hit)));
+  return { long, val, n: fav.length };
+}
+const sbBig3 = p => `<div class="big3"><div><b>${pct(p.hit)}</b><span>chance it hits</span></div><div><b>${am(p.odds)}</b><span>pays</span></div><div><b>${usd(5 * (p.dec - 1))}</b><span>$5 wins</span></div></div>`;
+const sbPrice = p => p.edge >= 3 ? `<span style="color:var(--good)">Good price: pays ${am(p.odds)}, fair is ${am(p.fairOdds)}</span>` : p.edge >= 0 ? `About a fair price: pays ${am(p.odds)}, fair is ${am(p.fairOdds)}` : `<span style="color:var(--bad)">Pays ${am(p.odds)}, less than a fair ${am(p.fairOdds)}</span>`;
+const sbLegHead = `<div class="leghead"><span>Team</span><span class="sp"></span><span>Our chance</span><span>Odds</span></div>`;
+const sbLegRow = (l, x = "") => `<div class="leg">${badge(l.team, "sm")}<div style="min-width:0"><b>${esc(l.team)}</b> <span class="small muted">vs ${esc(l.opp)}</span></div><span class="sp"></span><span class="small muted">${Math.round(l.est)}%</span>${grd(gradeOf(l.est), 1)}<span class="p">${am(l.odds)}</span>${x}</div>`;
+function sbTopCard(p, i, sk) {
+  const id = `sbc:${sk}:${i}`, o = foldOpen(id, i === 0);
+  const head = `<button class="cardh" onclick="foldCard('${id}', ${i === 0})" aria-expanded="${o}"><b>#${i + 1} · ${p.size} teams</b><span class="sp"></span>${hitChip(p.hit)}<span class="fchev"></span></button>`;
+  const strip = `<div class="lstrip">${p.legs.slice().sort(sbLegRank).map(l => `<span>${badge(l.team, "sm")}${esc(l.team)}</span>`).join("")}</div>`;
+  if (!o) return `<div class="card folded">${head}${sbBig3(p)}${strip}<button class="showmore" onclick="foldCard('${id}', ${i === 0})">Show teams &amp; details</button></div>`;
+  return `<div class="card open">${head}${sbBig3(p)}<div class="tiny muted">${sbPrice(p)}${p.reused ? ` · shares ${p.reused} game${p.reused > 1 ? "s" : ""} with a pick above` : ""}</div>
+    <div style="margin-top:8px">${sbLegHead}${p.legs.slice().sort(sbLegRank).map(l => sbLegRow(l)).join("")}</div></div>`;
+}
+const sbNote = () => `<details class="quiet small warnfold"><summary><b>How parlays are priced here</b></summary><div class="muted" style="margin-top:6px">Each team's sportsbook odds multiplied, one team per game (same-game parlays are priced differently). Some books shave parlay payouts: check your bet slip before you bet.</div></details>${comboKey()}`;
+const sbTabs = cat => `<div class="ctabs"><button class="${cat === "top" ? "on" : ""}" onclick="setCombo('top')">Top parlays</button><button class="${cat === "build" ? "on" : ""}" onclick="setCombo('build')">Build your own</button></div>`;
+const sbGradeBtns = () => `<div class="row gbtns" style="margin:6px 0;flex-wrap:wrap"><button class="btn pri" onclick="sbGrade('A+')">${grd("A+", 1)}A+ parlay (3+ teams) →</button><button class="btn pri" onclick="sbGrade('A')">${grd("A", 1)}Parlay of all A picks →</button><button class="btn pri" onclick="sbGrade('AB')">${grd("A", 1)}${grd("B", 1)}Parlay of all A + B picks →</button></div>`;
+function sbCombosView() {
+  const cat = S.ccat === "build" ? "build" : "top";
+  if (cat === "build") return sbBuildView();
+  let h = `<div class="ptitle">Parlays</div><div class="psub">Sports Book · this week and next week</div>${sbTabs("top")}${sbNote()}${sbGradeBtns()}`;
+  for (const [w, title, early] of [["games", "This week", 0], ["nextWeek", "Next week (early)", 1]]) {
+    const T = sbTop(S.B[w]);
+    h += `<h2${early ? ' data-fold="closed"' : ""}>${title} · 3 paying +900 or more</h2><div class="small muted" style="margin:-4px 0 8px">Best chance to hit for a $5 bonus bet that pays 10× or more, from teams we expect to win, sharing as few games as possible.${early ? " Early odds: news can change these." : ""}</div>`;
+    h += T.long.length ? T.long.map((p, i) => sbTopCard(p, i, w + "l")).join("") : NOREC(`${T.n} favourites with odds`);
+    h += `<h2${early ? ' data-fold="closed"' : ""}>${title} · best value + chance</h2><div class="small muted" style="margin:-4px 0 8px">Any payout: the best mix of our chance and what the odds pay.</div>`;
+    h += T.val.length ? T.val.map((p, i) => sbTopCard(p, i, w + "v")).join("") : NOREC();
+  }
+  return h + `<div class="tiny muted" style="margin-top:8px">Info only — check each team's Buy/Wait/Pass. Our chance = our fair value.</div>`;
+}
+window.sbGrade = mode => {
+  S.sbb = S.sbb || lsGet("sbBld") || { week: "games", sel: {} };
+  const ok = mode === "A+" ? ["A+"] : mode === "A" ? ["A+", "A"] : ["A+", "A", "B"];
+  const legsOf = w => sbLegs(S.B[w]).sort(sbLegRank);
+  const pickOf = w => legsOf(w).filter(l => ok.includes(gradeOf(l.est)));
+  let pick = pickOf(S.sbb.week);
+  if (pick.length < 2) { const other = S.sbb.week === "nextWeek" ? "games" : "nextWeek", op = pickOf(other); if (op.length > pick.length) { S.sbb.week = other; pick = op; } }
+  if (mode === "A+" && pick.length < 3) { const used = new Set(pick.map(l => l.gameId)); for (const l of legsOf(S.sbb.week)) { if (pick.length >= 3) break; if (!used.has(l.gameId)) { pick.push(l); used.add(l.gameId); } } }
+  S.sbb.sel = {}; for (const l of pick) S.sbb.sel[l.gameId] = l.team;
+  lsSet("sbBld", S.sbb); S.ccat = "build"; render(); window.scrollTo(0, 0);
+};
+window.sbWeek = w => { S.sbb = { week: w, sel: {} }; lsSet("sbBld", S.sbb); render(); };
+window.sbTap = (gid, team) => { const s = S.sbb.sel; s[gid] === team ? delete s[gid] : s[gid] = team; lsSet("sbBld", S.sbb); render(); };
+window.sbClear = () => { S.sbb.sel = {}; lsSet("sbBld", S.sbb); render(); };
+function sbBuildView() {
+  S.sbb = S.sbb || lsGet("sbBld") || { week: "games", sel: {} };
+  const B = S.sbb, gl = S.B[B.week] || [], pool = sbLegs(gl), by = Object.fromEntries(pool.map(l => [l.gameId + "|" + l.team, l]));
+  for (const gid of Object.keys(B.sel)) if (!by[gid + "|" + B.sel[gid]]) delete B.sel[gid];
+  const legs = Object.entries(B.sel).map(([gid, t]) => by[gid + "|" + t]).sort(sbLegRank);
+  let h = `<div class="ptitle">Parlays</div><div class="psub">Build your own · tap a team in each game you want</div>${sbTabs("build")}${sbNote()}
+    <div class="ctabs" style="margin-top:6px"><button class="${B.week === "games" ? "on" : ""}" onclick="sbWeek('games')">This week</button><button class="${B.week === "nextWeek" ? "on" : ""}" onclick="sbWeek('nextWeek')">Next week (early)</button></div>`;
+  if (legs.length < 2) h += `<div class="card"><div class="small"><b>${legs.length ? "Pick at least one more team." : "Tap teams below to build a parlay."}</b> <span class="muted">We'll show the chance it hits, what it pays and what $5 wins.</span></div></div>`;
+  else {
+    const p = parlay(legs), weak = legs.filter(l => l.est < 45);
+    h += `<div class="card"><div class="row"><b>Your parlay · ${legs.length} teams</b><span class="sp"></span>${hitChip(p.hit)}</div>${sbBig3(p)}<div class="tiny muted">${sbPrice(p)}</div>
+      <div style="margin-top:8px">${sbLegHead}${legs.map(l => sbLegRow(l, `<button class="x" onclick="sbTap('${esc(l.gameId)}','${esc(l.team)}')" aria-label="Remove">✕</button>`)).join("")}</div>
+      ${weak.length ? `<div class="small" style="margin-top:8px"><b>Watch out</b>${weak.map(l => `<div class="tiny" style="margin-top:3px">⚠ <b>${esc(l.team)}</b> ${Math.round(l.est)}%: weak leg, one loss sinks the parlay</div>`).join("")}</div>` : `<div class="small" style="margin-top:8px;color:var(--good)">No weak legs: every team is 45%+ to win.</div>`}
+      <div class="row" style="margin-top:10px"><button class="btn" onclick="sbClear()">Clear</button></div></div>`;
+  }
+  const ok = m => pool.filter(l => m.includes(gradeOf(l.est))).length, nAp = ok(["A+"]), nA = ok(["A+", "A"]), nAB = ok(["A+", "A", "B"]);
+  h += `<div class="row" style="margin:10px 0 2px;flex-wrap:wrap"><button class="btn pri" onclick="sbGrade('A+')"${nAp ? "" : " disabled"}>${grd("A+", 1)}A+ parlay (${nAp} A+${nAp < 3 ? " + best" : ""})</button><button class="btn pri" onclick="sbGrade('A')"${nA ? "" : " disabled"}>${grd("A", 1)}Select all A picks (${nA})</button><button class="btn pri" onclick="sbGrade('AB')"${nAB >= 2 ? "" : " disabled"}>${grd("A", 1)}${grd("B", 1)}All A + B picks (${nAB})</button></div><div class="tiny muted">Teams are listed best to worst. Tap ✕ on the weakest to raise the chance it hits.</div>`;
+  const best = g => Math.max(...pool.filter(l => l.gameId === g.id).map(l => l.est));
+  const games = gl.filter(g => pool.some(l => l.gameId === g.id)).sort((x, y) => best(y) - best(x));
+  h += `<h2>Pick teams <span class="cnt">${games.length}</span></h2>`;
+  if (!games.length) return h + NOREC(B.week === "nextWeek" ? "No odds for next week's games yet" : "No upcoming games with odds right now");
+  const btn = (g, c) => { const l = by[g.id + "|" + c.team]; if (!l) return `<button class="bt" disabled>${esc(c.team)}<span>no odds</span></button>`;
+    return `<button class="bt ${B.sel[g.id] === c.team ? "on" : ""}" onclick="sbTap('${esc(g.id)}','${esc(c.team)}')">${badge(c.team, "sm")}<b>${esc(c.team)}</b><span>${am(l.odds)} · wins ${Math.round(l.est)}% ${grd(gradeOf(l.est), 1)}</span></button>`; };
+  return h + `<div class="card" style="padding:8px">${games.map(g => `<div class="bpair"><div class="tiny muted">${esc(g.short || "")} · ${esc(kick(g.kickoff))}</div><div class="brow">${btn(g, g.teams.away)}${btn(g, g.teams.home)}</div></div>`).join("")}</div>`;
+}
+
 function render() {
   if (!S.B) return;
   S.buy = {}; S.buyN = 0;
   settleBets();
-  $("#weekLabel").textContent = `NFL Bets · Week ${S.B.week}`;
+  $("#weekLabel").innerHTML = `<span class="nb">NFL Bets · </span>Week ${esc(S.B.week)}`;
   const age = (Date.now() - Date.parse(S.B.generatedAt)) / 60000;
   $("#updated").textContent = `Updated ${ago(S.B.generatedAt)}`;
   $("#dot").classList.toggle("stale", age > 12);
@@ -1818,7 +2009,8 @@ function render() {
   const wid = "weeklyban";
   $("#weeklyBanner").innerHTML = wb ? `<div class="banner"><span class="u" onclick="toggle('${wid}')">${esc(wb.label)}${weekPnl(wb.week)}</span>${S.open.has(wid) ? `<div class="small" style="margin-top:6px">${esc(wb.lesson)}<br>Brier ${wb.brier} · ${Object.entries(wb.categories || {}).map(([k, v]) => `${k} ${v}`).join(" · ")}</div>` : ""}</div>` : "";
   document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === S.tab));
-  const views = { pregame, live, combos: combosView, learning, setup };
+  const views = SBM() ? { pregame: sbPregame, live, combos: sbCombosView, learning, setup } : { pregame, live, combos: combosView, learning, setup };
+  document.querySelectorAll("#modeSw button").forEach(b => b.classList.toggle("on", b.dataset.mode === S.mode));
   const y = window.scrollY;
   const v = $("#view");
   v.innerHTML = views[S.tab]() + `<button class="sysbtn" onclick="systemModal()">System / Details</button>`;
@@ -1880,6 +2072,7 @@ async function load() {
 document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => { S.tab = b.dataset.tab; localSet("tab", S.tab); window.scrollTo(0, 0); render(); pollDrives(); });
 $("#gear").onclick = () => { S.tab = "setup"; document.querySelectorAll("#tabs button").forEach(b => b.classList.remove("on")); window.scrollTo(0, 0); render(); };
 $("#modalClose").onclick = closeModal;
+document.querySelectorAll("#modeSw button").forEach(b => b.onclick = () => setMode(b.dataset.mode));
 $("#modal").onclick = e => { if (e.target.id === "modal") closeModal(); };
 const th = localGet("theme"); if (th) document.documentElement.dataset.theme = th;   // default: dark
 load();
