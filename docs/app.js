@@ -243,7 +243,7 @@ function betCard(c, opts = {}) {
     ${priceBar(c.price, fair, c.dayLo, c.dayHi)}
     ${fair != null ? `<div class="small muted" style="margin-top:6px">Win chance ${Math.round(fair)}% · grade ${gradeOf(fair)} picks won ${GRADE_TESTED[gradeOf(fair)]}% in testing</div>` : ""}
     ${tags.join("")}
-    ${gapLine(c)}${thinLine(c)}
+    ${gapLine(c)}${thinLine(c)}${feedLines(c)}
     ${closeTag(c)}
     ${call !== "Pass" && call !== "Sell" ? bestLine(c) : ""}
     ${c.state !== "post" ? boughtBox({ kind: "single", team: c.team, game: `${c.team} vs ${c.opp}`, gameId: c.gameId, grade: gradeOf(fair), call: LBL(call), price: c.price }) : ""}
@@ -259,6 +259,31 @@ function gapLine(c) {
 }
 // few trades or a wide buy/sell gap (idea 10): shown only when it applies
 const thinLine = c => c.thin ? `<div class="info warn">${esc(c.thin)}</div>` : "";
+// extra free feeds (2026-11-25), info only, each shown only when it matters
+function practiceKey(c) {   // a QB on the report, or a starter who missed the last practice
+  return (c.practice || []).filter(p => p.qb || p.dnp).slice(0, 2);
+}
+function feedLines(c) {
+  if (c.state === "post") return "";
+  let h = "";
+  if (c.polyLine) h += `<div class="info">${esc(c.polyLine)}</div>`;
+  if (c.moneyLine) h += `<div class="info">${esc(c.moneyLine)}</div>`;
+  const n = (c.news || [])[0];
+  if (n && c.state === "pre") h += `<div class="info">📰 ${esc(ago(n.at))}: ${esc(n.headline)}</div>`;
+  const p = c.state === "pre" ? practiceKey(c) : [];
+  if (p.length) h += `<div class="info warn">Practice: ${p.map(x => `${esc(x.pos)} ${esc(x.player)} ${esc(x.line)}`).join(" · ")}</div>`;
+  return h;
+}
+// Details: the second opinions and the full practice list; a feed that failed shows "unavailable"
+function feedInfo(c) {
+  const fpi = c.fpi != null ? `ESPN FPI ${Math.round(c.fpi)}%${c.fpiNote ? ` <span class="muted">(${esc(c.fpiNote)})</span>` : ""}` : `ESPN FPI <span class="muted">unavailable</span>`;
+  const poly = c.poly ? `Polymarket ${ct(c.poly.ask)}` : `Polymarket <span class="muted">unavailable</span>`;
+  let h = `<div class="small" style="margin:4px 0"><b>Second opinions:</b> ${fpi} · ${poly} <span class="muted">· info only</span></div>`;
+  if (c.practice == null) h += `<div class="small muted" style="margin:4px 0">Practice report unavailable</div>`;
+  else if (c.practice.length) h += `<div class="small" style="margin:4px 0"><b>Practice (starters):</b><br>${c.practice.map(p => `${esc(p.pos)} ${esc(p.player)} — ${esc(p.line)}${p.injury ? ` <span class="muted">(${esc(p.injury)})</span>` : ""}`).join("<br>")}</div>`;
+  if ((c.news || []).length) h += `<div class="small" style="margin:4px 0"><b>News:</b><br>${c.news.map(n => `${esc(ago(n.at))}: ${esc(n.headline)}`).join("<br>")}</div>`;
+  return h;
+}
 // this team's own info only: its injuries, its side of the matchup, its grades
 function teamInfo(c) {
   const g = gameBy()[c.gameId];
@@ -271,6 +296,7 @@ function teamInfo(c) {
   const ch = teamChips(g, t);
   if (ch) h += `<div class="small" style="margin:6px 0 2px"><b>Grades</b> <span class="muted">· last 17 games · #1 best, #32 worst</span></div>${ch}`;
   h += formInfo(g, t);
+  h += feedInfo(c);
   return h;
 }
 // form, coach style and backup QB (context only: none beat the price in testing)
@@ -625,7 +651,7 @@ function liveCard(g) {
       ${verdict(c)}
       <div class="row small" style="margin-top:8px"><span>${fairPay(c, c.liveFair, call === "Wait" ? c.liveBuyAt : c.price, call)}</span><span class="sp"></span>${move(c)}</div>
       ${priceBar(c.price, c.liveFair, c.dayLo, c.dayHi, c.pregamePrice)}
-      ${thinLine(c)}
+      ${thinLine(c)}${feedLines(c)}
       ${closeTag(c)}
       ${boughtBox({ kind: "single", team: c.team, game: `${c.team} vs ${c.opp}`, gameId: c.gameId, grade: gradeOf(c.liveFair ?? c.fair), call: LBL(call), price: c.price })}
       ${c.dipLine && call !== "Pass" ? `<div class="note">${esc(c.dipLine.replace("Price dropped: now ", "Price fell to ").replace(", was ", " from "))}</div>` : ""}

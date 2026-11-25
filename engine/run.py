@@ -479,6 +479,8 @@ def tick(force=()):
                priority="high")
         vsent[k] = round(sl["bid"])
     news_alerts(board, rs, now)
+    from .feeds import feed_alerts
+    feed_alerts(board, rs, now, P.send)
     swing_alerts(board, rs, now)
     gap_alerts(board, rs)
     if len(vsent) > 400:
