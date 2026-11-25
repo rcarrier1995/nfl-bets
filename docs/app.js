@@ -258,7 +258,7 @@ function betCard(c, opts = {}) {
   if (c.price != null && c.price <= 10) tags.push(`<span class="tag look">longshot — cheap contracts lose most</span>`);
   const open = S.open.has(id);
   return `<div class="card bg-${call}" data-card="${esc(c.key)}">
-    <div class="row">${badge(c.team)}<div style="min-width:0"><b>${esc(c.name || c.team)}</b>${opts.vs ? `<div class="tiny muted">vs ${esc(c.opp)}</div>` : ""}</div><span class="sp"></span>${grd(gradeOf(fair))}<span class="pill c-${call}">${call === "Wait" ? "Wait for a dip" : LBL(call)}</span></div>
+    <div class="row">${badge(c.team)}<div style="min-width:0"><b>${esc(c.name || c.team)}</b>${recOf(gameBy()[c.gameId], c.team) ? ` <span class="rec">${esc(recOf(gameBy()[c.gameId], c.team))}</span>` : ""}${opts.vs ? `<div class="tiny muted">vs ${esc(c.opp)}</div>` : ""}</div><span class="sp"></span>${grd(gradeOf(fair))}<span class="pill c-${call}">${call === "Wait" ? "Wait for a dip" : LBL(call)}</span></div>
     ${verdict(c)}
     <div class="row" style="margin-top:12px"><span class="hero">${ct(c.price)}</span><span class="sp"></span><span class="small">${move(c)}</span></div>
     <div class="sub">${fairPay(c, fair, buy, call)}</div>
@@ -536,7 +536,11 @@ function expertsLine(g) {
   const txt = Object.entries(c).sort((a, b) => b[1] - a[1]).map(([t, n]) => `${t} ${n}`).join(" · ");
   return `<div class="tiny muted" style="margin-top:2px">Top ${e.top.length} experts: <b>${esc(txt)}</b></div>`;
 }
-const expertsTxt = g => { const e = g.experts; if (!e || !e.top?.length) return ""; const c = {}; for (const r of e.top) c[r.team] = (c[r.team] || 0) + 1; return "Experts: " + Object.entries(c).sort((a, b) => b[1] - a[1]).map(([t, n]) => e.top.length > 1 ? `${t} ${n}` : t).join(" · "); };
+// experts on the row (Rick 2026-11-25): only when most agree (75%+ of at least 3 experts on one team)
+const expertsTxt = g => { const e = g.experts; if (!e || !(e.n >= 3) || !e.count) return ""; const [t, c] = Object.entries(e.count).sort((a, b) => b[1] - a[1])[0] || []; return t && c / e.n >= 0.75 ? `Experts ${c}/${e.n} ${t}` : ""; };
+// underdog expert notes only when more than 3 experts pick that underdog (Rick 2026-11-25)
+const dogOK = g => ((g.experts?.count || {})[g.experts?.dog] || 0) > 3;
+const recOf = (g, t) => g?.form?.[t]?.record || ((S.B?.games || []).find(x => x.form?.[t]?.record)?.form[t].record) || "";
 // watch tags (combo study) + expert spots: one skinny banner at the top of the card, on that team's side.
 // Tags only — they never change the call. Tap the card for the why.
 // our confidence (win chance) for both teams, on every game row
@@ -574,6 +578,7 @@ function earlyValue(g) {
 function tagBar(g, id, open = true) {
   const items = { [g.away]: [], [g.home]: [] };
   for (const w of g.watch || []) {
+    if (w.tag === "Underdog experts pick" && !dogOK(g)) continue;
     const [pickT, why] = tagText(w, g);
     if (!items[pickT]) continue;
     const fade = w.kind === "fade";
@@ -581,7 +586,7 @@ function tagBar(g, id, open = true) {
   }
   const e = g.experts;
   if (e?.agree && items[e.agree]) items[e.agree].push(["exp", e.agree, `all ${e.n} experts like ${e.agree}`]);
-  if (e?.dogPicks?.length && items[e.dog]) items[e.dog].push(["exp", e.dog, `${e.dogPicks.map(lastName).join(", ")} pick${e.dogPicks.length > 1 ? "" : "s"} underdog ${e.dog}`]);
+  if (e?.dogPicks?.length && items[e.dog] && dogOK(g)) items[e.dog].push(["exp", e.dog, `${e.dogPicks.map(lastName).join(", ")} pick${e.dogPicks.length > 1 ? "" : "s"} underdog ${e.dog}`]);
   if (!items[g.away].length && !items[g.home].length) return "";
   let chips = items[g.away].concat(items[g.home]);
   const more = open ? 0 : chips.length - 1;
@@ -632,7 +637,7 @@ function gameRow(g) {
   if (g.state === "in") return liveCard(g);
   const bc = callOf(best);
   const o = S.open.has(id);
-  const tm = c => { const p = c.fair; return `<div class="tm">${badge(c.team, "sm")}<span class="nm">${esc(c.name || c.team)}</span><span class="sp"></span>${p != null ? `<span class="wpct">${Math.round(p)}%</span>${grd(gradeOf(p), 1)}` : ""}${c.price != null ? `<span class="wp">${ct(c.price)}</span>` : ""}</div>`; };
+  const tm = c => { const p = c.fair; return `<div class="tm">${badge(c.team, "sm")}<span class="nm">${esc(c.name || c.team)}</span>${recOf(g, c.team) ? `<span class="rec">${esc(recOf(g, c.team))}</span>` : ""}<span class="sp"></span>${p != null ? `<span class="wpct">${Math.round(p)}%</span>${grd(gradeOf(p), 1)}` : ""}${c.price != null ? `<span class="wp">${ct(c.price)}</span>` : ""}</div>`; };
   const meta = [spreadTxt(g), expertsTxt(g)].filter(Boolean).join(" · ");
   let row = `${tagBar(g, id, o)}<div class="grow g2" onclick="toggle('${id}')"><div class="ghead"><span class="kt">${soon(g.kickoff) || kick(g.kickoff)}</span><span class="sp"></span><span class="pill c-${bc}">${esc(best.team)} ${LBL(bc)}</span>${FCHEV}</div>${tm(a)}${tm(h)}${meta ? `<div class="tiny muted meta">${esc(meta)}</div>` : ""}${rowGap(g)}</div>`;
   if (o) row += `<div class="card">${gameDetail(g)}</div>`;
