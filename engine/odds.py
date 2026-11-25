@@ -1,9 +1,9 @@
 """Consensus moneyline from The Odds API (free tier, 500 credits/month).
 
 Switches on only when the ODDS_API_KEY secret exists; otherwise the app keeps using ESPN's
-single sportsbook line. One call = 1 credit (h2h, up to 10 named books). Refresh: every 3 h,
-every 45 min when a game kicks off within 3 h, never when fewer than 25 credits remain.
-About 300 calls a month. Results live in state/odds.json (committed, so usage survives runs).
+single sportsbook line. One call = 1 credit (h2h, up to 10 named books). Schedule: engine/quota.py
+(every 20 min while games are live, 30 min in the 2 h before kickoff, 9 AM + 6 PM CT otherwise, Refresh taps).
+About 320 calls a month plus taps; never when fewer than 25 credits remain. Results live in state/odds.json (committed, so usage survives runs).
 
 Each book's two moneylines are de-vigged; the consensus win chance is the average, with
 Pinnacle (the sharpest book) counted twice. It is turned into an equivalent home spread so the
@@ -23,6 +23,7 @@ FILE = os.path.join(C.STATE, "odds.json")
 URL = "https://api.the-odds-api.com/v4/sports/americanfootball_nfl/odds"
 BOOKS = "pinnacle,draftkings,fanduel,betmgm,caesars,espnbet,betrivers,fanatics,bovada,betonlineag"
 MIN_LEFT = 25
+LIVE_MIN, PRE_MIN = 20, 30     # minutes between pulls while games are live / in the 2 h before kickoff
 
 FULL = {"Arizona Cardinals": "ARI", "Atlanta Falcons": "ATL", "Baltimore Ravens": "BAL", "Buffalo Bills": "BUF",
         "Carolina Panthers": "CAR", "Chicago Bears": "CHI", "Cincinnati Bengals": "CIN", "Cleveland Browns": "CLE",
@@ -92,25 +93,24 @@ def _erfinv(x):
     return math.copysign(math.sqrt(math.sqrt(t * t - ln / a) - t), x)
 
 
-def _due(st, now, kickoffs):
-    last = st.get("fetchedAt")
+def _due(st, now, games):
+    """Quota plan in engine/quota.py: every 20 min while games are live, 30 min in the 2 h before a kickoff,
+    9 AM + 6 PM Central otherwise, a Refresh tap any time (30 min apart). Never when fewer than 25 credits remain."""
     if st.get("left") is not None and st["left"] < MIN_LEFT:
         return False
-    if not last:
-        return True
     from .board import parse_dt
-    age = now - parse_dt(last)
-    soon = any(k and timedelta(0) < k - now < timedelta(hours=3) for k in kickoffs)
-    return age >= (timedelta(minutes=45) if soon else timedelta(hours=3))
+    from . import quota as Q
+    last = parse_dt(st["fetchedAt"]) if st.get("fetchedAt") else None
+    return Q.due(last, now, games, LIVE_MIN, PRE_MIN)
 
 
-def refresh(kickoffs, now=None):
+def refresh(games, now=None):
     """Fetch if due and a key exists. Returns the consensus dict (possibly from the last fetch)."""
     now = now or now_utc()
     st = load_json(FILE, {}) or {}
     key = _key()
     st["enabled"] = bool(key)
-    if key and _due(st, now, kickoffs):
+    if key and _due(st, now, games):
         q = urllib.parse.urlencode({"apiKey": key, "markets": "h2h", "oddsFormat": "american", "bookmakers": BOOKS})
         try:
             req = urllib.request.Request(f"{URL}?{q}", headers={"User-Agent": "nfl-bets"})
@@ -131,4 +131,27 @@ def refresh(kickoffs, now=None):
     fa = parse_dt(st.get("fetchedAt")) if st.get("fetchedAt") else None
     if not fa or now - fa > timedelta(hours=12):
         return {}
-    return st.get("games") or {}
+    return {k: {**v, "at": st["fetchedAt"]} for k, v in (st.get("games") or {}).items()}
+
+
+def live_attach(g, cons, kickoff, now):
+    """Info only (live prices tested fair, 2026-11-25): while a game is on, show the sportsbooks' current
+    consensus next to the Robinhood price when they are 3c+ apart. Needs a pull made after kickoff, <25 min old."""
+    from .board import parse_dt
+    for side in ("away", "home"):
+        g["teams"][side]["liveBookLine"] = None
+    if g.get("state") != "in" or not kickoff:
+        return
+    cs = (cons or {}).get(f"{g['away']}@{g['home']}")
+    at = parse_dt(cs["at"]) if cs and cs.get("at") else None
+    if not at or at <= kickoff or now - at > timedelta(minutes=25):
+        return
+    for side in ("away", "home"):
+        c = g["teams"][side]
+        pct = round((cs["pHome"] if side == "home" else 1 - cs["pHome"]) * 100)
+        if c.get("price") is None:
+            continue
+        d = round(c["price"] - pct)
+        if abs(d) >= 3:
+            c["liveBookLine"] = (f"Sportsbooks now ({cs['books']}): {c['team']} {pct}% · Robinhood {abs(d)}¢ "
+                                 + ("dearer" if d > 0 else "cheaper"))
