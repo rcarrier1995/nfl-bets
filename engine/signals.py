@@ -84,7 +84,8 @@ def study():
     import numpy as np
     import pandas as pd
     g = pd.read_csv(GAMES)
-    g = g[(g.game_type == "REG") & g.result.notna() & g.spread_line.notna() & (g.season >= 2006)].copy()
+    # regular season + playoffs, never preseason (Rick's research rule, 2026-11-23)
+    g = g[(g.game_type != "PRE") & g.result.notna() & g.spread_line.notna() & (g.season >= 2006)].copy()
     fix = FIX
     fix={'OAK':'LV','SD':'LAC','STL':'LAR','LA':'LAR','WAS':'WSH','JAC':'JAX'}
     for s in ('home','away'): g[s+'_t']=g[s+'_team'].map(lambda x: fix.get(x,x))
@@ -97,7 +98,7 @@ def study():
         t=pd.DataFrame({'season':g.season,'week':g.week,'team':g[side+'_t'],'opp':g[opp+'_t'],'home':side=='home',
             'r':g.r*sg,'spread':g.spread_line*sg,'rest':g[side+'_rest'],'orest':g[opp+'_rest'],'div':g.div_game,
             'gametime':g.gametime,'weekday':g.weekday,'roof':g.roof,'temp':g.temp,'wind':g.wind,'location':g.location,
-            'qb':g[side+'_qb_id'],'margin':g.result*sg,'gid':g.game_id})
+            'qb':g[side+'_qb_id'],'margin':g.result*sg,'gid':g.game_id,'gameday':g.gameday,'post':g.game_type!='REG'})
         rows.append(t)
     T=pd.concat(rows).sort_values(['season','week']).reset_index(drop=True)
     T['prev_margin']=T.groupby(['season','team']).margin.shift(1)
@@ -148,6 +149,16 @@ def study():
      'Opponent on backup QB': T.oppBackupQB.astype(bool),
      'Late season (wk 15+) underdog': (T.week>=15)&~T.fav,
      'Neutral site · favourite': (T.location=='Neutral')&T.fav,
+     # short weeks and rest (Rick 2026-11-25, item 8)
+     'Thursday game · road team': (T.weekday=='Thursday')&~T.home&(T.rest<=5),
+     'Thursday game · favourite': (T.weekday=='Thursday')&T.fav&(T.rest<=5),
+     'Thanksgiving · home team': (T.weekday=='Thursday')&T.home&T.gameday.astype(str).str[5:7].eq('11')&(T.week>=11),
+     'Thanksgiving · road team': (T.weekday=='Thursday')&~T.home&T.gameday.astype(str).str[5:7].eq('11')&(T.week>=11),
+     'Short week · favourite': (T.rest<=5)&T.fav,
+     'Short week · underdog': (T.rest<=5)&~T.fav,
+     'Off a bye · favourite': (T.rest>=13)&T.fav&~T.post,
+     'Off a bye · underdog': (T.rest>=13)&~T.fav&~T.post,
+     'Playoffs · team off a bye': T.post&(T.rest>=13),
     }
     out = []
     tr = T.season <= 2022
@@ -169,7 +180,7 @@ def study():
     res = {"games": int(len(g)), "train": "2006–2022", "test": "2023–2026", "rows": out,
            "finding": (f"None of {len(out)} situations beat the closing line in both samples. Rest, byes, travel, "
                        "division games, prime time, weather, blowouts and big favourites are already priced. "
-                       "Altitude, cold and dome/open-air splits are in the list too, all priced. Closest: a team starting a backup QB did ~0.7 pts worse than its line in both samples, "
+                       "Altitude, cold, dome/open-air splits, Thursday/Thanksgiving short weeks and byes (incl. playoffs) are in the list too, all priced. Closest: a team starting a backup QB did ~0.7 pts worse than its line in both samples, "
                        "too small and too noisy to price (≈2¢).")}
     with open(FILE, "w") as f:
         json.dump(res, f, indent=1)

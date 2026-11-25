@@ -549,3 +549,44 @@ def test_game_day_alert_on_every_game_day(monkeypatch):
     assert "top3" not in R.due_jobs(datetime(2026, 10, 4, 16, 5, tzinfo=timezone.utc), {}, False, "2026-w12", kickoffs=[lon])
     assert R.next_check(datetime(2026, 11, 25, 20, 0, tzinfo=timezone.utc), kicks) == "Next check: Thu 12pm"
     assert R.next_check(datetime(2026, 11, 26, 20, 0, tzinfo=timezone.utc), kicks) == "Next check: Fri 11am"
+
+
+def test_lag_study_counts_only_real_gaps():
+    from engine import lag_study as L
+    A, P = {}, {}
+    for i in range(30):
+        wk = 12 + i % 3
+        # away priced 40 while books say 46 (6c gap); closes at 44; away wins 2 of 3
+        A[str(i)] = {"season": 2026, "week": wk, "kickoff": "2026-12-01T18:00Z", "final": [24, 17] if i % 3 else [10, 20],
+                     "pre": [["2026-11-30T10:00:00Z", 40.0, 61.0, 1.5, 44.5, 46.0, 54.0],
+                             ["2026-12-01T17:50:00Z", 44.0, 57.0, 1.0, 44.5, 46.0, 54.0],
+                             ["2026-12-01T19:00:00Z", 60.0, 41.0, 1.0, 44.5, 46.0, 54.0]]}   # after kickoff: ignored
+    r = L.study(A, P)
+    assert len(r["weeks"]) == 3
+    assert r["signals"]["book5"]["n"] == 30 and r["signals"]["book8"]["n"] == 0 and r["signals"]["poly3"]["n"] == 0
+    assert r["signals"]["book5"]["avgClv"] == 4.0
+    assert r["signals"]["book5"]["holds"] is True and "real edge" in r["summary"]
+    assert L.study({}, {})["summary"].startswith("Waiting")
+
+
+def test_sync_newest_wins_and_quotes_checked():
+    import json as J
+    from engine import sync as S
+    stores, quotes = {}, []
+    sf = lambda c: stores.setdefault(c, {"bets": {}, "deleted": {}, "quotes": []})
+    msg = lambda d: {"message": J.dumps({"v": 1, "code": "AB12CD34", **d})}
+    msgs = [msg({"op": "put", "bet": {"id": "b1", "upd": "2026-11-25T10:00Z", "team": "JAX", "price": 90, "evil": 1}}),
+            msg({"op": "put", "bet": {"id": "b1", "upd": "2026-11-25T09:00Z", "team": "JAX", "price": 80}}),   # older: ignored
+            msg({"op": "put", "bet": {"id": "b2", "upd": "2026-11-25T10:00Z", "team": "CIN", "price": 150}}),  # bad price
+            msg({"op": "put", "bet": {"id": "b3", "upd": "2026-11-25T10:00Z", "team": "DAL", "price": 80}}),
+            msg({"op": "del", "id": "b3", "upd": "2026-11-25T11:00Z"}),
+            msg({"op": "quote", "quote": {"legs": 9.0, "quote": 11.0, "n": 4, "at": "2026-11-25T12:00Z"}}),
+            msg({"op": "quote", "quote": {"legs": 9.0, "quote": 60.0, "n": 4, "at": "2026-11-25T12:01Z"}}),    # typo: ignored
+            {"message": J.dumps({"v": 1, "code": "bad", "op": "put", "bet": {"id": "x", "price": 5}})}]
+    assert S.apply(msgs, sf, quotes) == {"AB12CD34"}
+    st = stores["AB12CD34"]
+    assert st["bets"]["b1"]["price"] == 90 and "evil" not in st["bets"]["b1"]
+    assert "b2" not in st["bets"] and "b3" not in st["bets"] and st["deleted"]["b3"] == "2026-11-25T11:00Z"
+    assert len(quotes) == 1 and quotes[0]["quote"] == 11.0 and len(st["quotes"]) == 1
+    assert S.apply([msg({"op": "put", "bet": {"id": "b3", "upd": "2026-11-25T10:30Z", "price": 80}})], sf, quotes) == set()
+    assert "b3" not in st["bets"]                                       # deleted later than this edit

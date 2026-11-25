@@ -12,7 +12,75 @@ const REPO = "rcarrier1995/nfl-bets";
 function localGet(k) { try { return localStorage.getItem("nflbets." + k); } catch (e) { return null; } }
 function localSet(k, v) { try { localStorage.setItem("nflbets." + k, v); } catch (e) {} }
 function bets() { try { return JSON.parse(localGet("bets") || "[]"); } catch (e) { return []; } }
-function saveBets(b) { localSet("bets", JSON.stringify(b)); }
+// ---------- cloud save (Rick 2026-11-25): free, no sign-in. Changes go to an ntfy mailbox; the cloud loop saves
+// them to data/sync/<code>.json and every device with the same code reads that back. Newest edit wins.
+const SYNC_TOPIC = "nflbets-sync-7k2q9w4m", SYNC_SERVER = "https://ntfy.sh";
+const syncCode = () => { const c = localGet("sync") || ""; return /^[A-Z0-9]{8}$/.test(c) ? c : ""; };
+const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const nowIso = () => new Date().toISOString().slice(0, 19) + "Z";
+function syncSend(d) {
+  const code = syncCode(); if (!code) return;
+  try { fetch(`${SYNC_SERVER}/${SYNC_TOPIC}`, { method: "POST", body: JSON.stringify({ v: 1, code, ...d }) }).catch(() => {}); } catch (e) {}
+}
+const strip = b => { const { upd, ...r } = b; return JSON.stringify(r); };
+function saveBets(b, quiet) {
+  const prev = Object.fromEntries(bets().filter(x => x.id).map(x => [x.id, x]));
+  for (const x of b) {
+    if (!x.id) x.id = newId();
+    const p = prev[x.id];
+    if (!p || strip(p) !== strip(x)) { x.upd = nowIso(); if (!quiet) syncSend({ op: "put", bet: x }); }
+    delete prev[x.id];
+  }
+  if (!quiet) for (const id of Object.keys(prev)) syncSend({ op: "del", id, upd: nowIso() });
+  localSet("bets", JSON.stringify(b));
+}
+// read the cloud copy, merge (newest wins), and re-send anything the cloud copy is missing
+async function syncPull() {
+  const code = syncCode(); if (!code) return;
+  let cl;
+  try { cl = await fetch(`data/sync/${code}.json?t=${Date.now()}`).then(r => r.ok ? r.json() : null); } catch (e) { return; }
+  S.syncAt = cl?.at || null;
+  const cb = cl?.bets || {}, del = cl?.deleted || {};
+  const loc = bets(), byId = Object.fromEntries(loc.filter(x => x.id).map(x => [x.id, x]));
+  let changed = false;
+  const out = [];
+  for (const x of loc) {
+    if (x.id && del[x.id] && del[x.id] >= (x.upd || "")) { changed = true; continue; }
+    const c = x.id && cb[x.id];
+    if (c && (c.upd || "") > (x.upd || "")) { out.push(c); changed = true; continue; }
+    if (!c || (x.upd || "") > (c.upd || "")) syncSend({ op: "put", bet: x });   // cloud missing it or older
+    out.push(x);
+  }
+  for (const [id, c] of Object.entries(cb)) if (!byId[id]) { out.push(c); changed = true; }
+  if (changed) { out.sort((a, b) => String(a.date || "").localeCompare(String(b.date || ""))); localSet("bets", JSON.stringify(out)); }
+  const lq = (() => { try { return JSON.parse(localStorage.getItem("quotes") || "[]"); } catch (e) { return []; } })();
+  const cq = cl?.quotes || [];
+  for (const q of lq) if (!cq.some(c => c.at === String(q.at).slice(0, 20))) syncSend({ op: "quote", quote: q });
+  if (changed) render();
+}
+window.syncOn = () => {
+  const a = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let c = ""; for (let i = 0; i < 8; i++) c += a[Math.floor(Math.random() * a.length)];
+  localSet("sync", c); saveBets(bets(), true); syncPull(); render();
+};
+window.syncJoin = () => {
+  const c = ($("#syncIn")?.value || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (!/^[A-Z0-9]{8}$/.test(c)) { $("#syncMsg").textContent = "The code is 8 letters and numbers."; return; }
+  localSet("sync", c); saveBets(bets(), true); syncPull(); render();
+};
+window.syncOff = () => { localSet("sync", ""); render(); };
+function syncCard() {
+  const c = syncCode();
+  if (!c) return `<div class="card"><h3>Save my bets online</h3>
+    <div class="small">Free, no sign-in. Your bets and Robinhood combo prices show up on your phone and your iMac, and nothing is lost if the browser clears its storage.</div>
+    <button class="btn pri" style="margin-top:10px;width:100%" onclick="syncOn()">Turn on</button>
+    <div class="row" style="margin-top:10px;gap:8px"><input id="syncIn" placeholder="Code from your other device" style="flex:1" autocapitalize="characters"><button class="btn" onclick="syncJoin()">Use code</button></div>
+    <div id="syncMsg" class="small"></div></div>`;
+  return `<div class="card"><h3>Save my bets online</h3>
+    <div class="small">On. Your code: <b style="font-size:18px;letter-spacing:2px">${c.slice(0, 4)}-${c.slice(4)}</b></div>
+    <div class="small muted">Type this code on your other device (Settings → Save my bets online → Use code). Changes show up there in about 10 minutes.${S.syncAt ? ` Last saved ${ago(S.syncAt)}.` : ""} Anyone with the code can see the bet log, so keep it to yourself.</div>
+    <button class="btn" style="margin-top:10px" onclick="syncOff()">Turn off on this device</button></div>`;
+}
 
 function ago(iso) {
   if (!iso) return "";
@@ -1029,14 +1097,15 @@ const quotes = () => { try { return JSON.parse(localStorage.getItem("quotes") ||
 // Markup shrinks as the combo gets pricier (Rick's quote 2026-11-24: JAX+CIN+DAL legs 61.2¢, Robinhood 60.1¢).
 // ~26% on 1¢ longshots, ~20% at 8¢, ~1.5% at 61¢; then scaled by real quotes (Rick's saved + the app's shared list).
 const mkCurve = c => 1 + ((S.B?.comboMarkup || MK0) - 1) * Math.pow(1 - Math.min(99, Math.max(0, c)) / 100, 3);
-const allQuotes = () => [...(S.B?.comboQuotes || []), ...quotes()].filter(x => x.legs > 0 && x.quote > 0);
+const allQuotes = () => { const bq = S.B?.comboQuotes || []; return [...bq, ...quotes().filter(q => !bq.some(b => b.at === String(q.at).slice(0, 20) && b.quote === q.quote))].filter(x => x.legs > 0 && x.quote > 0); };
 const mkFactor = () => { const q = allQuotes(); return q.length ? (MK_K + q.reduce((a, x) => a + x.quote / (x.legs * mkCurve(x.legs)), 0)) / (MK_K + q.length) : 1; };
 const mkLearned = (c = 8) => mkCurve(c) * mkFactor();
 const markup = (n, c = 8) => n < 2 ? 1 : Math.max(mkLearned(c), n <= 10 ? 1 : 1.22 * Math.pow(1.08, n - 10));
 window.saveQuote = () => {
   const el = document.getElementById("rhq"), v = parseFloat(el?.value);
   if (!(v > 0 && v < 100) || !S.lastLegs) return;
-  const q = quotes(); q.push({ legs: S.lastLegs, quote: v, n: S.lastN, at: new Date().toISOString() });
+  const q = quotes(), nq = { legs: S.lastLegs, quote: v, n: S.lastN, at: nowIso() };
+  q.push(nq); syncSend({ op: "quote", quote: nq });
   try { localStorage.setItem("quotes", JSON.stringify(q.slice(-50))); } catch (e) {}
   render();
 };
@@ -1454,6 +1523,8 @@ function learning() {
   }
   const cv = L.clv;
   h += `<h2>Beat the kickoff price?</h2>${cv && cv.n ? `<div class="line">${cv.beat} of ${cv.n} calls got a better price than kickoff · avg ${cv.avg > 0 ? "+" : ""}${cv.avg}¢</div><div class="small">${cv.recent.slice().reverse().map(r => `${esc(r.team)} ${esc(LBL(r.call))} at ${ct(r.entry)} → kickoff ${ct(r.close)} (${r.clv > 0 ? "+" : ""}${r.clv}¢)`).join("<br>")}</div><div class="tiny muted">Getting in cheaper than the kickoff price over many calls is the earliest sign the calls are sharp.</div>` : `<div class="line muted">Tracking started. Each Buy/Wait call is compared with the price at kickoff once its game starts.</div>`}`;
+  const lg = L.lagStudy;
+  if (lg?.summary) h += `<h2>Kalshi slow-price test</h2><div class="line">${esc(lg.summary)} <span class="muted">· ${ago(lg.at)}</span></div>`;
   const rt = L.retest;
   if (rt?.at) h += `<h2>Weekly re-test</h2><div class="line">${esc(rt.summary || "")} <span class="muted">· ${ago(rt.at)}</span></div>`;
   // patterns by call
@@ -1748,6 +1819,7 @@ function setup() {
   const topic = localGet("topic") || "";   // never show the owner's server topic (app is shared)
   const h = S.B.health || {};
   return `<div class="ptitle">Setup</div><h2>Setup & Edge</h2>
+  ${syncCard()}
   ${shareCard()}
   ${installCard()}
   <div class="card"><h3>Phone alerts</h3>
@@ -2070,6 +2142,7 @@ async function load() {
       fetch("data/board.json?t=" + Date.now()).then(r => r.json()),
       fetch("data/learning.json?t=" + Date.now()).then(r => r.json()).catch(() => null)]);
     S.B = b; S.L = l;
+    await syncPull();
     if (b.games.some(g => g.state === "in")) await liveScores();
     render();
     if (b.games.some(g => g.state === "in") && (!S.drvAt || Date.now() - S.drvAt > 10000)) { S.drvAt = Date.now(); pollDrives(); }
