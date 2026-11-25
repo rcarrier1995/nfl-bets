@@ -587,3 +587,52 @@ def test_extra_books_off_without_keys(monkeypatch, tmp_path):
     now = datetime(2026, 11, 25, tzinfo=timezone.utc)
     assert BK.refresh({"GB": "Packers"}, [datetime(2026, 11, 27, tzinfo=timezone.utc)], now) == {}
     assert not called
+
+
+def test_quota_schedule(monkeypatch):
+    """Rick 2026-11-25: 20 min live, 30 min in the 2 h before kickoff, 9 AM + 6 PM CT otherwise, taps 30 min apart."""
+    from datetime import datetime, timedelta, timezone
+    from engine import quota as Q
+    monkeypatch.delenv("NFL_FORCE_ODDS", raising=False)
+    U = timezone.utc
+    sun = datetime(2026, 11, 29, 18, 0, tzinfo=U)            # Sunday noon CT kickoff
+    games = [(sun, "pre"), (sun + timedelta(hours=7, minutes=20), "pre")]
+    # quiet Wednesday: 9 AM CT slot (15:00Z), not again until 6 PM CT
+    wed9 = datetime(2026, 11, 25, 15, 5, tzinfo=U)
+    assert Q.due(datetime(2026, 11, 25, 1, 0, tzinfo=U), wed9, games, 20, 30)
+    assert not Q.due(wed9, wed9 + timedelta(hours=3), games, 20, 30)
+    assert Q.due(wed9, datetime(2026, 11, 26, 0, 1, tzinfo=U), games, 20, 30)
+    # 8:00 AM CT before any slot: nothing
+    assert not Q.due(datetime(2026, 11, 25, 0, 30, tzinfo=U), datetime(2026, 11, 25, 14, 0, tzinfo=U), games, 20, 30)
+    # pregame window: 30 min
+    t = sun - timedelta(minutes=90)
+    assert Q.window(games, t) == "pre"
+    assert not Q.due(t - timedelta(minutes=20), t, games, 20, 30)
+    assert Q.due(t - timedelta(minutes=31), t, games, 20, 30)
+    # live: 20 min
+    live = [(sun, "in"), (sun + timedelta(hours=7), "pre")]
+    assert Q.due(sun, sun + timedelta(minutes=21), live, 20, 30)
+    assert not Q.due(sun, sun + timedelta(minutes=15), live, 20, 30)
+    # all games over this week: nothing, even at a slot
+    done = [(sun, "post")]
+    assert not Q.due(None, datetime(2026, 11, 30, 15, 5, tzinfo=U), done, 20, 30)
+    # Refresh tap: allowed after 30 min, skipped inside 30 min
+    monkeypatch.setenv("NFL_FORCE_ODDS", "1")
+    assert Q.due(wed9, wed9 + timedelta(minutes=31), done, 20, 30)
+    assert not Q.due(wed9, wed9 + timedelta(minutes=10), done, 20, 30)
+
+
+def test_live_book_line():
+    from datetime import datetime, timedelta, timezone
+    from engine.odds import live_attach
+    k = datetime(2026, 11, 29, 18, 0, tzinfo=timezone.utc)
+    now = k + timedelta(hours=1)
+    g = {"state": "in", "away": "GB", "home": "DET",
+         "teams": {"away": {"team": "GB", "price": 40}, "home": {"team": "DET", "price": 61}}}
+    cons = {"GB@DET": {"pHome": 0.65, "books": 8, "at": (now - timedelta(minutes=5)).strftime("%Y-%m-%dT%H:%M:%SZ")}}
+    live_attach(g, cons, k, now)
+    assert g["teams"]["away"]["liveBookLine"] == "Sportsbooks now (8): GB 35% · Robinhood 5¢ dearer"
+    assert g["teams"]["home"]["liveBookLine"] == "Sportsbooks now (8): DET 65% · Robinhood 4¢ cheaper"
+    cons["GB@DET"]["at"] = (k - timedelta(minutes=5)).strftime("%Y-%m-%dT%H:%M:%SZ")   # pregame pull: not live
+    live_attach(g, cons, k, now)
+    assert g["teams"]["away"]["liveBookLine"] is None

@@ -21,7 +21,7 @@ from .fetch import load_json, save_json, iso, HEALTH
 
 STATE_FILE = os.path.join(C.STATE, "books.json")
 GAP = 3                      # cents between the sharp line and Robinhood before the card shows it
-EVERY = {"pinnwire": 20, "oddspapi": 240, "rundown": 15}     # minutes between calls (free limits)
+EVERY = {"pinnwire": 20, "oddspapi": 240, "rundown": 10}     # minutes between calls in game/pregame windows (quota.py)
 KEYS = {"pinnwire": "PINNWIRE_API_KEY", "oddspapi": "ODDSPAPI_API_KEY", "rundown": "RUNDOWN_API_KEY"}
 UA = "nfl-bets-assistant/1.0 (personal, read-only)"
 
@@ -157,8 +157,11 @@ def rundown(key, T, dates):
 
 
 # ---------------- refresh + attach ----------------
-def refresh(nick, kickoffs, now):
-    """Call each switched-on feed when due; keep the last good copy for 3 h. Returns merged {game: {book: {...}}}."""
+def refresh(nick, games, now):
+    """Call each switched-on feed when due (schedule in quota.py). Returns merged {game: {book: {...}}}."""
+    from . import quota as Q
+    games = Q.norm(games)
+    kickoffs = [k for k, s in games if s == "pre"]
     st = load_json(STATE_FILE, {}) or {}
     soon = any(k and timedelta(0) < k - now < timedelta(days=8) for k in kickoffs)
     T = Teams(nick)
@@ -170,7 +173,8 @@ def refresh(nick, kickoffs, now):
         if not key or not soon:
             continue
         last = s.get("at")
-        if last and (now - datetime.fromisoformat(last.replace("Z", "+00:00"))) < timedelta(minutes=EVERY[name]):
+        last = datetime.fromisoformat(last.replace("Z", "+00:00")) if last else None
+        if not Q.due(last, now, games, EVERY[name], EVERY[name]):
             continue
         try:
             data = (pinnwire(key, T) if name == "pinnwire" else oddspapi(key, T, st) if name == "oddspapi"
