@@ -35,6 +35,9 @@ jobs:
       - name: Tick in a loop
         env:
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+          PINNWIRE_API_KEY: ${{ secrets.PINNWIRE_API_KEY }}
+          ODDSPAPI_API_KEY: ${{ secrets.ODDSPAPI_API_KEY }}
+          RUNDOWN_API_KEY: ${{ secrets.RUNDOWN_API_KEY }}
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
           GH_TOKEN: ${{ github.token }}
         run: |

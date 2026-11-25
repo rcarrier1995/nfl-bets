@@ -549,3 +549,41 @@ def test_game_day_alert_on_every_game_day(monkeypatch):
     assert "top3" not in R.due_jobs(datetime(2026, 10, 4, 16, 5, tzinfo=timezone.utc), {}, False, "2026-w12", kickoffs=[lon])
     assert R.next_check(datetime(2026, 11, 25, 20, 0, tzinfo=timezone.utc), kicks) == "Next check: Thu 12pm"
     assert R.next_check(datetime(2026, 11, 26, 20, 0, tzinfo=timezone.utc), kicks) == "Next check: Fri 11am"
+
+
+def test_extra_books_parse_and_sharp_line():
+    """PinnWire / OddsPapi / TheRundown replies (documented shapes) -> de-vigged win % per team, Pinnacle line on card."""
+    from unittest import mock
+    from datetime import datetime, timezone
+    from engine import books as BK
+    T = BK.Teams({"GB": "Packers", "LAR": "Rams"})
+    pw = {"events": [{"league_name": "NFL", "away": "Green Bay Packers", "home": "Los Angeles Rams",
+                      "periods": {"num_0": {"money_line": {"away": 2.35, "home": 1.65}}}}]}
+    with mock.patch.object(BK, "_get", lambda *a, **k: pw):
+        p = BK.pinnwire("k", T)[frozenset(("GB", "LAR"))]["Pinnacle"]
+    assert 41 < p["GB"] < 42 and abs(p["GB"] + p["LAR"] - 100) < 0.2
+    rd = {"events": [{"teams": [{"team_id": 1, "mascot": "Packers", "is_away": True}, {"team_id": 2, "mascot": "Rams", "is_home": True}],
+                      "markets": [{"market_id": 1, "participants": [
+                          {"id": 1, "lines": [{"prices": {"19": {"price": 140}}}]},
+                          {"id": 2, "lines": [{"prices": {"19": {"price": -160}}}]}]}]}]}
+    with mock.patch.object(BK, "_get", lambda *a, **k: rd):
+        r = BK.rundown("k", T, ["2026-11-25"])[frozenset(("GB", "LAR"))]["DraftKings"]
+    assert r["LAR"] > r["GB"]
+    g = {"away": "GB", "home": "LAR", "state": "pre",
+         "teams": {"away": {"team": "GB", "price": 46.0}, "home": {"team": "LAR", "price": 58.0}}}
+    BK.attach(g, {frozenset(("GB", "LAR")): {"Pinnacle": p}})
+    assert "Robinhood 5¢ dearer" in g["teams"]["away"]["sharpLine"]
+    assert g["teams"]["home"]["sharpLine"] is None
+
+
+def test_extra_books_off_without_keys(monkeypatch, tmp_path):
+    from datetime import datetime, timezone
+    from engine import books as BK
+    for k in BK.KEYS.values():
+        monkeypatch.delenv(k, raising=False)
+    monkeypatch.setattr(BK, "STATE_FILE", str(tmp_path / "b.json"))
+    called = []
+    monkeypatch.setattr(BK, "_get", lambda *a, **k: called.append(a) or {})
+    now = datetime(2026, 11, 25, tzinfo=timezone.utc)
+    assert BK.refresh({"GB": "Packers"}, [datetime(2026, 11, 27, tzinfo=timezone.utc)], now) == {}
+    assert not called

@@ -288,6 +288,7 @@ function practiceKey(c) {   // a QB on the report, or a starter who missed the l
 function feedLines(c) {
   if (c.state === "post") return "";
   let h = "";
+  if (c.sharpLine) h += `<div class="info">${esc(c.sharpLine)}</div>`;
   if (c.polyLine) h += `<div class="info">${esc(c.polyLine)}</div>`;
   if (c.moneyLine) h += `<div class="info">${esc(c.moneyLine)}</div>`;
   const n = (c.news || [])[0];
@@ -300,7 +301,8 @@ function feedLines(c) {
 function feedInfo(c) {
   const fpi = c.fpi != null ? `ESPN FPI ${Math.round(c.fpi)}%${c.fpiNote ? ` <span class="muted">(${esc(c.fpiNote)})</span>` : ""}` : `ESPN FPI <span class="muted">unavailable</span>`;
   const poly = c.poly ? `Polymarket ${ct(c.poly.ask)}` : `Polymarket <span class="muted">unavailable</span>`;
-  let h = `<div class="small" style="margin:4px 0"><b>Second opinions:</b> ${fpi} · ${poly} <span class="muted">· info only</span></div>`;
+  const bk = Object.entries(c.books || {}).map(([b, v]) => `${esc(b)} ${Math.round(v)}%`).join(" · ");
+  let h = `<div class="small" style="margin:4px 0"><b>Second opinions:</b> ${fpi} · ${poly}${bk ? ` · ${bk}` : ""} <span class="muted">· info only</span></div>`;
   if (c.practice == null) h += `<div class="small muted" style="margin:4px 0">Practice report unavailable</div>`;
   else if (c.practice.length) h += `<div class="small" style="margin:4px 0"><b>Practice (starters):</b><br>${c.practice.map(p => `${esc(p.pos)} ${esc(p.player)} — ${esc(p.line)}${p.injury ? ` <span class="muted">(${esc(p.injury)})</span>` : ""}`).join("<br>")}</div>`;
   if ((c.news || []).length) h += `<div class="small" style="margin:4px 0"><b>News:</b><br>${c.news.map(n => `${esc(ago(n.at))}: ${esc(n.headline)}`).join("<br>")}</div>`;
