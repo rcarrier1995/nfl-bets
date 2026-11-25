@@ -20,7 +20,9 @@
 - **Manual jobs:** Actions → *manual* → Run workflow (e.g. `inactives` for the Sunday inactives check).
 
 ## Phone alerts
-Free **ntfy** app → subscribe to the topic in `config.json`. Change it by editing that file on GitHub.
+Free **ntfy** app → subscribe to your private topic. The topic lives in the GitHub secret `NTFY_TOPIC` (Settings → Secrets and variables → Actions), never in the public files.
+
+**Reliability (2026-11-25):** a separate `watchdog` job checks the live app every 15 min and buzzes once if it stops loading or updating (and restarts the loop); 3 crashed updates in a row, a feed down near game time, or data that fails the common-sense checks (`engine/sanity.py`, calls go on hold) also buzz once, then again when fixed. Weekly data backups are saved as GitHub Releases.
 
 ## Free data
 ESPN (unofficial), Kalshi public API (price proxy — confirm in Robinhood), nflverse, Open-Meteo. No paid keys.

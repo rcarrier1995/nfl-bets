@@ -35,13 +35,24 @@ jobs:
       - name: Tick in a loop
         env:
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           git config user.name "nfl-bets-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           end=$(( $(date +%s) + 345*60 ))
           while [ "$(date +%s)" -lt "$end" ]; do
             git pull -q --rebase -X theirs || true
-            python -m engine.run tick || echo "tick failed"
+            if python -m engine.run tick; then python -m engine.alarm tick ok || true; else echo "tick failed"; python -m engine.alarm tick fail || true; fi
+            # weekly backup copy of all saved data as a GitHub Release file
+            tag=$(python -m engine.backup due || true)
+            if [ -n "$tag" ]; then
+              { gh release view "$tag" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
+                { tar czf "/tmp/$tag.tar.gz" --exclude=state/cache state docs/data config.json && \
+                gh release create "$tag" "/tmp/$tag.tar.gz" -R "$GITHUB_REPOSITORY" --latest=false \
+                  --title "Data backup $tag" --notes "Weekly copy of saved prices, learning and results (state/, docs/data, config.json)."; }; } && \
+                python -m engine.backup done "$tag" || echo "backup failed"
+            fi
             git add docs/data state config.json
             if ! git diff --cached --quiet; then
               git commit -q -m "data: $(date -u +%Y-%m-%dT%H:%MZ)"

@@ -342,3 +342,54 @@ def test_markup_shrinks_for_pricey_combos():
     # Rick's real quote: JAX+CIN+DAL legs 61.2c, Robinhood 60.1c -> near-zero markup on favourite combos
     from engine import config as C
     assert C.combo_markup(3, 61.2) < 1.03 and C.combo_markup(3, 5) > 1.15
+
+
+def test_sanity_holds_bad_data():
+    """Review 2026-11-25: odd prices or a stuck week put calls on hold instead of guessing."""
+    import copy
+    import json
+    from datetime import datetime, timezone, timedelta
+    from engine import sanity as SN
+    now = datetime(2026, 11, 25, 4, 0, tzinfo=timezone.utc)
+    g = lambda i, a, h, ko, st="pre": {"id": i, "away": a, "home": h, "kickoff": ko, "state": st}  # noqa
+    c = lambda i, t, p, call="Value": {"key": f"w|{i}|{t}", "gameId": i, "team": t, "price": p, "state": "pre", "call": call}  # noqa
+    good = {"week": 12, "games": [g("1", "GB", "LAR", "2026-11-26T01:00Z"), g("2", "CHI", "DET", "2026-11-26T18:00Z")],
+            "calls": [c("1", "GB", 45), c("1", "LAR", 56, "Wait"), c("2", "CHI", 53), c("2", "DET", 47)],
+            "top3": ["w|1|GB", "w|2|CHI"], "alerts": []}
+    b = copy.deepcopy(good)
+    assert SN.apply(b, now) == [] and b["dataCheck"]["ok"] and b["calls"][0]["call"] == "Value"
+    b = copy.deepcopy(good)
+    b["calls"][2]["price"] = 150
+    probs = SN.apply(b, now)
+    assert probs and b["calls"][2]["call"] == "Pass" and b["calls"][2]["dataHold"]
+    assert b["calls"][0]["call"] == "Value" and b["top3"] == ["w|1|GB"]      # other game untouched
+    b = copy.deepcopy(good)
+    b["calls"][0]["price"] = 20                                                # 20 + 56 = 76c: off
+    assert SN.apply(b, now) and b["calls"][1]["call"] == "Pass"
+    b = copy.deepcopy(good)                                                    # week stuck: all final 3+ days ago
+    for x in b["games"]:
+        x["state"] = "post"
+    later = now + timedelta(days=4)
+    assert any("ended" in p for p in SN.apply(b, later))
+    b = copy.deepcopy(good)
+    b["games"][1]["home"] = "GB"
+    assert any("twice" in p for p in SN.apply(b, now)) and all(x["call"] == "Pass" for x in b["calls"])
+    b = json.load(open(os.path.join(os.path.dirname(__file__), "..", "docs", "data", "board.json")))
+    SN.check(b, datetime.fromisoformat(b["generatedAt"].replace("Z", "+00:00")))   # live board shape works
+
+
+def test_alarm_buzzes_once(tmp_path, monkeypatch):
+    from engine import alarm as AL
+    sent = []
+    monkeypatch.setattr(AL, "FILE", str(tmp_path / "alarm.json"))
+    monkeypatch.setattr(AL.P, "send", lambda t, b, **k: sent.append(t) or True)
+    for _ in range(5):
+        AL.tick_result(False)
+    assert sent == ["App problem: updates failing"]
+    AL.tick_result(True)
+    AL.tick_result(True)
+    assert sent[-1] == "App is updating again" and len(sent) == 2
+    AL.data(["odd price for GB"])
+    AL.data(["odd price for GB"])
+    AL.data([])
+    assert sent[2:] == ["Data looks off — calls on hold", "Data looks right again"]
