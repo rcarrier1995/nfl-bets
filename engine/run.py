@@ -258,7 +258,7 @@ def board_dt(s):
 def tick(force=()):
     now = now_utc()
     rs = load_json(RUN, {}) or {}
-    sb, _ = B.espn_scoreboard()
+    sb, _ = B.current_scoreboard()
     if not sb:
         HEALTH.save()
         print("scoreboard unavailable; nothing to do")

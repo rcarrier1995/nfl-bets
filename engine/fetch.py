@@ -5,7 +5,7 @@ import json
 import os
 import time
 import urllib.request
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from . import config as C
 
@@ -103,6 +103,27 @@ def espn_scoreboard(dates=None, week=None, season=None):
     url = C.ESPN_SCOREBOARD + ("?" + "&".join(q) if q else "")
     key = f"sb_{dates or ''}{week or ''}"
     return cached("espn", key, lambda: _get(url))
+
+
+def current_scoreboard():
+    """ESPN's default scoreboard stays on the old week until about Wednesday. Once every game of that week
+    is final, move on to the next regular-season week (Rick 2026-11-24: app said Week 11 on Tuesday)."""
+    sb, stale = espn_scoreboard()
+    try:
+        ev = (sb or {}).get("events") or []
+        wk = ((sb or {}).get("week") or {}).get("number")
+        typ = (((sb or {}).get("season") or {}).get("type"))
+        yr = ((sb or {}).get("season") or {}).get("year")
+        last = max((e.get("date") or "") for e in ev) if ev else ""
+        # wait 16h after the last kickoff so the final game is graded and shown as Final first
+        done_long = bool(last) and datetime.now(timezone.utc) - datetime.fromisoformat(last.replace("Z", "+00:00")) > timedelta(hours=16)
+        if ev and wk and typ == 2 and int(wk) < 18 and done_long and all(e["status"]["type"]["state"] == "post" for e in ev):
+            nxt, st2 = espn_scoreboard(week=int(wk) + 1, season=yr)
+            if nxt and nxt.get("events"):
+                return nxt, st2
+    except Exception as e:
+        print("week rollover check failed:", e)
+    return sb, stale
 
 
 def espn_summary(event_id):

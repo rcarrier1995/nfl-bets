@@ -11,7 +11,7 @@ from . import injuries as I
 from . import model as M
 from . import signals as SG
 from . import profiles as PF
-from .fetch import (espn_scoreboard, espn_summary, kalshi_events, kalshi_day_range, weather_batch, load_json,
+from .fetch import (espn_scoreboard, current_scoreboard, espn_summary, kalshi_events, kalshi_day_range, weather_batch, load_json,
                     save_json, iso, now_utc, HEALTH)
 from .stats import abbrev, load_tables
 
@@ -172,7 +172,7 @@ def build(now=None, extra_shrink=1.0, calib=None, sb_override=None):
     now = now or now_utc()
     tables = load_tables()
     teams_tbl = tables.get("teams") or {}
-    sb, sb_stale = (sb_override, False) if sb_override else espn_scoreboard()
+    sb, sb_stale = (sb_override, False) if sb_override else current_scoreboard()
     if not sb:
         return None
     kev, k_stale = kalshi_events()
