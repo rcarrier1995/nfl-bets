@@ -649,6 +649,23 @@ function liveCard(g) {
 // Every play straight from ESPN's free game feed (the phone reads it every 15 s while a live card is on screen).
 // Field: home end zone on the left, away on the right. x = ESPN yardLine (yards from the home goal line).
 S.drv = S.drv || {};
+const DS = {   // engine/drive_study.py, nflverse 2016-2025 regular season + playoffs (2,761 games)
+  rzMove: 5, lateSwing: 4,
+};
+async function driveOdds() {
+  if (S.dodds !== undefined) return S.dodds;
+  S.dodds = null;
+  try { S.dodds = (await fetch("data/drive_odds.json?t=" + Date.now()).then(r => r.json())).t; } catch (e) {}
+  return S.dodds;
+}
+function scoreChance(ytez, down, dist) {
+  const T = S.dodds;
+  if (!T || ytez == null || !(down >= 1 && down <= 4)) return null;
+  const yb = [5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100].find(h => ytez <= h) || 100;
+  const db = ytez <= dist ? "goal" : dist <= 3 ? "1-3" : dist <= 6 ? "4-6" : dist <= 10 ? "7-10" : "11+";
+  const r = T[`${yb}|${down}|${db}`];
+  return r ? { td: r[0], fg: r[1] } : null;
+}
 function playKind(p) {
   const t = (p.type?.text || "").toLowerCase();
   if (/interception|fumble recovery \(opponent\)|fumble return|blocked|safety/.test(t)) return "to";
@@ -662,10 +679,26 @@ function playKind(p) {
   if (/rush/.test(t)) return "run";
   return "other";
 }
+function playFlags(p, kind) {
+  const x = (p.text || "").toLowerCase(), f = [];
+  if (p.scoringPlay && /touchdown/.test((p.type?.text || "").toLowerCase() + " " + x)) f.push("TD");
+  else if (p.scoringPlay) f.push(/field goal/.test(x) ? "FG" : "Score");
+  if (kind === "to") f.push(/interception|intercepted/.test(x) ? "INT" : /fumble/.test(x) ? "Fumble" : "Turnover");
+  if (/injur/.test(x)) f.push("Injury");
+  if (p.start?.down === 4 && /run|pass|inc|sack/.test(kind)) f.push("4th-down try");
+  if (/challenge|replay|reversed|upheld/.test(x)) f.push("Review");
+  if (Math.abs(p.statYardage || 0) >= 20 && /run|pass/.test(kind)) f.push("Big play");
+  return f;
+}
 function parseDrives(sum) {
   const comp = sum.header?.competitions?.[0] || {};
-  const ab = {};
-  for (const c of comp.competitors || []) ab[c.team?.id] = c.team?.abbreviation;
+  const ab = {}, teams = {};
+  for (const c of comp.competitors || []) {
+    const t = c.team || {};
+    ab[t.id] = t.abbreviation;
+    teams[t.abbreviation] = { name: (t.name || t.nickname || t.abbreviation || "").toUpperCase(), color: t.color ? "#" + t.color : null,
+      alt: t.alternateColor ? "#" + t.alternateColor : null, logo: (t.logos || [])[0]?.href || null };
+  }
   const wp = {};
   for (const w of sum.winprobability || []) wp[w.playId] = w.homeWinPercentage;
   const d = sum.drives || {};
@@ -673,23 +706,24 @@ function parseDrives(sum) {
   if (d.current && !all.some(x => x.id === d.current.id)) all.push(d.current);
   const plays = [];
   const drives = all.map(dr => {
-    const ps = (dr.plays || []).map(p => ({
-      id: p.id, kind: playKind(p), text: p.text || "", q: p.period?.number, clock: p.clock?.displayValue || "",
-      team: ab[p.start?.team?.id] || dr.team?.abbreviation || "", yds: p.statYardage,
-      x0: p.start?.yardLine, x1: p.end?.yardLine, dn: p.start?.down, dist: p.start?.distance,
-      dd: p.start?.shortDownDistanceText || "", spot: p.start?.possessionText || "",
-      ytez: p.start?.yardsToEndzone, wp: wp[p.id], scoring: !!p.scoringPlay,
-      away: p.awayScore, home: p.homeScore,
-    })).filter(p => p.kind !== "skip");
-    plays.push(...ps.map(p => ({ ...p, drive: dr.team?.abbreviation })));
+    const ps = (dr.plays || []).map(p => {
+      const kind = playKind(p);
+      return { id: p.id, kind, flags: playFlags(p, kind), text: p.text || "", q: p.period?.number, clock: p.clock?.displayValue || "",
+        team: ab[p.start?.team?.id] || dr.team?.abbreviation || "", yds: p.statYardage,
+        x0: p.start?.yardLine, x1: p.end?.yardLine, dd: p.start?.shortDownDistanceText || "", spot: p.start?.possessionText || "",
+        end: { team: ab[p.end?.team?.id] || "", down: p.end?.down, dist: p.end?.distance, ytez: p.end?.yardsToEndzone, x: p.end?.yardLine },
+        wp: wp[p.id], t: p.wallclock ? Date.parse(p.wallclock) : null };
+    }).filter(p => p.kind !== "skip");
+    plays.push(...ps);
     return { id: dr.id, team: dr.team?.abbreviation || "", desc: dr.description || "", result: dr.displayResult || dr.result || "",
-      isScore: !!dr.isScore, start: dr.start?.text || "", plays: ps, done: dr.id !== d.current?.id };
+      plays: ps, done: dr.id !== d.current?.id };
   });
   for (let i = 1; i < plays.length; i++) if (plays[i].wp != null && plays[i - 1].wp != null) plays[i].dwp = plays[i].wp - plays[i - 1].wp;
-  return { drives, plays, at: Date.now() };
+  return { drives, plays, teams, at: Date.now() };
 }
 async function pollDrives(force) {
   if (!S.B || (!document.querySelector(".drv") && !force) || document.visibilityState !== "visible") return;
+  await driveOdds();
   const lv = S.B.games.filter(g => g.state === "in");
   await Promise.all(lv.map(async g => {
     try {
@@ -702,38 +736,83 @@ async function pollDrives(force) {
 }
 const KLBL = { run: "Run", pass: "Pass", inc: "Incomplete", sack: "Sack", pen: "Penalty", to: "Turnover", score: "Score", kick: "Kick", other: "Play" };
 function shortPlay(p) {
-  let t = p.text.replace(/^\([^)]*\)\s*/, "").replace(/\s*\([^)]*\)\.?$/, "").replace(/\s+/g, " ");
+  const t = p.text.replace(/^\([^)]*\)\s*/, "").replace(/\s*\([^)]*\)\.?$/, "").replace(/\s+/g, " ");
   return t.length > 90 ? t.slice(0, 88) + "…" : t;
 }
+const homeWP = (g, team, v) => team === g.home ? v : 1 - v;
 function wpTag(g, p) {
   if (p.wp == null) return "";
-  const who = p.team && p.team === g.away ? g.away : g.home;
-  const v = who === g.home ? p.wp : 1 - p.wp, dv = p.dwp == null ? null : (who === g.home ? p.dwp : -p.dwp);
+  const who = p.team === g.away ? g.away : g.home;
+  const v = homeWP(g, who, p.wp), dv = p.dwp == null ? null : (who === g.home ? p.dwp : -p.dwp);
   const big = dv != null && Math.abs(dv) >= 0.05;
-  return ` <span class="wpd ${big ? (dv > 0 ? "up" : "dn") : ""}">${esc(who)} ${Math.round(v * 100)}%${dv != null && Math.round(dv * 100) ? ` (${dv > 0 ? "+" : ""}${Math.round(dv * 100)})` : ""}</span>`;
+  return ` <span class="wpd ${big ? "big" : ""}">${esc(who)} ${Math.round(v * 100)}%${dv != null && Math.round(dv * 100) ? ` (${dv > 0 ? "+" : ""}${Math.round(dv * 100)})` : ""}</span>`;
 }
-function fieldSvg(g, dr, sit) {
-  const C = COLORS(), W = 360, EZ = 30, Y = W - 2 * EZ, sx = y => EZ + (Math.max(0, Math.min(100, y)) / 100) * Y;
+const flagChips = p => (p.flags || []).map(f => `<span class="pf f-${f.split(/[ -]/)[0].toLowerCase()}">${esc(f)}</span>`).join("");
+function contrast(hex) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex || ""); if (!m) return "#fff";
+  const n = parseInt(m[1], 16), l = (0.299 * (n >> 16) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255)) / 255;
+  return l > 0.6 ? "#111" : "#fff";
+}
+function ezColors(T, team, fb) {
+  const t = T?.[team] || {}, bg = t.color || fb || "#334";
+  const alt = t.alt && t.alt.toLowerCase() !== bg.toLowerCase() ? t.alt : null;
+  return { bg, ink: contrast(bg), alt };
+}
+function fieldSvg(g, D, dr, sit) {
+  const C = COLORS(), L = LOGOS(), T = D.teams || {};
+  const W = 380, EZ = 34, Y = W - 2 * EZ, sx = y => EZ + (Math.max(0, Math.min(100, y)) / 100) * Y;
   const ps = (dr?.plays || []).filter(p => p.x0 != null && p.x1 != null && p.kind !== "kick").slice(-8);
-  const lane = 15, top = 16, H = Math.max(96, top + ps.length * lane + 14);
-  let s = `<svg class="field" viewBox="0 0 ${W} ${H}" role="img" aria-label="Field with this drive's plays">`;
-  s += `<rect x="0" y="0" width="${W}" height="${H}" rx="8" class="turf"/>`;
-  s += `<rect x="0" y="0" width="${EZ}" height="${H}" rx="8" fill="${esc(C[g.home] || "#334")}" class="ez"/><rect x="${W - EZ}" y="0" width="${EZ}" height="${H}" rx="8" fill="${esc(C[g.away] || "#556")}" class="ez"/>`;
-  s += `<text x="${EZ / 2}" y="${H / 2}" class="ezt" transform="rotate(-90 ${EZ / 2} ${H / 2})">${esc(g.home)}</text><text x="${W - EZ / 2}" y="${H / 2}" class="ezt" transform="rotate(90 ${W - EZ / 2} ${H / 2})">${esc(g.away)}</text>`;
-  for (let y = 10; y < 100; y += 10) s += `<line x1="${sx(y)}" y1="0" x2="${sx(y)}" y2="${H}" class="yl"/><text x="${sx(y)}" y="11" class="yn">${y <= 50 ? y : 100 - y}</text>`;
+  const lane = 14, top = 20, H = Math.max(112, top + ps.length * lane + 22);
+  const hz = ezColors(T, g.home, C[g.home]), az = ezColors(T, g.away, C[g.away]);
+  const logo = t => T[t]?.logo || L[t];
+  let s = `<svg class="field" viewBox="0 0 ${W} ${H}" role="img" aria-label="Field with this drive's plays">
+    <defs><linearGradient id="turf-${g.id}" x1="0" x2="1"><stop offset="0" stop-color="#1d5a32"/><stop offset=".5" stop-color="#23693a"/><stop offset="1" stop-color="#1d5a32"/></linearGradient>
+    <clipPath id="fc-${g.id}"><rect x="0" y="0" width="${W}" height="${H}" rx="9"/></clipPath></defs><g clip-path="url(#fc-${g.id})">
+    <rect x="0" y="0" width="${W}" height="${H}" fill="url(#turf-${g.id})"/>`;
+  for (let y = 0; y < 100; y += 10) if ((y / 10) % 2) s += `<rect x="${sx(y)}" y="0" width="${sx(y + 10) - sx(y)}" height="${H}" fill="rgba(255,255,255,.035)"/>`;
+  const ez = (x, z, team, rot) => `<rect x="${x}" y="0" width="${EZ}" height="${H}" fill="${esc(z.bg)}"/>` +
+    (z.alt ? `<rect x="${rot > 0 ? x + 2 : x + EZ - 4}" y="0" width="2" height="${H}" fill="${esc(z.alt)}" opacity=".9"/>` : "") +
+    `<text x="${x + EZ / 2}" y="${H / 2}" class="ezt" fill="${z.ink}" transform="rotate(${rot} ${x + EZ / 2} ${H / 2})" textLength="${Math.min(H - 16, (T[team]?.name || team).length * 9)}" lengthAdjust="spacingAndGlyphs">${esc(T[team]?.name || team)}</text>`;
+  s += ez(0, hz, g.home, -90) + ez(W - EZ, az, g.away, 90);
+  s += `<line x1="${EZ}" y1="0" x2="${EZ}" y2="${H}" class="gl"/><line x1="${W - EZ}" y1="0" x2="${W - EZ}" y2="${H}" class="gl"/>`;
+  for (let y = 5; y < 100; y += 5) s += `<line x1="${sx(y)}" y1="0" x2="${sx(y)}" y2="${H}" class="${y % 10 ? "yl5" : "yl"}"/>`;
+  for (let y = 1; y < 100; y++) if (y % 5) s += `<line x1="${sx(y)}" y1="2" x2="${sx(y)}" y2="5" class="hm"/><line x1="${sx(y)}" y1="${H - 5}" x2="${sx(y)}" y2="${H - 2}" class="hm"/>`;
+  for (let y = 10; y < 100; y += 10) s += `<text x="${sx(y)}" y="15" class="yn">${y <= 50 ? y : 100 - y}</text><text x="${sx(y)}" y="${H - 8}" class="yn">${y <= 50 ? y : 100 - y}</text>`;
+  const mid = logo(g.home);
+  if (mid) s += `<image href="${esc(mid)}" x="${sx(50) - 22}" y="${H / 2 - 22}" width="44" height="44" opacity=".22"/>`;
   if (sit?.x != null) {
+    if (sit.rz) s += `<rect x="${sit.toRight ? sx(80) : sx(0)}" y="0" width="${sx(20) - sx(0)}" height="${H}" class="rzz"/>`;
     s += `<line x1="${sx(sit.x)}" y1="0" x2="${sx(sit.x)}" y2="${H}" class="los"/>`;
     if (sit.fd != null && sit.fd > 0 && sit.fd < 100) s += `<line x1="${sx(sit.fd)}" y1="0" x2="${sx(sit.fd)}" y2="${H}" class="fdl"/>`;
   }
   ps.forEach((p, i) => {
-    const y = top + i * lane + 6, a = sx(p.x0), b = sx(p.x1), dir = b >= a ? 1 : -1;
+    const y = top + 4 + i * lane, a = sx(p.x0), b = sx(p.x1), dir = b >= a ? 1 : -1;
     s += `<line x1="${a}" y1="${y}" x2="${b}" y2="${y}" class="pl k-${p.kind}"/>`;
-    if (Math.abs(b - a) > 3) s += `<path d="M${b} ${y} l${-5 * dir} -3.5 v7 z" class="ph k-${p.kind}"/>`;
-    else s += `<circle cx="${a}" cy="${y}" r="2.6" class="ph k-${p.kind}"/>`;
+    s += Math.abs(b - a) > 4 ? `<path d="M${b} ${y} l${-6 * dir} -4 v8 z" class="ph k-${p.kind}"/>` : `<circle cx="${a}" cy="${y}" r="3" class="ph k-${p.kind}"/>`;
   });
-  if (sit?.x != null) s += `<ellipse cx="${sx(sit.x)}" cy="${H - 8}" rx="6" ry="3.6" class="ball"/>`;
-  return s + `</svg>`;
+  if (sit?.x != null) {
+    const bl = logo(sit.team);
+    s += `<g transform="translate(${sx(sit.x)} ${H - 22})"><ellipse rx="7.5" ry="4.5" class="ball"/><line x1="-3" x2="3" y1="0" y2="0" stroke="#fff" stroke-width="1"/></g>`;
+    if (bl) s += `<image href="${esc(bl)}" x="${sx(sit.x) + (sit.toRight ? -26 : 10)}" y="${H - 31}" width="16" height="16"/>`;
+  }
+  return s + `</g></svg>`;
 }
+function winChart(g, D) {
+  const pts = D.plays.filter(p => p.wp != null && p.t);
+  if (pts.length < 4) return "";
+  const t0 = pts[0].t, t1 = Math.max(pts[pts.length - 1].t, t0 + 1), W = 340, H = 96, P = 24;
+  const x = t => P + (t - t0) / (t1 - t0) * (W - P - 6), y = v => 6 + (100 - v) / 100 * (H - 18);
+  const ch = "var(--fair)";
+  const line = pts.map((p, i) => `${i ? "L" : "M"}${x(p.t).toFixed(1)},${y(p.wp * 100).toFixed(1)}`).join("");
+  const K = (g.hist || []).filter(r => r[3] != null && Date.parse(r[0]) >= t0 - 60000).map(r => [Date.parse(r[0]), r[3]]);
+  const kd = K.map(([t, v]) => `<circle cx="${x(Math.min(t, t1)).toFixed(1)}" cy="${y(v).toFixed(1)}" r="2.4" class="kdot"/>`).join("");
+  const grid = [25, 50, 75].map(v => `<line x1="${P}" x2="${W - 6}" y1="${y(v)}" y2="${y(v)}" class="cg"/><text x="2" y="${y(v) + 3}" class="ct">${v}%</text>`).join("");
+  const big = D.plays.filter(p => p.t && p.wp != null && Math.abs(p.dwp || 0) >= 0.1).map(p => `<circle cx="${x(p.t).toFixed(1)}" cy="${y(p.wp * 100).toFixed(1)}" r="3.2" class="sdot"/>`).join("");
+  return `<div class="wch"><div class="tiny muted" style="margin:6px 0 2px"><b style="color:var(--ink)">${esc(g.home)} win chance</b> · <span style="color:var(--fair)">━</span> ESPN each play · <span class="kd">●</span> Kalshi ${esc(g.home)} price (our checks) · <span class="sd">●</span> big swing</div>
+    <svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="ESPN win chance per play and Kalshi price">${grid}<path d="${line}" fill="none" stroke="var(--fair)" stroke-width="2"/>${kd}${big}</svg></div>`;
+}
+function clockSecs(c) { const m = /^(\d+):(\d+)$/.exec(c || ""); return m ? +m[1] * 60 + +m[2] : null; }
+function toDots(n) { return n == null ? "" : `<span class="tos" title="${n} timeouts left">${[0, 1, 2].map(i => `<i class="${i < n ? "on" : ""}"></i>`).join("")}</span>`; }
 function driveBox(g) {
   const D = S.drv[g.id];
   if (!D) return `<div class="drv" id="drv-${g.id}"><div class="tiny muted">Loading plays from ESPN…</div></div>`;
@@ -741,24 +820,40 @@ function driveBox(g) {
   const dr = last && last.plays.some(p => p.kind !== "kick") ? last : D.drives[D.drives.length - 2] || last;
   const real = D.plays.filter(p => p.kind !== "other" || p.text);
   const lp = real[real.length - 1];
-  // where the ball is now: last play's end spot; first-down line from the scoreboard's down & distance
+  // where the ball is now: the last play's end spot, down and distance (ESPN)
   let sit = null;
-  if (lp && lp.x1 != null) {
-    const off = g.possession || lp.team, toRight = off === g.home;   // home drives toward the away end zone (right)
-    const m = /(\d+)(?:st|nd|rd|th) & (\d+|Goal)/i.exec(g.downDist || "");
-    const dist = m ? (/goal/i.test(m[2]) ? null : +m[2]) : null;
-    sit = { x: lp.x1, fd: dist != null ? lp.x1 + (toRight ? dist : -dist) : null };
+  if (lp && lp.end.x != null) {
+    const off = lp.end.team || g.possession || lp.team, toRight = off === g.home;   // home drives toward the away end zone (right)
+    const dist = lp.end.dist, ytez = lp.end.ytez;
+    sit = { x: lp.end.x, team: off, toRight, ytez, down: lp.end.down, dist,
+      fd: dist && ytez > dist ? lp.end.x + (toRight ? dist : -dist) : null, rz: ytez > 0 && ytez <= 20 };
   }
-  const ytez = lp && g.possession ? (g.possession === g.home ? 100 - (lp.x1 ?? 0) : lp.x1 ?? 100) : null;
-  const rz = ytez != null && ytez <= 20 && ytez > 0;
-  const head = `<div class="row small drvh"><b>${esc(g.downDist || "Between plays")}</b>${g.possession ? `<span class="muted">· ${esc(g.possession)} ball</span>` : ""}${rz ? `<span class="tag rz">Red zone</span>` : ""}<span class="sp"></span><span class="tiny muted">${dr ? esc(`${dr.team} drive: ${dr.desc || dr.plays.length + " plays"}${dr.done && dr.result ? " · " + dr.result : ""}`) : ""}</span></div>`;
+  const dd = sit && sit.down >= 1 && sit.down <= 4 ? `${["", "1st", "2nd", "3rd", "4th"][sit.down]} & ${sit.ytez <= sit.dist ? "Goal" : sit.dist}` : (g.downDist || "");
+  const spotTxt = sit && sit.ytez != null ? (sit.ytez === 50 ? "50" : sit.ytez < 50 ? `${sit.team === g.home ? g.away : g.home} ${sit.ytez}` : `${sit.team} ${100 - sit.ytez}`) : "";
+  const sc = sit ? scoreChance(sit.ytez, sit.down, sit.dist) : null;
+  const secs = clockSecs(g.clock), twoMin = (g.period === 2 || g.period >= 4) && secs != null && secs <= 120;
+  const head = `<div class="drvh"><div class="row" style="gap:6px;flex-wrap:wrap"><b class="dd">${esc(dd || "Between plays")}</b>${spotTxt ? `<span class="small muted">at ${esc(spotTxt)}</span>` : ""}${sit ? `<span class="small muted">· ${esc(sit.team)} ball</span>` : ""}${sit?.rz ? `<span class="tag rz">Red zone</span>` : ""}${twoMin ? `<span class="tag twom">Two-minute drill</span>` : ""}</div>
+    <div class="row tiny muted" style="gap:8px;flex-wrap:wrap;margin-top:3px">${g.toA != null ? `<span>${esc(g.away)} ${toDots(g.toA)}</span><span>${esc(g.home)} ${toDots(g.toH)}</span>` : ""}${sc ? `<span>This drive: <b style="color:var(--ink)">TD ${sc.td}%</b> · FG ${sc.fg}%</span>` : ""}<span class="sp"></span><span>${dr ? esc(`${dr.team} drive: ${dr.desc || dr.plays.length + " plays"}${dr.done && dr.result ? " · " + dr.result : ""}`) : ""}</span></div></div>`;
+  // banners: big swing on the last play, other team in the red zone
+  let ban = "";
+  const sw = [...real].reverse().find(p => p.dwp != null);
+  if (sw && Math.abs(sw.dwp) >= 0.10 && Date.now() - (sw.t || 0) < 10 * 60000) {
+    const gain = sw.dwp > 0 ? g.home : g.away, to = Math.round(homeWP(g, gain, sw.wp) * 100), from = Math.round(homeWP(g, gain, sw.wp - sw.dwp) * 100);
+    const late = g.period >= 4 && secs != null && secs < 600;
+    ban += `<div class="dban swing"><b>Big swing: ${esc(gain)} ${from}% → ${to}%</b> on ${sw.flags[0] === "TD" ? "a touchdown" : "a " + esc((sw.flags[0] || KLBL[sw.kind] || "play").toLowerCase())}. Check the Kalshi price before it moves.${late ? ` <span class="muted">Late swings, 2016–25: the team that gained won ~${DS.lateSwing} pts less often than the new win % said. Info only.</span>` : ""}</div>`;
+  }
+  if (sit?.rz) {
+    const def = sit.team === g.home ? g.away : g.home;
+    ban += `<div class="dban hold"><b>${esc(def)} backers, hold off?</b> ${esc(sit.team)} is in the red zone. Prices usually move about ${DS.rzMove}¢ by the end of a red-zone drive, either way. Buying now or after was equally fair in 2016–25 tests, so waiting only avoids the jump.</div>`;
+  }
   const recent = real.filter(p => p.kind !== "other").slice(-6).reverse();
-  const tick = recent.map(p => `<span class="tk k-${p.kind}"><i></i><b>${esc(p.team)}</b> ${esc(KLBL[p.kind])}${p.yds != null && /run|pass|sack|pen/.test(p.kind) ? ` ${p.yds > 0 ? "+" : ""}${p.yds}` : ""}: ${esc(shortPlay(p))}${wpTag(g, p)}</span>`).join("");
+  const tick = recent.map(p => `<span class="tk k-${p.kind}"><i></i><b>${esc(p.team)}</b> ${flagChips(p)}${esc(KLBL[p.kind])}${p.yds != null && /run|pass|sack|pen/.test(p.kind) ? ` ${p.yds > 0 ? "+" : ""}${p.yds}` : ""}: ${esc(shortPlay(p))}${wpTag(g, p)}</span>`).join("");
   const id = "dl:" + g.id;
-  const list = S.open.has(id) ? `<div class="drvl">${(dr?.plays || []).slice().reverse().map(p => `<div class="pp"><span class="dotk k-${p.kind}"></span><span class="tiny muted">Q${p.q} ${esc(p.clock)} · ${esc(p.dd || "")}${p.spot ? " at " + esc(p.spot) : ""}</span><br><span class="small">${esc(shortPlay(p))}</span>${wpTag(g, p)}</div>`).join("")}</div>` : "";
-  return `<div class="drv" id="drv-${g.id}">${head}${fieldSvg(g, dr, sit)}
-    <div class="legend tiny muted">${[["k-run", "Run"], ["k-pass", "Pass"], ["k-inc", "Incomplete"], ["k-pen", "Penalty"], ["k-to", "Turnover"], ["fd", "1st down line"]].map(([k, t]) => `<span><i class="lg ${k}"></i>${t}</span>`).join("")}</div>
+  const list = S.open.has(id) ? `<div class="drvl">${(dr?.plays || []).filter(p => shortPlay(p)).slice().reverse().map(p => `<div class="pp"><span class="dotk k-${p.kind}"></span><span class="tiny muted">Q${p.q} ${esc(p.clock)} · ${esc(p.dd || "")}${p.spot ? " at " + esc(p.spot) : ""}</span> ${flagChips(p)}<br><span class="small">${esc(shortPlay(p))}</span>${wpTag(g, p)}</div>`).join("")}</div>` : "";
+  return `<div class="drv" id="drv-${g.id}">${head}${ban}${fieldSvg(g, D, dr, sit)}
+    <div class="legend tiny muted">${[["k-run", "Run"], ["k-pass", "Pass"], ["k-inc", "Incomplete"], ["k-sack", "Sack"], ["k-pen", "Penalty"], ["k-to", "Turnover"], ["fd", "1st down"], ["los", "Ball spot"]].map(([k, t]) => `<span><i class="lg ${k}"></i>${t}</span>`).join("")}</div>
     ${recent.length ? `<div class="ticker" onclick="toggle('${id}')"><div class="tkin">${tick}${tick}</div></div>` : ""}
+    ${winChart(g, D)}
     <div class="line u tiny" onclick="toggle('${id}')">${S.open.has(id) ? "Hide" : "Show"} every play this drive · win % from ESPN</div>${list}</div>`;
 }
 
@@ -1570,7 +1665,7 @@ function setup() {
    <div class="small">Status: ${(p.hasTopic || p.topic) ? `<span class="ok">on — server alerts go only to the app owner's phone</span>` : `<span class="bad">no topic on server</span>`}${p.lastNote ? `<br>${esc(p.lastNote)}` : ""}</div>
    <div class="row" style="margin-top:8px"><input id="topic" placeholder="ntfy topic" value="${esc(topic)}" style="flex:1"><button class="btn pri" onclick="testPush()">Test</button></div>
    <div id="testRes" class="small"></div>
-   <div class="small" style="margin:8px 0">Buzzes for: <b>game-day summary</b> (Thu &amp; Sun 11 AM) · Buy now · Wait prices hit · slow prices · sportsbook gaps (8¢+, needs the Odds API key) · live dips · <b>injury news</b> (starter ruled out, confirmed out in-game, QB change).</div>
+   <div class="small" style="margin:8px 0">Buzzes for: <b>game-day summary</b> (Thu &amp; Sun 11 AM) · Buy now · Wait prices hit · slow prices · sportsbook gaps (8¢+, needs the Odds API key) · live dips · <b>big swings</b> (ESPN win % moves 15+ pts, info only) · <b>injury news</b> (starter ruled out, confirmed out in-game, QB change).</div>
    <ol class="small"><li>Install the free <b>ntfy</b> app (App Store / Google Play).</li><li>Tap <b>+</b>, type the topic above, Subscribe.</li><li>Tap <b>Test</b> here — your phone should buzz.</li></ol>
    <div class="small"><a href="https://github.com/${REPO}/settings/secrets/actions" target="_blank" rel="noopener">Change the server topic</a> (it's the private <code>NTFY_TOPIC</code> secret: tap it, paste the new name, Update secret).</div>
   </div>
@@ -1682,6 +1777,7 @@ async function liveScores() {
       const sit = comp.situation || {};
       g.possession = ids[sit.possession] || null;
       g.downDist = sit.shortDownDistanceText || sit.downDistanceText || "";
+      if (sit.homeTimeouts != null) { g.toH = sit.homeTimeouts; g.toA = sit.awayTimeouts; }
     }
     S.scoreAt = Date.now();
   } catch (e) { S.scoreAt = null; }

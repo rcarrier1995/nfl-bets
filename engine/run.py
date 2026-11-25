@@ -247,6 +247,49 @@ def retest_rules(season, week):
     save_json(C.OVERRIDES, ov)
 
 
+SWING_LOG = os.path.join(C.STATE, "swing_log.json")
+
+
+def swing_alerts(board, rs, now, thr=15.0):
+    """Big swing: ESPN's live win % moved 15+ points since the last check (about 6 min). Info only,
+    never a Buy: the push shows ESPN's new number next to the Kalshi price so Rick can look before
+    the price moves. Past seasons (engine/drive_study.py): after a late big swing the team that
+    gained won ~4 pts less often than the new win % said; too small and too model-specific to act
+    on, so every alert is logged in state/swing_log.json and graded when the game ends."""
+    last = rs.setdefault("wpLast", {})
+    log = load_json(SWING_LOG, []) or []
+    by = {g["id"]: g for g in board["games"]}
+    for e in log:                                    # grade finished games
+        g = by.get(e["gameId"])
+        if e.get("won") is None and g and g["state"] == "post" and g.get("score"):
+            a, h = g["score"].get("away") or 0, g["score"].get("home") or 0
+            if a != h:
+                e["won"] = int((h > a) == (e["team"] == g["home"]))
+    for g in board["games"]:
+        if g["state"] != "in":
+            last.pop(g["id"], None)
+            continue
+        ha, aw = g["teams"]["home"], g["teams"]["away"]
+        wp = ha.get("espnWP")
+        if wp is None:
+            continue
+        prev = last.get(g["id"])
+        last[g["id"]] = wp
+        if prev is None or abs(wp - prev) < thr:
+            continue
+        gain, lose = (ha, aw) if wp > prev else (aw, ha)
+        gf, gt = (prev, wp) if gain is ha else (100 - prev, 100 - wp)
+        log.append({"t": iso(now), "gameId": g["id"], "game": g["short"], "q": g.get("period"), "clock": g.get("clock"),
+                    "team": gain["team"], "from": round(gf), "to": round(gt), "kalshi": gain.get("price"), "won": None})
+        if any(c.get("priceStale") or c.get("alertsOff") for c in (ha, aw)):
+            continue
+        kp = " · ".join(f"{c['team']} {c['price']:.0f}c" for c in (gain, lose) if c.get("price") is not None)
+        P.send(f"Big swing: {gain['team']} {gf:.0f}% -> {gt:.0f}%"[:120],
+               f"{g['short']} · ESPN win chance moved {abs(wp - prev):.0f} pts since the last check.\n"
+               f"Kalshi: {kp or 'no price'}. Info only: check the price before it moves.")
+    save_json(SWING_LOG, log[-500:])
+
+
 def news_alerts(board, rs, now):
     """Buzz the moment a starter is ruled out (pregame report / inactives) or confirmed out
     in-game, or the QB changes — so Rick can act before the price catches up. One push each.
@@ -436,6 +479,7 @@ def tick(force=()):
                priority="high")
         vsent[k] = round(sl["bid"])
     news_alerts(board, rs, now)
+    swing_alerts(board, rs, now)
     gap_alerts(board, rs)
     if len(vsent) > 400:
         rs["valueSent"] = dict(list(vsent.items())[-400:])

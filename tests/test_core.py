@@ -423,3 +423,32 @@ def test_game_day_alert_and_gap_push(monkeypatch):
     R.gap_alerts(board, rs)
     R.gap_alerts(board, rs)                                            # once per team per price
     assert sent == ["Gap: TEN 11c vs books 20%"]
+
+
+def test_swing_alerts_push_once_and_grade(tmp_path, monkeypatch):
+    from datetime import datetime, timezone
+    from engine import run as R
+    sent = []
+    monkeypatch.setattr(R.P, "send", lambda *a, **k: sent.append(a))
+    monkeypatch.setattr(R, "SWING_LOG", str(tmp_path / "s.json"))
+    now = datetime.now(timezone.utc)
+
+    def b(wp, state="in"):
+        return {"games": [{"id": "1", "short": "CIN @ WSH", "state": state, "home": "WSH", "away": "CIN", "period": 4,
+                           "clock": "5:00", "score": {"away": 10, "home": 17},
+                           "teams": {"home": {"team": "WSH", "espnWP": wp, "price": 60},
+                                     "away": {"team": "CIN", "espnWP": 100 - wp, "price": 41}}}]}
+    rs = {}
+    for wp in (50, 55, 75):
+        R.swing_alerts(b(wp), rs, now)
+    assert len(sent) == 1 and "WSH 55% -> 75%" in sent[0][0]
+    R.swing_alerts(b(75, "post"), rs, now)
+    log = R.load_json(R.SWING_LOG)
+    assert log[0]["team"] == "WSH" and log[0]["won"] == 1
+
+
+def test_drive_odds_file_shape():
+    import json, os
+    t = json.load(open(os.path.join(os.path.dirname(__file__), "..", "docs", "data", "drive_odds.json")))["t"]
+    td, fg, n = t["5|1|goal"]
+    assert 60 <= td <= 95 and n > 1000
