@@ -452,3 +452,30 @@ def test_drive_odds_file_shape():
     t = json.load(open(os.path.join(os.path.dirname(__file__), "..", "docs", "data", "drive_odds.json")))["t"]
     td, fg, n = t["5|1|goal"]
     assert 60 <= td <= 95 and n > 1000
+
+
+def test_polymarket_parse_and_gap():
+    """Polymarket moneyline -> per-team buy price; 3c+ gap vs Robinhood shown, smaller gaps hidden."""
+    from unittest import mock
+    from datetime import datetime, timezone
+    from engine import feeds as FD
+    rows = [{"slug": "nfl-gb-la-2026-11-26", "bestBid": 0.40, "bestAsk": 0.41, "volume24hr": 1000,
+             "gameStartTime": "2026-11-26 01:00:00+00"},
+            {"slug": "nfl-was-ari-2026-11-29", "bestBid": 0.05, "bestAsk": 0.95, "gameStartTime": None}]  # no real market
+    with mock.patch.object(FD, "cached", lambda *a: (rows, False)):
+        idx = FD.poly_index()
+    assert set(idx) == {frozenset(("GB", "LAR"))}
+    assert idx[frozenset(("GB", "LAR"))]["LAR"]["ask"] == 60.0
+    g = {"id": "x", "away": "GB", "home": "LAR", "state": "pre",
+         "teams": {"away": {"team": "GB", "price": 45.0}, "home": {"team": "LAR", "price": 61.0}}}
+    with mock.patch.object(FD, "save_json", lambda *a, **k: None):
+        FD.poly_attach(g, idx, datetime(2026, 11, 26, 1, tzinfo=timezone.utc), datetime(2026, 11, 25, tzinfo=timezone.utc))
+    assert "4¢ dearer" in g["teams"]["away"]["polyLine"]
+    assert g["teams"]["home"]["polyLine"] is None
+
+
+def test_fpi_missing_stays_missing():
+    from engine import feeds as FD
+    g = {"state": "pre", "teams": {"away": {"team": "A", "price": 40}, "home": {"team": "B", "price": 60}}}
+    FD.fpi_attach(g, {"predictor": {"homeTeam": {"gameProjection": "61.0"}}})   # away side missing
+    assert g["teams"]["home"]["fpi"] is None and g["teams"]["away"]["fpi"] is None

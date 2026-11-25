@@ -53,7 +53,8 @@ def kalshi_index(events):
                 pass
             prices[team] = {"ask": ask if ask and ask > 0 else None, "bid": bid, "last": last, "ticker": m.get("ticker"),
                             "tick": step, "status": m.get("status"), "result": m.get("result"),
-                            "vol24": _num(m.get("volume_24h_fp", m.get("volume_24h")))}
+                            "vol24": _num(m.get("volume_24h_fp", m.get("volume_24h"))),
+                            "vol": _num(m.get("volume_fp", m.get("volume")))}
             occ = occ or parse_dt(m.get("occurrence_datetime") or m.get("expected_expiration_time"))
         if len(prices) == 2:
             idx.setdefault(frozenset(prices), []).append({"occ": occ, "prices": prices})
@@ -225,9 +226,17 @@ def build(now=None, extra_shrink=1.0, calib=None, sb_override=None):
 
     from .odds import refresh as odds_refresh
     cons = odds_refresh([parse_dt(ev.get("date")) for ev in events if ev["status"]["type"]["state"] == "pre"], now)
+    # extra free feeds (info only, never change a call): Polymarket, ESPN news, practice reports
+    from . import feeds as FD
+    team_ids = {}
+    for ev in events:
+        for t in ev["competitions"][0]["competitors"]:
+            team_ids[str(t["team"].get("id"))] = C.espn_abbr(t["team"]["abbreviation"])
+    extra = {"poly": _safe(FD.poly_index, {}), "news": _safe(lambda: FD.news_feed(team_ids), {}),
+             "practice": _safe(lambda: FD.practice_update(season, week, now), None)}
     games, calls, legs_pool, alerts = [], [], [], []
     for ev in events:
-        g = build_game(ev, tables, kidx, wx_all, pt_idx, live_state, snaps, prev_calls, now, extra_shrink, calib, cons)
+        g = build_game(ev, tables, kidx, wx_all, pt_idx, live_state, snaps, prev_calls, now, extra_shrink, calib, cons, extra)
         games.append(g)
         for side in ("away", "home"):
             c = g["teams"][side]
@@ -286,7 +295,8 @@ def build(now=None, extra_shrink=1.0, calib=None, sb_override=None):
     top3 = top_three([c for c in calls if c.get("state") == "pre"])
     save_json(LIVE_FILE, live_state, compact=True)
     save_json(SNAP_FILE, snaps, compact=True)
-    feeds_stale = {"espn": sb_stale, "kalshi": k_stale, "weather": wx_stale}
+    feeds_stale = {"espn": sb_stale, "kalshi": k_stale, "weather": wx_stale,
+                   "polymarket": not extra["poly"], "practice": extra["practice"] is None}
     HEALTH.save()
     return {
         "generatedAt": iso(now), "season": season, "week": week,
@@ -374,7 +384,18 @@ def espn_ml_p(odds):
     return round(ph / (ph + pa), 4)
 
 
-def build_game(ev, tables, kidx, wx_all, pt_idx, live_state, snaps, prev_calls, now, extra_shrink, calib, cons=None):
+def _safe(fn, default):
+    """A broken extra feed must never break the board: its slot just stays empty."""
+    try:
+        return fn()
+    except Exception as e:  # noqa
+        HEALTH.fail("extra-feed", e)
+        print("extra feed failed:", e)
+        return default
+
+
+def build_game(ev, tables, kidx, wx_all, pt_idx, live_state, snaps, prev_calls, now, extra_shrink, calib, cons=None,
+               extra=None):
     comp = ev["competitions"][0]
     st = ev["status"]
     state = st["type"]["state"]           # pre / in / post
@@ -555,6 +576,13 @@ def build_game(ev, tables, kidx, wx_all, pt_idx, live_state, snaps, prev_calls, 
                 vals = [v for v in (c["dayLo"], c["dayHi"], rg[0], rg[1]) if v is not None]
                 c["dayLo"], c["dayHi"] = min(vals), max(vals)
     g["teams"] = teams
+    if extra is not None:
+        from . import feeds as FD
+        for step in (lambda: FD.poly_attach(g, extra["poly"], kickoff, now), lambda: FD.fpi_attach(g, summary),
+                     lambda: FD.news_attach(g, extra["news"], tables),
+                     lambda: FD.practice_attach(g, extra["practice"], tables),
+                     lambda: FD.volume_attach(g, prices, now)):
+            _safe(step, None)
 
     # snapshot every pregame fair/price/call before kickoff
     if state == "pre":
