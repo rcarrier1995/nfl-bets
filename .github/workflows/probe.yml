@@ -1,0 +1,22 @@
+name: probe
+on:
+  push:
+    branches: [claude/project-thread-5jaym2]
+    paths: [".github/workflows/probe.yml"]
+jobs:
+  p:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          curl -s "https://pinnwire.com/kit/v1/prematch/fixtures?sport_id=5&key=demo" -o pw.json -w "pinnwire %{http_code}\n"
+          python3 - <<'PY'
+          import json
+          d=json.load(open('pw.json'))
+          if isinstance(d,dict) and 'events' in d:
+              ev=d['events']; print('n',len(ev), 'leagues', sorted({str(e.get('league_name')) for e in ev})[:30])
+              for e in [e for e in ev if 'NFL' in str(e.get('league_name'))][:6]:
+                  print(json.dumps({k:e.get(k) for k in ('league_id','league_name','away','home','starts','event_id')}), json.dumps((e.get('periods') or {}).get('num_0',{}).get('money_line')))
+          else: print(str(d)[:500])
+          PY
+          curl -s "https://api.oddspapi.io/v4/account" -w "\noddspapi %{http_code}\n" | head -c 300
+          curl -s "https://therundown.io/api/v2/sports" -w "\nrundown %{http_code}\n" | head -c 300
