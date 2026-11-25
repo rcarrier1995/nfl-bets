@@ -1,13 +1,13 @@
 {
  "espn": {
   "ok": true,
-  "lastOk": "2026-11-25T15:47:00Z",
+  "lastOk": "2026-11-25T15:57:12Z",
   "note": "",
   "fails": 0
  },
  "kalshi": {
   "ok": true,
-  "lastOk": "2026-11-25T15:46:52Z",
+  "lastOk": "2026-11-25T15:57:04Z",
   "note": "",
   "fails": 0,
   "lastFail": "2026-11-23T02:19:30Z",
@@ -15,7 +15,7 @@
  },
  "weather": {
   "ok": true,
-  "lastOk": "2026-11-25T15:46:53Z",
+  "lastOk": "2026-11-25T15:57:05Z",
   "note": "",
   "fails": 0,
   "lastFail": "2026-11-23T19:14:37Z",
