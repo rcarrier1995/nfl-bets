@@ -58,6 +58,27 @@ const ICON = {
   trophy: '<path d="M8 21h8M12 17v4M7 4h10v4a5 5 0 0 1-10 0V4zM17 6h3a3 3 0 0 1-3 4M7 6H4a3 3 0 0 0 3 4"/>'
 };
 const ic = k => `<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICON[k] || ""}</svg>`;
+// folds (2026-11-25 layout pass): every section header is a big tap-to-fold button, remembered per device
+const foldOpen = (id, def = true) => { const v = localGet("fold." + id); return v == null ? def : v === "1"; };
+window.foldCard = (id, def) => { localSet("fold." + id, foldOpen(id, def) ? "0" : "1"); render(); };
+const FCHEV = `<span class="fchev" aria-hidden="true"></span>`;
+function foldify(root, scope) {
+  root.querySelectorAll("h2").forEach(h => {
+    if (h.parentNode.classList.contains("fold") || h.closest("details.research")) return;   // research lines already open one by one
+    const t = h.cloneNode(true); t.querySelectorAll(".cnt").forEach(x => x.remove());
+    const key = scope + ":" + t.textContent.replace(/[\d¢%·]+/g, "").replace(/\s+/g, " ").trim().slice(0, 40);
+    const sec = document.createElement("section"), body = document.createElement("div"), btn = document.createElement("button");
+    sec.className = "fold"; body.className = "foldb"; btn.className = "foldh"; btn.type = "button";
+    let n = h.nextSibling;
+    while (n && !(n.nodeType === 1 && n.tagName === "H2")) { const nx = n.nextSibling; body.appendChild(n); n = nx; }
+    h.parentNode.insertBefore(sec, h);
+    btn.innerHTML = `<span class="ft">${h.innerHTML}</span>${FCHEV}`;
+    const o = foldOpen(key, h.dataset.fold !== "closed");
+    sec.classList.toggle("shut", !o); btn.setAttribute("aria-expanded", o);
+    btn.onclick = () => { const now = sec.classList.toggle("shut"); btn.setAttribute("aria-expanded", !now); localSet("fold." + key, now ? "0" : "1"); };
+    h.remove(); sec.append(btn, body);
+  });
+}
 function toggle(id) { S.open.has(id) ? S.open.delete(id) : S.open.add(id); render(); }
 window.toggle = toggle;
 
@@ -67,8 +88,9 @@ const GRADE_CUTS = [[85, "A+"], [75, "A"], [60, "B"], [45, "C"]], COMBO_CUTS = [
 const GRADE_TESTED = { "A+": 92, A: 80, B: 67, C: 54, F: 32 };
 const gradeOf = (p, cuts = GRADE_CUTS) => p == null ? null : (cuts.find(([lo]) => p >= lo) || [0, "F"])[1];
 const grd = (g, sm) => g ? `<span class="grd g${g.replace("+", "p")}${sm ? " sm" : ""}" title="Grade ${g}">${g}</span>` : "";
-const gradeKey = () => `<div class="gkey tiny muted">${grd("A+", 1)} 85%+ to win ${grd("A", 1)} 75–85% ${grd("B", 1)} 60–75% ${grd("C", 1)} 45–60% ${grd("F", 1)} under 45% · Buy / Wait / Pass = the price</div>`;
-const comboKey = () => `<div class="gkey tiny muted">Combo grade: ${grd("A", 1)} hits 1 in 3 or better ${grd("B", 1)} 1 in 7 ${grd("C", 1)} 1 in 14 ${grd("F", 1)} rarer</div>`;
+const keyFold = (t, inner) => `<details class="keyfold"><summary>ⓘ ${t}</summary>${inner}</details>`;
+const gradeKey = () => keyFold("What the grades mean", `<div class="gkey tiny muted">${grd("A+", 1)} 85%+ to win ${grd("A", 1)} 75–85% ${grd("B", 1)} 60–75% ${grd("C", 1)} 45–60% ${grd("F", 1)} under 45% · Buy / Wait / Pass = the price</div>`);
+const comboKey = () => keyFold("What combo grades mean", `<div class="gkey tiny muted">Combo grade: ${grd("A", 1)} hits 1 in 3 or better ${grd("B", 1)} 1 in 7 ${grd("C", 1)} 1 in 14 ${grd("F", 1)} rarer</div>`);
 function meter(conf, p) {
   const g = gradeOf(p ?? conf?.win ?? conf?.score);
   return `${grd(g)}<span class="small">Win chance</span>`;
@@ -503,7 +525,7 @@ function spreadTxt(g) {
   const fav = sp < 0 ? g.home : g.away, n = x => Math.abs(x) === 0 ? "PK" : "−" + Math.abs(x);
   const op = g.openSpread;
   const moved = op != null && Math.abs(op - sp) >= 0.5 ? ` (opened ${(op < 0) === (sp < 0) ? n(op) : `${op < 0 ? g.home : g.away} ${n(op)}`})` : "";
-  return `Spread ${sp === 0 ? "Pick'em" : `${fav} ${n(sp)}`}${moved}${g.total != null ? ` · Over/under ${g.total}` : ""}`;
+  return `${sp === 0 ? "Pick'em" : `${fav} ${n(sp)}`}${moved}${g.total != null ? ` · O/U ${g.total}` : ""}`;
 }
 // expert picks (CBS + NFL.com): one short line by the spread, full list in head-to-head details
 function expertsLine(g) {
@@ -514,6 +536,7 @@ function expertsLine(g) {
   const txt = Object.entries(c).sort((a, b) => b[1] - a[1]).map(([t, n]) => `${t} ${n}`).join(" · ");
   return `<div class="tiny muted" style="margin-top:2px">Top ${e.top.length} experts: <b>${esc(txt)}</b></div>`;
 }
+const expertsTxt = g => { const e = g.experts; if (!e || !e.top?.length) return ""; const c = {}; for (const r of e.top) c[r.team] = (c[r.team] || 0) + 1; return "Experts: " + Object.entries(c).sort((a, b) => b[1] - a[1]).map(([t, n]) => e.top.length > 1 ? `${t} ${n}` : t).join(" · "); };
 // watch tags (combo study) + expert spots: one skinny banner at the top of the card, on that team's side.
 // Tags only — they never change the call. Tap the card for the why.
 // our confidence (win chance) for both teams, on every game row
@@ -548,7 +571,7 @@ function earlyValue(g) {
   return (g.watch || []).some(w => w.kind !== "fade" && (S.B.watch?.edges?.[w.tag] ?? 0) > 0 && w.price != null && (g.teams.away.team === w.team ? g.teams.away : g.teams.home).fair >= w.price)
     || [g.teams.away, g.teams.home].some(c => callOf(c) === "Value");
 }
-function tagBar(g, id) {
+function tagBar(g, id, open = true) {
   const items = { [g.away]: [], [g.home]: [] };
   for (const w of g.watch || []) {
     const [pickT, why] = tagText(w, g);
@@ -560,8 +583,10 @@ function tagBar(g, id) {
   if (e?.agree && items[e.agree]) items[e.agree].push(["exp", e.agree, `all ${e.n} experts like ${e.agree}`]);
   if (e?.dogPicks?.length && items[e.dog]) items[e.dog].push(["exp", e.dog, `${e.dogPicks.map(lastName).join(", ")} pick${e.dogPicks.length > 1 ? "" : "s"} underdog ${e.dog}`]);
   if (!items[g.away].length && !items[g.home].length) return "";
-  const chips = items[g.away].concat(items[g.home]);
-  return `<div class="wban"${id ? ` onclick="toggle('${id}')"` : ""}><div class="wcol">${chips.map(([k, p, x, early]) => `<span class="wchip ${k}"><b>ⓘ ${early ? "Early info" : "Info"} · ${esc(p)}:</b> ${esc(x)}</span>`).join("")}</div></div>`;
+  let chips = items[g.away].concat(items[g.home]);
+  const more = open ? 0 : chips.length - 1;
+  if (more > 0) chips = chips.slice(0, 1);
+  return `<div class="wban${more >= 0 && !open ? " one" : ""}"${id ? ` onclick="toggle('${id}')"` : ""}><div class="wcol">${chips.map(([k, p, x, early]) => `<span class="wchip ${k}"><b>ⓘ ${early ? "Early info" : "Info"} · ${esc(p)}:</b> ${esc(x)}</span>`).join("")}</div>${more > 0 ? `<span class="wmore">+${more}</span>` : ""}</div>`;
 }
 function watchLine(g) {
   if (!g.watch?.length) return "";
@@ -607,10 +632,9 @@ function gameRow(g) {
   if (g.state === "in") return liveCard(g);
   const bc = callOf(best);
   const o = S.open.has(id);
-  const tm = c => `<div class="tm">${badge(c.team, "sm")}<span>${esc(c.name || c.team)}</span><span class="sp"></span></div>`;
-  let row = `${tagBar(g, id)}<div class="grow" onclick="toggle('${id}')"><div class="mt sp">${tm(a)}${tm(h)}${spreadTxt(g) ? `<div class="tiny muted" style="margin-top:2px">${esc(spreadTxt(g))}</div>` : ""}${expertsLine(g)}${winLine(g)}${rowGap(g)}</div>
-    <div class="rt"><span class="kt">${soon(g.kickoff) || kick(g.kickoff)}</span><span class="pill c-${bc}">${esc(best.team)} ${LBL(bc)}</span></div>
-    <span class="chev ${o ? "open" : ""}">›</span></div>`;
+  const tm = c => { const p = c.fair; return `<div class="tm">${badge(c.team, "sm")}<span class="nm">${esc(c.name || c.team)}</span><span class="sp"></span>${p != null ? `<span class="wpct">${Math.round(p)}%</span>${grd(gradeOf(p), 1)}` : ""}${c.price != null ? `<span class="wp">${ct(c.price)}</span>` : ""}</div>`; };
+  const meta = [spreadTxt(g), expertsTxt(g)].filter(Boolean).join(" · ");
+  let row = `${tagBar(g, id, o)}<div class="grow g2" onclick="toggle('${id}')"><div class="ghead"><span class="kt">${soon(g.kickoff) || kick(g.kickoff)}</span><span class="sp"></span><span class="pill c-${bc}">${esc(best.team)} ${LBL(bc)}</span>${FCHEV}</div>${tm(a)}${tm(h)}${meta ? `<div class="tiny muted meta">${esc(meta)}</div>` : ""}${rowGap(g)}</div>`;
   if (o) row += `<div class="card">${gameDetail(g)}</div>`;
   return row;
 }
@@ -1101,10 +1125,14 @@ function big3(hit, cost) {
   return `<div class="big3"><div><b>${pct(hit)}</b><span>chance it hits</span></div><div><b>${ct1(cost)}</b><span>cost</span></div><div><b>${n ? "$" + n : "—"}</b><span>$5 wins</span></div></div>`;
 }
 const legHead = `<div class="leghead"><span>Team</span><span class="sp"></span><span>Our chance</span><span>Price</span></div>`;
-const comboWarn = () => `<div class="quiet small"><b>Check Robinhood's real price first.</b> <span class="muted">Cheap combos there cost more than the teams' prices multiplied (we add about ${Math.round((markup(2, 8) - 1) * 100)}% at 8¢); pricey favourite combos are close to the product (your 60.1¢ JAX+CIN+DAL quote). Skip a combo if Robinhood's price is 10%+ above our cost.</span></div>${comboKey()}`;
-function topCard(c, i) {
-  return `<div class="card">
-    <div class="row"><b>#${i + 1} · ${c.size} teams</b><span class="sp"></span>${hitChip(c.hit)}</div>
+const comboWarn = () => `<details class="quiet small warnfold"><summary><b>Check Robinhood's real price first</b></summary><div class="muted" style="margin-top:6px">Cheap combos there cost more than the teams' prices multiplied (we add about ${Math.round((markup(2, 8) - 1) * 100)}% at 8¢); pricey favourite combos are close to the product (your 60.1¢ JAX+CIN+DAL quote). Skip a combo if Robinhood's price is 10%+ above our cost.</div></details>${comboKey()}`;
+function topCard(c, i, sk = "") {
+  const id = `tc:${sk}:${i}`, o = foldOpen(id, i === 0);
+  const strip = `<div class="lstrip">${c.legs.slice().sort(legRank).map(l => `<span>${badge(l.team, "sm")}${esc(l.team)}</span>`).join("")}</div>`;
+  const head = `<button class="cardh" onclick="foldCard('${id}', ${i === 0})" aria-expanded="${o}"><b>#${i + 1} · ${c.size} teams</b><span class="sp"></span>${hitChip(c.hit)}<span class="fchev"></span></button>`;
+  if (!o) return `<div class="card folded">${head}${big3(c.hit, c.cost)}${strip}<button class="showmore" onclick="foldCard('${id}', ${i === 0})">Show teams &amp; details</button></div>`;
+  return `<div class="card open">
+    ${head}
     ${big3(c.hit, c.cost)}
     <div class="tiny muted">${c.hit >= c.cost + 2 ? `Our chance beats the cost by ${(c.hit - c.cost).toFixed(1)}¢` : c.hit >= c.cost ? "About a fair price" : `Costs ${(c.cost - c.hit).toFixed(1)}¢ more than our chance`}${c.cost > 10 ? " · over 10¢: not a bonus bet" : ""}${c.reused ? ` · shares ${c.reused} game${c.reused > 1 ? "s" : ""} with a pick above` : ""}</div>
     ${boughtBox({ kind: "combo", team: c.legs.map(l => l.team).join("+"), game: `${c.size}-team combo`, legs: c.legs.map(l => ({ team: l.team, gameId: l.gameId })), grade: gradeOf(c.hit, COMBO_CUTS), price: c.cost })}
@@ -1241,13 +1269,13 @@ function buildAnalysis(legs, pool) {
 const comboTabs = cat => `<div class="ctabs">${ctabTop()}<button class="${cat === "build" ? "on" : ""}" onclick="setCombo('build')">Build your own</button><button class="${cat === "standard" ? "on" : ""}" onclick="setCombo('standard')">All games</button><button class="${cat === "combined" ? "on" : ""}" onclick="setCombo('combined')">Sure things + dips</button></div>`;
 function topCombosView() {
   const T = S.B.topCombos || {};
-  let h = `<div class="ptitle">Combos</div><div class="psub">Top picks · this week and next week</div>${comboTabs("top")}${comboWarn()}<div class="row" style="margin:6px 0;flex-wrap:wrap"><button class="btn pri" onclick="buildGrade('A+')">${grd("A+", 1)}A+ combo (3+ teams) →</button><button class="btn pri" onclick="buildGrade('A')">${grd("A", 1)}Combo of all A picks →</button><button class="btn pri" onclick="buildGrade('AB')">${grd("A", 1)}${grd("B", 1)}Combo of all A + B picks →</button></div>`;
+  let h = `<div class="ptitle">Combos</div><div class="psub">Top picks · this week and next week</div>${comboTabs("top")}${comboWarn()}<div class="row gbtns" style="margin:6px 0;flex-wrap:wrap"><button class="btn pri" onclick="buildGrade('A+')">${grd("A+", 1)}A+ combo (3+ teams) →</button><button class="btn pri" onclick="buildGrade('A')">${grd("A", 1)}Combo of all A picks →</button><button class="btn pri" onclick="buildGrade('AB')">${grd("A", 1)}${grd("B", 1)}Combo of all A + B picks →</button></div>`;
   const sec = (w, title, early) => {
     const x = T[w] || {};
-    h += `<h2>${title} · 3 under ${T.cheapMax || 10}¢</h2><div class="small muted" style="margin:-4px 0 8px">Best chance to hit for under ${T.cheapMax || 10}¢, using as few of the same games as possible. Built mostly from favourites (they've been slightly underpriced); an underdog only when we expect it to win.${early ? " Early prices: news can change these." : ""}</div>`;
-    h += (x.cheap || []).length ? x.cheap.slice().sort(comboRank).map(topCard).join("") : NOREC(`${x.legs || 0} teams with prices`);
-    h += `<h2>${title} · best value + chance</h2><div class="small muted" style="margin:-4px 0 8px">Any price: the best mix of our win chance and what it costs.</div>`;
-    h += (x.value || []).length ? x.value.slice().sort(comboRank).map(topCard).join("") : NOREC();
+    h += `<h2${early ? ' data-fold="closed"' : ""}>${title} · 3 under ${T.cheapMax || 10}¢</h2><div class="small muted" style="margin:-4px 0 8px">Best chance to hit for under ${T.cheapMax || 10}¢, using as few of the same games as possible. Built mostly from favourites (they've been slightly underpriced); an underdog only when we expect it to win.${early ? " Early prices: news can change these." : ""}</div>`;
+    h += (x.cheap || []).length ? x.cheap.slice().sort(comboRank).map((c, i) => topCard(c, i, w + "c")).join("") : NOREC(`${x.legs || 0} teams with prices`);
+    h += `<h2${early ? ' data-fold="closed"' : ""}>${title} · best value + chance</h2><div class="small muted" style="margin:-4px 0 8px">Any price: the best mix of our win chance and what it costs.</div>`;
+    h += (x.value || []).length ? x.value.slice().sort(comboRank).map((c, i) => topCard(c, i, w + "v")).join("") : NOREC();
   };
   sec("thisWeek", "This week");
   sec("nextWeek", "Next week (early)", true);
@@ -1505,12 +1533,13 @@ function edgeTile(price, fair, fee) {
   const W = 300, x = v => 10 + v / 100 * (W - 20);
   const v15 = fair - 15 - fee, v8 = fair - 8 - fee;
   return `<div class="big ${edge >= 15 ? "ok" : edge >= 8 ? "" : "muted"}">${edge >= 0 ? "+" : ""}${edge.toFixed(1)}¢ <span class="small muted">below our fair price, after ${fee}¢ fees</span></div>
-  <svg viewBox="0 0 ${W} 48" width="100%"><rect x="10" y="18" width="${W - 20}" height="8" rx="4" fill="var(--bar)"/>
-   ${v15 > 0 ? `<rect x="10" y="18" width="${x(v15) - 10}" height="8" rx="4" fill="var(--good)" opacity=".35"/>` : ""}
-   ${v8 > 0 ? `<line x1="${x(v8)}" x2="${x(v8)}" y1="12" y2="32" stroke="var(--wait)" stroke-width="2"/><text x="${x(v8)}" y="44" text-anchor="middle">8¢ bar ${Math.round(v8)}</text>` : ""}
-   ${v15 > 0 ? `<line x1="${x(v15)}" x2="${x(v15)}" y1="12" y2="32" stroke="var(--good)" stroke-width="2"/><text x="${x(v15)}" y="10" text-anchor="middle">15¢ bar ${Math.round(v15)}</text>` : ""}
-   <rect x="${x(price) - 2}" y="12" width="4" height="20" rx="2" fill="var(--ink)"/><text x="${x(price)}" y="44" text-anchor="middle">price ${Math.round(price)}</text>
-   <rect x="${x(fair) - 2}" y="12" width="4" height="20" rx="2" fill="var(--fair)"/><text x="${x(fair)}" y="10" text-anchor="middle">fair ${Math.round(fair)}</text></svg>`;
+  <svg viewBox="0 0 ${W} 34" width="100%"><rect x="10" y="12" width="${W - 20}" height="8" rx="4" fill="var(--bar)"/>
+   ${v15 > 0 ? `<rect x="10" y="12" width="${x(v15) - 10}" height="8" rx="4" fill="var(--good)" opacity=".35"/>` : ""}
+   ${v8 > 0 ? `<line x1="${x(v8)}" x2="${x(v8)}" y1="6" y2="26" stroke="var(--wait)" stroke-width="2"/>` : ""}
+   ${v15 > 0 ? `<line x1="${x(v15)}" x2="${x(v15)}" y1="6" y2="26" stroke="var(--good)" stroke-width="2"/>` : ""}
+   <rect x="${x(price) - 2}" y="6" width="4" height="20" rx="2" fill="var(--ink)"/>
+   <rect x="${x(fair) - 2}" y="6" width="4" height="20" rx="2" fill="var(--fair)"/></svg>
+  <div class="legend"><span><i class="lg" style="--k:var(--ink)"></i>price ${Math.round(price)}</span><span><i class="lg" style="--k:var(--fair)"></i>fair ${Math.round(fair)}</span>${v15 > 0 ? `<span><i class="lg" style="--k:var(--good)"></i>15¢ bar ${Math.round(v15)}</span>` : ""}${v8 > 0 ? `<span><i class="lg" style="--k:var(--wait)"></i>8¢ bar ${Math.round(v8)}</span>` : ""}</div>`;
 }
 function confTile(conf) {
   if (!conf) return "";
@@ -1762,7 +1791,7 @@ function systemModal() {
 window.systemModal = systemModal;
 
 // ---------- modal / render ----------
-function openModal(html) { $("#modalBody").innerHTML = html; $("#modal").hidden = false; }
+function openModal(html) { $("#modalBody").innerHTML = html; foldify($("#modalBody"), "m"); $("#modal").hidden = false; }
 function closeModal() { $("#modal").hidden = true; }
 window.closeModal = closeModal;
 
@@ -1789,6 +1818,7 @@ function render() {
   const v = $("#view");
   v.innerHTML = views[S.tab]() + `<button class="sysbtn" onclick="systemModal()">System / Details</button>`;
   if (S._lastTab !== S.tab) { v.classList.remove("enter"); void v.offsetWidth; v.classList.add("enter"); S._lastTab = S.tab; }
+  foldify(v, S.tab);
   window.scrollTo(0, y);
   const q = $("#q");
   if (q) { q.oninput = e => { S.q = e.target.value; const pos = e.target.selectionStart; render(); const n = $("#q"); n.focus(); n.setSelectionRange(pos, pos); }; }
