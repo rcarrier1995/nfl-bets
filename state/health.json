@@ -1,13 +1,13 @@
 {
  "espn": {
   "ok": true,
-  "lastOk": "2026-11-25T23:20:28Z",
+  "lastOk": "2026-11-25T23:30:51Z",
   "note": "",
   "fails": 0
  },
  "kalshi": {
   "ok": true,
-  "lastOk": "2026-11-25T23:20:04Z",
+  "lastOk": "2026-11-25T23:30:35Z",
   "note": "",
   "fails": 0,
   "lastFail": "2026-11-23T02:19:30Z",
@@ -15,7 +15,7 @@
  },
  "weather": {
   "ok": true,
-  "lastOk": "2026-11-25T23:20:05Z",
+  "lastOk": "2026-11-25T23:30:35Z",
   "note": "",
   "fails": 0,
   "lastFail": "2026-11-23T19:14:37Z",
@@ -23,8 +23,8 @@
  },
  "nflverse": {
   "ok": true,
-  "lastOk": "2026-11-25T01:48:33Z",
-  "note": "stats_team_week_2026.csv.gz",
+  "lastOk": "2026-11-25T23:30:33Z",
+  "note": "roster_2026.csv",
   "fails": 0
  },
  "cbs-experts": {
@@ -41,13 +41,13 @@
  },
  "polymarket": {
   "ok": true,
-  "lastOk": "2026-11-25T23:20:11Z",
+  "lastOk": "2026-11-25T23:30:41Z",
   "note": "",
   "fails": 0
  },
  "espn-news": {
   "ok": true,
-  "lastOk": "2026-11-25T23:20:11Z",
+  "lastOk": "2026-11-25T23:30:41Z",
   "note": "",
   "fails": 0
  },
@@ -65,7 +65,7 @@
  },
  "rundown": {
   "ok": true,
-  "lastOk": "2026-11-25T23:20:10Z",
+  "lastOk": "2026-11-25T23:30:41Z",
   "note": "16 games",
   "fails": 0
  }
