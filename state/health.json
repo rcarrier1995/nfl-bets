@@ -1,13 +1,13 @@
 {
  "espn": {
   "ok": true,
-  "lastOk": "2026-11-25T01:38:20Z",
+  "lastOk": "2026-11-25T01:49:02Z",
   "note": "",
   "fails": 0
  },
  "kalshi": {
   "ok": true,
-  "lastOk": "2026-11-25T01:38:19Z",
+  "lastOk": "2026-11-25T01:48:34Z",
   "note": "",
   "fails": 0,
   "lastFail": "2026-11-23T02:19:30Z",
@@ -15,7 +15,7 @@
  },
  "weather": {
   "ok": true,
-  "lastOk": "2026-11-24T04:17:21Z",
+  "lastOk": "2026-11-25T01:48:34Z",
   "note": "",
   "fails": 0,
   "lastFail": "2026-11-23T19:14:37Z",
@@ -23,19 +23,19 @@
  },
  "nflverse": {
   "ok": true,
-  "lastOk": "2026-11-24T13:39:41Z",
-  "note": "games.csv",
+  "lastOk": "2026-11-25T01:48:33Z",
+  "note": "stats_team_week_2026.csv.gz",
   "fails": 0
  },
  "cbs-experts": {
   "ok": true,
-  "lastOk": "2026-11-25T00:07:24Z",
+  "lastOk": "2026-11-25T01:48:57Z",
   "note": "",
   "fails": 0
  },
  "nfl-experts": {
   "ok": true,
-  "lastOk": "2026-11-25T00:07:27Z",
+  "lastOk": "2026-11-25T01:49:02Z",
   "note": "",
   "fails": 0
  }
