@@ -10,7 +10,7 @@
   | Job | When (CT) |
   |---|---|
   | nfl-pregame-weekly | Thu 12:00 — full refresh, nflverse stats, Thursday baseline |
-  | Morning Top 3 push | Thu & Sun 8:00 |
+  | Game-day alert (A picks, Buys, top combo under 10¢) | Thu & Sun 11:00 |
   | nfl-sunday-inactives | Sun 10:30 |
   | nfl-live-sunday | every 10 min while any game is live |
   | nfl-window-early / late / snf | Sun 15:35 / 18:50 / 23:00 (and the moment a window's last game is final) |

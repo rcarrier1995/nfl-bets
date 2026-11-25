@@ -52,11 +52,34 @@ def kalshi_index(events):
             except Exception:
                 pass
             prices[team] = {"ask": ask if ask and ask > 0 else None, "bid": bid, "last": last, "ticker": m.get("ticker"),
-                            "tick": step, "status": m.get("status"), "result": m.get("result")}
+                            "tick": step, "status": m.get("status"), "result": m.get("result"),
+                            "vol24": _num(m.get("volume_24h_fp", m.get("volume_24h")))}
             occ = occ or parse_dt(m.get("occurrence_datetime") or m.get("expected_expiration_time"))
         if len(prices) == 2:
             idx.setdefault(frozenset(prices), []).append({"occ": occ, "prices": prices})
     return idx
+
+
+def _num(v):
+    try:
+        return float(v)
+    except Exception:
+        return None
+
+
+# thin market (idea 10, 2026-11-25): few trades today or a wide buy/sell gap -> the price can jump
+THIN_SPREAD = 4      # cents between buy (ask) and sell (bid)
+THIN_VOL = 10000     # contracts traded in the last 24 h
+
+
+def thin_note(ask, bid, vol24):
+    if ask is None:
+        return None
+    if bid is not None and ask - bid >= THIN_SPREAD:
+        return f"Thin market: buy {ask:.0f}¢ but sell only {bid:.0f}¢ — price can jump"
+    if vol24 is not None and vol24 < THIN_VOL:
+        return f"Thin market: only {vol24:,.0f} traded today — price can jump"
+    return None
 
 
 def _cents(v):
@@ -474,6 +497,13 @@ def build_game(ev, tables, kidx, wx_all, pt_idx, live_state, snaps, prev_calls, 
         c["ticker"] = pr.get("ticker")
         c["sell"] = None
         c["tick"] = pr.get("tick", 1.0)
+        c["thin"] = thin_note(price, c["bid"], pr.get("vol24")) if state != "post" else None
+        # sportsbook consensus vs Kalshi (idea 9): only when the Odds API key is on and 3+ books agree on a price
+        c["bookP"] = c["bookGap"] = None
+        if cs and cs.get("books", 0) >= 3:
+            bp = cs["pHome"] * 100 if side == "home" else (1 - cs["pHome"]) * 100
+            c["bookP"] = round(bp, 1)
+            c["bookGap"] = None if price is None else round(bp - price, 1)
         c["fair"] = pre_fair.get(team)
         p = parts.get(team, {})
         c["spreadMargin"] = p.get("spread")

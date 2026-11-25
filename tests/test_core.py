@@ -393,3 +393,33 @@ def test_alarm_buzzes_once(tmp_path, monkeypatch):
     AL.data(["odd price for GB"])
     AL.data([])
     assert sent[2:] == ["Data looks off — calls on hold", "Data looks right again"]
+
+
+def test_thin_market_note():
+    from engine.board import thin_note
+    assert thin_note(56, 55, 266000) is None                       # normal NFL market: quiet
+    assert "sell only 37" in thin_note(42, 37, 500000)             # wide buy/sell gap
+    assert "6,200 traded" in thin_note(50, 49, 6200)               # few trades
+    assert thin_note(None, None, None) is None
+
+
+def test_game_day_alert_and_gap_push(monkeypatch):
+    from datetime import datetime, timezone
+    from engine import run as R
+    g = {"id": "1", "state": "pre", "kickoff": "2026-11-29T18:00Z"}
+    calls = [{"key": "k|JAX", "team": "JAX", "opp": "TEN", "gameId": "1", "state": "pre", "price": 90, "fair": 88, "call": "Pass"},
+             {"key": "k|TEN", "team": "TEN", "opp": "JAX", "gameId": "1", "state": "pre", "price": 11, "fair": 12, "call": "Pass",
+              "bookP": 20.0, "bookGap": 9.0}]
+    board = {"games": [g], "calls": calls, "topCombos": {"thisWeek": {"cheap": [{"legs": [{"team": "JAX"}, {"team": "CIN"}], "cost": 8.2, "oneIn": 9}]}}}
+    sun = datetime(2026, 11, 29, 17, 0, tzinfo=timezone.utc)          # 11 AM Central, game day
+    lines = R.top3_message(board, sun)
+    assert lines[0] == "1 game today" and "JAX A+ 90c" in lines[1] and "JAX+CIN" in lines[-1]
+    assert R.top3_message(board, datetime(2026, 11, 27, 17, 0, tzinfo=timezone.utc)) == []   # no game that day
+    jobs = R.due_jobs(sun, {}, False, "2026-w12")
+    assert "top3" in jobs and "top3" not in R.due_jobs(datetime(2026, 11, 29, 16, 0, tzinfo=timezone.utc), {}, False, "2026-w12")
+    sent = []
+    monkeypatch.setattr(R.P, "send", lambda t, b, **k: sent.append(t))
+    rs = {}
+    R.gap_alerts(board, rs)
+    R.gap_alerts(board, rs)                                            # once per team per price
+    assert sent == ["Gap: TEN 11c vs books 20%"]
