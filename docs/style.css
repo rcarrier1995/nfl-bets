@@ -464,3 +464,65 @@ details.research{margin-top:18px}
 .drvl{max-height:260px;overflow-y:auto;margin-top:6px}
 .drvl .pp{padding:6px 0;border-bottom:1px solid var(--line)}
 .drvl .dotk{margin-right:5px}
+/* ===== layout pass 2026-11-25: every section folds with a big thumb-sized header; less clutter ===== */
+.fchev{flex:none;width:30px;height:30px;border-radius:50%;background:var(--soft);display:grid;place-items:center;transition:transform .2s ease}
+.fchev::before{content:"";width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:translateY(-2px) rotate(45deg)}
+.fold{margin-top:14px}
+.foldh{width:100%;min-height:48px;display:flex;align-items:center;gap:10px;background:none;border:0;border-bottom:1px solid var(--line);padding:6px 2px;color:var(--muted);cursor:pointer;text-align:left;font:inherit}
+.foldh .ft{flex:1;min-width:0;font-size:13px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;display:flex;align-items:center;gap:8px}
+.foldh:active{background:var(--soft)}
+.fold.shut>.foldb{display:none}
+.fold.shut>.foldh .fchev{transform:rotate(-90deg)}
+.foldb{padding-top:8px}
+.foldb>.small.muted:first-child,.foldb>.tiny.muted:first-child{margin-top:0!important}
+.sheet .fold:first-child{margin-top:4px}
+/* every <details> gets the same big tap row + chevron */
+details>summary{list-style:none}
+details>summary::-webkit-details-marker{display:none}
+details.others>summary,details.keyfold>summary,details.warnfold>summary{min-height:44px;display:flex;align-items:center;gap:10px;cursor:pointer}
+details.others>summary::after,details.keyfold>summary::after,details.warnfold>summary::after{content:"";margin-left:auto;flex:none;width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);transition:transform .2s;margin-right:10px}
+details[open].others>summary::after,details[open].keyfold>summary::after,details[open].warnfold>summary::after{transform:rotate(45deg)}
+.others>summary{font-size:13.5px;font-weight:650;color:var(--ink);padding:10px 14px;background:var(--card);border:1px solid var(--line);border-radius:14px}
+details.keyfold{margin:2px 0 8px}
+details.keyfold>summary{min-height:40px;font-size:12.5px;color:var(--fair);font-weight:600;padding:0 2px}
+details.warnfold{padding:4px 14px}
+details.warnfold>summary{font-size:14px}
+details.warnfold>summary::after{margin-right:0}
+details.bought>summary{min-height:40px;display:flex;align-items:center}
+/* tap-to-open lines inside cards: taller targets */
+.line.u,.why.u{min-height:44px}
+.why.u{display:flex;align-items:center}
+/* game rows: one line per team, one meta line */
+.grow .tm{gap:8px;font-size:14.5px}
+.grow .tm .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.grow .tm .wpct{font-size:12.5px;color:var(--muted);font-weight:600;margin-left:6px}
+.grow .tm .wp{min-width:38px;text-align:right;font-weight:800;color:var(--ink)}
+.grow .tm .grd{margin:0}
+.grow .meta{margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.grow .mt{flex:1}
+.grow .rt{min-width:92px}
+/* info notes: one line until the game is opened */
+.wban.one .wcol{flex-direction:row;min-width:0}
+.wban.one .wchip{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.wban{align-items:center}
+.wmore{flex:none;font-size:12px;font-weight:700;color:var(--fair);background:color-mix(in srgb,var(--fair) 12%,transparent);border-radius:6px;padding:4px 8px}
+.gitem>.wban{padding:8px 10px 0}
+/* top combo cards fold */
+.cardh{width:100%;display:flex;align-items:center;gap:8px;background:none;border:0;padding:0;margin:0;color:var(--ink);font:inherit;font-size:15px;cursor:pointer;min-height:40px;text-align:left}
+.card.open>.cardh .fchev{transform:rotate(0)}
+.card.folded>.cardh .fchev{transform:rotate(-90deg)}
+.card.folded{padding-bottom:6px}
+.card.folded .big3{margin-bottom:8px}
+.lstrip{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:13px;font-weight:700;padding:4px 0 2px}
+.lstrip span{display:inline-flex;align-items:center;gap:5px}
+.showmore{display:block;width:100%;min-height:44px;margin-top:6px;background:none;border:0;border-top:1px solid var(--line);color:var(--fair);font:inherit;font-size:13px;font-weight:650;cursor:pointer}
+/* combo grade buttons: full width on a phone, easy to hit */
+@media(max-width:600px){.btn.pri{min-height:44px}}
+.grow.g2{display:flex;flex-direction:column;align-items:stretch;gap:6px}
+.grow.g2 .ghead{display:flex;align-items:center;gap:8px;margin-bottom:2px}
+.grow.g2 .ghead .kt{font-size:12.5px;color:var(--muted);font-weight:600}
+.grow.g2 .ghead .fchev{width:26px;height:26px;transform:rotate(-90deg)}
+.gitem.open .grow.g2 .ghead .fchev{transform:rotate(0)}
+.grow.g2 .meta{white-space:normal}
+@media(max-width:600px){.gbtns .btn.pri{flex:1 1 100%;justify-content:center;display:flex;align-items:center;gap:6px}}
+@media(min-width:1100px){#weeklyBanner .banner{max-width:1208px}}
