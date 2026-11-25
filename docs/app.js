@@ -538,8 +538,8 @@ function expertsLine(g) {
 }
 // experts on the row (Rick 2026-11-25): only when most agree (75%+ of at least 3 experts on one team)
 const expertsTxt = g => { const e = g.experts; if (!e || !(e.n >= 3) || !e.count) return ""; const [t, c] = Object.entries(e.count).sort((a, b) => b[1] - a[1])[0] || []; return t && c / e.n >= 0.75 ? `Experts ${c}/${e.n} ${t}` : ""; };
-// underdog expert notes only when more than 3 experts pick that underdog (Rick 2026-11-25)
-const dogOK = g => ((g.experts?.count || {})[g.experts?.dog] || 0) > 3;
+// underdog expert notes only when 3+ experts pick that underdog (Rick 2026-11-25)
+const dogOK = g => ((g.experts?.count || {})[g.experts?.dog] || 0) >= 3;
 const recOf = (g, t) => g?.form?.[t]?.record || ((S.B?.games || []).find(x => x.form?.[t]?.record)?.form[t].record) || "";
 // watch tags (combo study) + expert spots: one skinny banner at the top of the card, on that team's side.
 // Tags only — they never change the call. Tap the card for the why.
