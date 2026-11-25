@@ -8,9 +8,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: |
-          for q in "series_id=12185&closed=false&limit=100" "tag_id=450&closed=false&limit=200" "tag_id=100639&closed=false&limit=200"; do
+          for q in "series_id=12185&closed=false&limit=50" "tag_id=450&closed=false&limit=50" "tag_id=100639&closed=false&limit=50"; do
           echo "=== $q"
-          curl -s "https://gamma-api.polymarket.com/events?$q" -o ev.json
+          curl -s --compressed "https://gamma-api.polymarket.com/events?$q" -o ev.json
           python3 - <<'PY'
           import json
           d=json.load(open('ev.json'))
