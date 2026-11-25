@@ -1,7 +1,7 @@
 name: loop
 # The heartbeat. GitHub's own 10-minute schedule turned out not to fire reliably on this repo,
 # so one long job runs the tick in a loop: every 6 minutes while a game is on or about to start
-# (Pages allows ~10 site builds an hour), every 10 minutes otherwise. After ~5h45m it starts a
+# (Pages allows ~10 site builds an hour), every 10 minutes otherwise. After ~55 min it starts a
 # fresh copy of itself and exits. The hourly schedule only restarts it if the chain ever breaks;
 # a second copy just waits in the queue (concurrency) and takes over when the first ends.
 on:
@@ -40,7 +40,7 @@ jobs:
         run: |
           git config user.name "nfl-bets-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          end=$(( $(date +%s) + 345*60 ))
+          end=$(( $(date +%s) + 55*60 ))   # restart hourly so a newly added secret (ODDS_API_KEY, NTFY_TOPIC) is live within the hour
           while [ "$(date +%s)" -lt "$end" ]; do
             git pull -q --rebase -X theirs || true
             if python -m engine.run tick; then python -m engine.alarm tick ok || true; else echo "tick failed"; python -m engine.alarm tick fail || true; fi
