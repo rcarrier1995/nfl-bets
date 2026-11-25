@@ -370,7 +370,7 @@ def qb_profiles(T, season):
 
 def _norm(n):
     import re
-    return re.sub(r"[^a-z]", "", (n or "").lower().replace(" jr", "").replace(" iii", "").replace(" ii", ""))
+    return re.sub(r"[^a-z]", "", (n if isinstance(n, str) else "").lower().replace(" jr", "").replace(" iii", "").replace(" ii", ""))
 
 
 def qb_lookup(prof, name):

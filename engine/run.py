@@ -2,8 +2,9 @@
 decides (in America/Chicago time, DST-safe) which jobs are due:
 
   nfl-pregame-weekly   Thu 12:00 CT        full pregame refresh + nflverse tables + Thursday baseline
-  nfl-sunday-inactives Sun 10:30 CT        inactives refresh, rebuild backup_map
-  game-day alert       Thu & Sun 11:00 CT  one push: A picks, any Buys, top combo under 10c (Rick: 11 AM)
+  inactives            every game day, 90 min before the first kickoff: rebuild backup_map
+  game-day alert       every game day 11:00 CT (90 min before kickoff if a game starts before 11:30): one push with
+                       A picks, any Buys, top combo under 10c (Rick: 11 AM). Wed/Fri/Sat/Mon/holiday/playoff days too.
   nfl-live-sunday      every 10 min while games are live (any day)
   nfl-window-early     Sun 15:35 CT        early window review (also auto when the window's last game is final)
   nfl-window-late      Sun 18:50 CT
@@ -53,17 +54,44 @@ DIGEST_AT = 11 * 60     # game-day morning alert, 11:00 AM Central (Rick, 2026-1
 GAP_PUSH = 8            # cents: sportsbooks' win % above Robinhood's price -> one "Gap" push
 
 
-def due_jobs(now, rs, sb_live, week_key, force=()):
+def game_days(kickoffs):
+    """{'YYYY-MM-DD' (Central): first kickoff that day in minutes after midnight} from kickoff datetimes."""
+    days = {}
+    for k in kickoffs or ():
+        if not k:
+            continue
+        t = ct(k)
+        d, m = t.strftime("%Y-%m-%d"), t.hour * 60 + t.minute
+        days[d] = min(days.get(d, m), m)
+    return days
+
+
+def digest_at(first_kick):
+    """Game-day alert time: 11 AM; if the first game starts before 11:30 (London, early holiday games),
+    90 minutes before it instead."""
+    return DIGEST_AT if first_kick >= DIGEST_AT + 30 else max(0, first_kick - 90)
+
+
+def due_jobs(now, rs, sb_live, week_key, force=(), kickoffs=None):
     t = ct(now)
     wd, hm, date = t.weekday(), t.hour * 60 + t.minute, t.strftime("%Y-%m-%d")
     jobs = set(force)
     if (wd == 3 and hm >= 12 * 60 and rs.get("pregame") != week_key) or not load_tables().get("ok") \
             or load_tables().get("week") != int(week_key.split("-w")[1]):
         jobs.add("pregame")
-    if wd == 6 and hm >= 10 * 60 + 30 and rs.get("inactives") != date:
-        jobs.add("inactives")
-    if wd in (3, 6) and DIGEST_AT <= hm < DIGEST_AT + 3 * 60 and rs.get("top3") != date:
-        jobs.add("top3")
+    if kickoffs is None:   # no schedule passed (old callers): the classic Thursday / Sunday slots
+        if wd == 6 and hm >= 10 * 60 + 30 and rs.get("inactives") != date:
+            jobs.add("inactives")
+        if wd in (3, 6) and DIGEST_AT <= hm < DIGEST_AT + 3 * 60 and rs.get("top3") != date:
+            jobs.add("top3")
+    else:                  # every day that has a game (Wed, Thu, Fri, Sat, Sun, Mon, holidays, playoffs)
+        first = game_days(kickoffs).get(date)
+        if first is not None:
+            if hm >= first - 90 and rs.get("inactives") != date:
+                jobs.add("inactives")
+            at = digest_at(first)
+            if at <= hm < min(at + 3 * 60, first) and rs.get("top3") != date:
+                jobs.add("top3")
     for name, at in (("early", 15 * 60 + 35), ("late", 18 * 60 + 50), ("snf", 23 * 60)):
         if wd == 6 and hm >= at and rs.get(f"window-{name}") != date:
             jobs.add(f"window-{name}")
@@ -86,12 +114,19 @@ def any_live(sb, now):
     return False
 
 
-def next_check(now):
+def next_check(now, kickoffs=None):
     """Next scheduled check, for empty-state hints."""
     t = ct(now)
-    slots = [(3, 12, 0, "Thu 12pm"), (6, 11, 0, "Sun 11am"), (6, 10, 30, "Sun 10:30am"), (6, 15, 35, "Sun 3:35pm"),
-             (6, 18, 50, "Sun 6:50pm"), (6, 23, 0, "Sun 11pm"), (0, 23, 45, "Mon 11:45pm"), (3, 11, 0, "Thu 11am")]
+    slots = [(3, 12, 0, "Thu 12pm"), (6, 15, 35, "Sun 3:35pm"),
+             (6, 18, 50, "Sun 6:50pm"), (6, 23, 0, "Sun 11pm"), (0, 23, 45, "Mon 11:45pm")]
+    if kickoffs is None:
+        slots += [(6, 11, 0, "Sun 11am"), (6, 10, 30, "Sun 10:30am"), (3, 11, 0, "Thu 11am")]
     best = None
+    for d, first in game_days(kickoffs).items():   # game-day alert on every real game day
+        at = digest_at(first)
+        cand = t.replace(year=int(d[:4]), month=int(d[5:7]), day=int(d[8:]), hour=at // 60, minute=at % 60, second=0, microsecond=0)
+        if cand > t and (best is None or cand < best[0]):
+            best = (cand, cand.strftime("%a ") + cand.strftime("%I:%M%p").lstrip("0").replace(":00", "").lower())
     for wd, h, m, label in slots:
         d = (wd - t.weekday()) % 7
         cand = (t + timedelta(days=d)).replace(hour=h, minute=m, second=0, microsecond=0)
@@ -225,7 +260,7 @@ def weekly_banner(board, L):
         return None
     started = any(g["state"] != "pre" for g in board["games"])
     if board["week"] == w["week"] or (board["week"] == w["week"] + 1 and not started):
-        return {"label": f"Week {w['week']}: {w['w']}–{w['l']} · {w['acc']:.0f}%", "week": w["week"], **w}
+        return {"label": f"{B.week_label(w['week'])}: {w['w']}–{w['l']} · {w['acc']:.0f}%", "week": w["week"], **w}
     return None
 
 
@@ -349,7 +384,8 @@ def tick(force=()):
     week = (sb.get("week") or {}).get("number")
     wk = f"{season}-w{week}"
     live = any_live(sb, now)
-    jobs = due_jobs(now, rs, live, wk, force)
+    kicks = [B.parse_dt(e.get("date")) for e in sb.get("events", [])]
+    jobs = due_jobs(now, rs, live, wk, force, kickoffs=kicks)
     print("jobs:", sorted(jobs), "live:", live)
     if not jobs:
         return
@@ -485,7 +521,7 @@ def tick(force=()):
     gap_alerts(board, rs)
     if len(vsent) > 400:
         rs["valueSent"] = dict(list(vsent.items())[-400:])
-    board["nextCheck"] = next_check(now)
+    board["nextCheck"] = next_check(now, [B.parse_dt(g.get("kickoff")) for g in board["games"]])
     board["feedNotes"] = feed_notes(board, HEALTH.data)
     if problems:
         board["feedNotes"].insert(0, "Data looks off (" + "; ".join(problems)[:160] + ") — calls on hold, check Robinhood")
