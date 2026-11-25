@@ -4,7 +4,7 @@
  "pregameAt": "2026-11-25T01:48:24Z",
  "window-early": "2026-11-22",
  "alertsSent": [],
- "light": "2026-11-25T16:58:27Z",
+ "light": "2026-11-25T17:08:40Z",
  "window-late": "2026-11-22",
  "inactives": "2026-11-22",
  "valueSent": {},
@@ -16,13 +16,14 @@
   "401873078|WSH|Amik Robertson|Out": "2026-11-23T23:58:49Z",
   "401873080|DAL|Jake Ferguson|Doubtful": "2026-11-25T01:48:24Z",
   "401873083|PIT|Alex Highsmith|Doubtful": "2026-11-25T01:48:24Z",
-  "401873082|KC|Kenneth Walker III|Out": "2026-11-25T16:58:27Z"
+  "401873082|KC|Kenneth Walker III|Out": "2026-11-25T16:58:27Z",
+  "401873082|KC|Jaylon Moore|Out": "2026-11-25T17:08:40Z"
  },
  "newsSeeded": true,
  "window-snf": "2026-11-22",
  "expertsAt": {
   "2026-w11": 1795565234.710964,
-  "2026-w12": 1795615442.338979
+  "2026-w12": 1795626520.428716
  },
  "weekly": "2026-w11",
  "gapSent": {},
