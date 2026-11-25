@@ -265,7 +265,7 @@ function betCard(c, opts = {}) {
     ${priceBar(c.price, fair, c.dayLo, c.dayHi)}
     ${fair != null ? `<div class="small muted" style="margin-top:6px">Win chance ${Math.round(fair)}% · grade ${gradeOf(fair)} picks won ${GRADE_TESTED[gradeOf(fair)]}% in testing</div>` : ""}
     ${tags.join("")}
-    ${gapLine(c)}${thinLine(c)}${feedLines(c)}
+    ${wherePlace(c)}${gapLine(c)}${thinLine(c)}${feedLines(c)}
     ${closeTag(c)}
     ${call !== "Pass" && call !== "Sell" ? bestLine(c) : ""}
     ${c.state !== "post" ? boughtBox({ kind: "single", team: c.team, game: `${c.team} vs ${c.opp}`, gameId: c.gameId, grade: gradeOf(fair), call: LBL(call), price: c.price }) : ""}
@@ -1858,6 +1858,16 @@ function sbBar(imp, fair) {
   if (fair != null) h += `<div class="mk f" style="left:calc(${fair}% - 1px)" title="Our chance"></div>`;
   return h + `</div><div class="pkey">${imp != null ? `<span><i></i>odds say ${Math.round(imp)}%</span>` : ""}${fair != null ? `<span><i class="f"></i>our chance ${Math.round(fair)}%</span>` : ""}</div>`;
 }
+// Sportsbook edge vs Prediction edge (Rick 2026-11-25): same win chance against both prices, after costs
+// (Robinhood: price + fee; sportsbook: the odds' implied %, vig included). Info only: Buy/Wait/Pass per mode unchanged.
+function wherePlace(c) {
+  if (c.state !== "pre" || c.edge == null || c.sb?.edge == null || c.price == null || c.sbOdds == null) return "";
+  const rhE = c.edge, sbE = c.sb.edge, d = sbE - rhE, fee = c.fee ?? 2;
+  const rhOdds = decAm(100 / Math.min(99.5, c.price + fee));
+  const head = Math.abs(d) < 1 ? "About the same at both" : d > 0 ? "Better at the sportsbook" : "Better on Robinhood";
+  const n = x => (x >= 0 ? "+" : "−") + Math.abs(x).toFixed(1);
+  return `<div class="info where"><b>${head}</b> · ${am(c.sbOdds)}${c.sbBook ? ` (${esc(c.sbBook)})` : ""} vs ${ct(c.price)} ≈ ${am(rhOdds)} after fees<br><span class="muted">Edge: sportsbook ${n(sbE)} · Robinhood ${n(rhE)} points</span></div>`;
+}
 function sbCard(c, opts = {}) {
   const call = sbCall(c), f = c.fair, id = "c:" + c.key, g = gameBy()[c.gameId], target = f != null ? pAm(f - 15) : null;
   return `<div class="card bg-${call}" data-card="${esc(c.key)}">
@@ -1866,6 +1876,7 @@ function sbCard(c, opts = {}) {
     <div class="row" style="margin-top:12px"><span class="hero">${am(c.sbOdds)}</span><span class="sp"></span><span class="small muted">${esc(c.sbBook || "")}</span></div>
     <div class="sub">${c.sbOdds != null ? `<b>$10 wins ${usd(10 * (amDec(c.sbOdds) - 1))}</b>` : "No odds"}${f != null ? ` · fair odds ${am(pAm(f))}` : ""}</div>
     ${sbBar(sbImp(c), f)}
+    ${wherePlace(c)}
     ${f != null ? `<div class="small muted" style="margin-top:6px">Win chance ${Math.round(f)}% · grade ${gradeOf(f)} picks won ${GRADE_TESTED[gradeOf(f)]}% in testing${call === "Pass" && target != null && target > 0 && c.sbOdds != null && target > c.sbOdds ? ` · a Buy at ${am(target)} or longer` : ""}</div>` : ""}
     ${feedLines(c)}
     <div class="why u" onclick="toggle('${esc(id)}')">Details</div>
