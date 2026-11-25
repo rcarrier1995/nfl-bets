@@ -798,18 +798,28 @@ function fieldSvg(g, D, dr, sit) {
   return s + `</g></svg>`;
 }
 function winChart(g, D) {
-  const pts = D.plays.filter(p => p.wp != null && p.t);
+  // x = play number (every play gets the same room, so a busy final 2 minutes isn't squeezed)
+  let pts = D.plays.filter(p => p.wp != null);
   if (pts.length < 4) return "";
-  const t0 = pts[0].t, t1 = Math.max(pts[pts.length - 1].t, t0 + 1), W = 340, H = 96, P = 24;
-  const x = t => P + (t - t0) / (t1 - t0) * (W - P - 6), y = v => 6 + (100 - v) / 100 * (H - 18);
-  const ch = "var(--fair)";
-  const line = pts.map((p, i) => `${i ? "L" : "M"}${x(p.t).toFixed(1)},${y(p.wp * 100).toFixed(1)}`).join("");
-  const K = (g.hist || []).filter(r => r[3] != null && Date.parse(r[0]) >= t0 - 60000).map(r => [Date.parse(r[0]), r[3]]);
-  const kd = K.map(([t, v]) => `<circle cx="${x(Math.min(t, t1)).toFixed(1)}" cy="${y(v).toFixed(1)}" r="2.4" class="kdot"/>`).join("");
-  const grid = [25, 50, 75].map(v => `<line x1="${P}" x2="${W - 6}" y1="${y(v)}" y2="${y(v)}" class="cg"/><text x="2" y="${y(v) + 3}" class="ct">${v}%</text>`).join("");
-  const big = D.plays.filter(p => p.t && p.wp != null && Math.abs(p.dwp || 0) >= 0.1).map(p => `<circle cx="${x(p.t).toFixed(1)}" cy="${y(p.wp * 100).toFixed(1)}" r="3.2" class="sdot"/>`).join("");
-  return `<div class="wch"><div class="tiny muted" style="margin:6px 0 2px"><b style="color:var(--ink)">${esc(g.home)} win chance</b> · <span style="color:var(--fair)">━</span> ESPN each play · <span class="kd">●</span> Kalshi ${esc(g.home)} price (our checks) · <span class="sd">●</span> big swing</div>
-    <svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="ESPN win chance per play and Kalshi price">${grid}<path d="${line}" fill="none" stroke="var(--fair)" stroke-width="2"/>${kd}${big}</svg></div>`;
+  const zoom = S.wz?.[g.id], qNow = pts[pts.length - 1].q;
+  if (zoom) { const z = pts.filter(p => p.q === qNow); if (z.length >= 4) pts = z; }
+  const n = pts.length, W = 340, H = 104, P = 24, R = 46;
+  const x = i => P + i / Math.max(1, n - 1) * (W - P - R), y = v => 8 + (100 - v) / 100 * (H - 20);
+  const line = pts.map((p, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(p.wp * 100).toFixed(1)}`).join("");
+  // Kalshi price from our own checks, placed at the play nearest in time
+  const ts = pts.map(p => p.t);
+  const near = t => { let b = -1, bd = Infinity; ts.forEach((v, i) => { if (v && Math.abs(v - t) < bd) { bd = Math.abs(v - t); b = i; } }); return bd < 15 * 60000 ? b : -1; };
+  const K = (g.hist || []).filter(r => r[3] != null).map(r => [near(Date.parse(r[0])), r[3]]).filter(k => k[0] >= 0);
+  const kd = K.map(([i, v]) => `<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="2.2" class="kdot"/>`).join("");
+  const grid = [25, 50, 75].map(v => `<line x1="${P}" x2="${W - R + 4}" y1="${y(v)}" y2="${y(v)}" class="cg"/><text x="2" y="${y(v) + 3}" class="ct">${v}%</text>`).join("");
+  // quarter breaks
+  let qs = "";
+  pts.forEach((p, i) => { if (i && p.q !== pts[i - 1].q) qs += `<line x1="${x(i - .5)}" x2="${x(i - .5)}" y1="6" y2="${H - 10}" class="qb"/><text x="${x(i - .5) + 2}" y="${H - 2}" class="ct">${p.q >= 5 ? "OT" : "Q" + p.q}</text>`; });
+  const last = pts[pts.length - 1], lv = Math.round(last.wp * 100), lk = K.length ? K[K.length - 1][1] : null;
+  const now = `<circle cx="${x(n - 1)}" cy="${y(lv)}" r="4.5" class="nowd"/><text x="${x(n - 1) + 8}" y="${y(lv) + 4}" class="nowt">${lv}%</text>` +
+    (lk != null ? `<text x="${x(n - 1) + 8}" y="${Math.min(H - 4, Math.max(10, y(lk) + 4 + (Math.abs(y(lk) - y(lv)) < 12 ? 12 : 0)))}" class="nowk">${Math.round(lk)}¢</text>` : "");
+  return `<div class="wch"><div class="row tiny muted" style="margin:6px 0 2px;gap:6px"><span><b style="color:var(--ink)">${esc(g.home)} win chance</b> · <span style="color:var(--fair)">━</span> ESPN · <span class="kd">●</span> Kalshi price</span><span class="sp"></span><button class="zbtn" onclick="S.wz=S.wz||{};S.wz['${g.id}']=!S.wz['${g.id}'];render()">${zoom ? "Whole game" : "This quarter"}</button></div>
+    <svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="ESPN win chance per play and Kalshi price">${grid}${qs}<path d="${line}" fill="none" stroke="var(--fair)" stroke-width="1.8" stroke-linejoin="round"/>${kd}${now}</svg></div>`;
 }
 function clockSecs(c) { const m = /^(\d+):(\d+)$/.exec(c || ""); return m ? +m[1] * 60 + +m[2] : null; }
 function toDots(n) { return n == null ? "" : `<span class="tos" title="${n} timeouts left">${[0, 1, 2].map(i => `<i class="${i < n ? "on" : ""}"></i>`).join("")}</span>`; }

@@ -456,7 +456,11 @@ details.research{margin-top:18px}
 .wpd{font-size:11px;color:var(--muted);white-space:nowrap}
 .wpd.big{color:var(--ink);font-weight:700}
 .wch .cg{stroke:var(--faint);stroke-width:.5;stroke-dasharray:2 3} .wch .ct{font-size:9px;fill:var(--muted)}
-.wch .kdot{fill:var(--gold)} .wch .sdot{fill:none;stroke:var(--ink);stroke-width:1.4} .wch .kd{color:var(--gold)} .wch .sd{color:var(--ink)}
+.wch .kdot{fill:var(--gold);opacity:.85} .wch .sdot{stroke:var(--ink);stroke-width:1.5} .wch .kd{color:var(--gold)}
+.wch .qb{stroke:var(--line2);stroke-width:1}
+.wch .nowd{fill:var(--fair);stroke:var(--card2);stroke-width:2}
+.wch .nowt{font-size:12px;font-weight:800;fill:var(--ink)} .wch .nowk{font-size:11px;font-weight:700;fill:var(--gold)}
+.zbtn{white-space:nowrap;flex:none;font:inherit;font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--line2);background:var(--soft);color:var(--ink);cursor:pointer}
 .drvl{max-height:260px;overflow-y:auto;margin-top:6px}
 .drvl .pp{padding:6px 0;border-bottom:1px solid var(--line)}
 .drvl .dotk{margin-right:5px}
