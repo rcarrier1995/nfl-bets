@@ -8,17 +8,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: |
-          curl -s https://gamma-api.polymarket.com/sports | python3 -c "import json,sys;d=json.load(sys.stdin);print([x for x in d if x.get('sport','').lower() in ('nfl','cfb')])"
-          curl -s "https://gamma-api.polymarket.com/events?tag_slug=nfl&closed=false&limit=200" -o ev.json
+          for q in "series_id=12185&closed=false&limit=100" "tag_id=450&closed=false&limit=200" "tag_id=100639&closed=false&limit=200"; do
+          echo "=== $q"
+          curl -s "https://gamma-api.polymarket.com/events?$q" -o ev.json
           python3 - <<'PY'
           import json
-          d=json.load(open('ev.json')); print('n events', len(d))
-          for e in d[:60]:
-              ms=e.get('markets') or []
-              print('E', e.get('slug'), e.get('title'), e.get('startTime'), e.get('seriesSlug'), len(ms))
+          d=json.load(open('ev.json'))
+          if isinstance(d,dict): print('dict', list(d)[:10], str(d)[:300]); d=d.get('data') or d.get('events') or []
+          print('n events', len(d))
+          n=0
           for e in d:
-              if ' vs' in (e.get('title') or ''):
-                  for m in e['markets'][:6]:
-                      print('  M', {k:m.get(k) for k in ('question','slug','sportsMarketType','outcomes','outcomePrices','bestBid','bestAsk','lastTradePrice','volume24hr','volumeNum','gameStartTime','closed','line')})
-                  break
+              t=e.get('title') or ''
+              print('E', e.get('slug'), '|', t, '|', e.get('startTime'), e.get('seriesSlug'), len(e.get('markets') or []))
+              if (' vs' in t) and n<2:
+                  n+=1
+                  for m in (e.get('markets') or [])[:8]:
+                      print('  M', {k:m.get(k) for k in ('question','slug','sportsMarketType','outcomes','outcomePrices','bestBid','bestAsk','lastTradePrice','volume24hr','volumeNum','gameStartTime','closed','line','active')})
           PY
+          done
