@@ -92,17 +92,70 @@ def cached(feed, key, fn):
 
 
 # ---------- ESPN (unofficial) ----------
+# Playoffs: ESPN calls them season type 3, weeks 1-5 (4 = Pro Bowl). Inside the app they continue the
+# regular-season count like nflverse does (19 Wild Card, 20 Divisional, 21 Conference, 22 Super Bowl), so
+# playoff games never share keys, records or saved state with regular-season weeks 1-5.
+POST_WEEK = {1: 19, 2: 20, 3: 21, 5: 22}
+ESPN_POST = {v: k for k, v in POST_WEEK.items()}
+LAST_WEEK = 22
+WEEK_NAMES = {19: "Wild Card", 20: "Divisional", 21: "Conference", 22: "Super Bowl"}
+
+
+def week_label(week):
+    """'Week 12' in the regular season, the round name in the playoffs."""
+    try:
+        w = int(week)
+    except (TypeError, ValueError):
+        return "Week ?"
+    return WEEK_NAMES.get(w, f"Week {w}")
+
+
+def _app_week(season_obj, week_obj):
+    typ = (season_obj or {}).get("type")
+    n = (week_obj or {}).get("number")
+    if typ == 3 and n is not None:
+        return POST_WEEK.get(int(n))   # None for the Pro Bowl
+    return n
+
+
+def normalize_scoreboard(sb):
+    """Rewrite ESPN playoff week numbers to the app's 19-22, drop the Pro Bowl (AFC vs NFC, no market)."""
+    if not isinstance(sb, dict):
+        return sb
+    if not (sb.get("season") or {}).get("type") and sb.get("events"):   # some ESPN replies only tag the events
+        sb["season"] = {**(sb.get("season") or {}), **{k: v for k, v in (sb["events"][0].get("season") or {}).items() if k in ("year", "type")}}
+    if (sb.get("season") or {}).get("type") == 3 and isinstance(sb.get("week"), dict) and not sb["week"].get("espn"):
+        n = sb["week"].get("number")
+        sb["week"] = {**sb["week"], "espn": n, "number": POST_WEEK.get(int(n)) if n is not None else None}
+    evs = []
+    for ev in sb.get("events") or []:
+        if isinstance(ev.get("week"), dict) and (ev.get("season") or {}).get("type") == 3 and not ev["week"].get("espn"):
+            n = ev["week"].get("number")
+            ev["week"] = {**ev["week"], "espn": n, "number": POST_WEEK.get(int(n)) if n is not None else None}
+        if (ev.get("season") or {}).get("type") == 3 and (ev.get("week") or {}).get("number") is None:
+            continue   # Pro Bowl
+        comp = ((ev.get("competitions") or [{}])[0].get("competitors")) or []
+        if any(str((c.get("team") or {}).get("abbreviation") or "TBD").upper() == "TBD" for c in comp):
+            continue   # playoff placeholder (teams not known yet)
+        evs.append(ev)
+    if "events" in sb:
+        sb["events"] = evs
+    return sb
+
+
 def espn_scoreboard(dates=None, week=None, season=None):
     q = []
     if dates:
         q.append(f"dates={dates}")
     if week:
-        q += [f"week={week}", "seasontype=2"]
+        w = int(week)
+        q += [f"week={ESPN_POST[w]}", "seasontype=3"] if w in ESPN_POST else [f"week={w}", "seasontype=2"]
     if season:
         q.append(f"season={season}")
     url = C.ESPN_SCOREBOARD + ("?" + "&".join(q) if q else "")
     key = f"sb_{dates or ''}{week or ''}"
-    return cached("espn", key, lambda: _get(url))
+    val, stale = cached("espn", key, lambda: _get(url))
+    return normalize_scoreboard(val), stale
 
 
 def current_scoreboard():
@@ -110,14 +163,18 @@ def current_scoreboard():
     is final, move on to the next regular-season week (Rick 2026-11-24: app said Week 11 on Tuesday)."""
     sb, stale = espn_scoreboard()
     try:
-        ev = (sb or {}).get("events") or []
-        wk = ((sb or {}).get("week") or {}).get("number")
         typ = (((sb or {}).get("season") or {}).get("type"))
         yr = ((sb or {}).get("season") or {}).get("year")
+        if typ == 3 and ((sb or {}).get("week") or {}).get("number") is None:   # Pro Bowl week -> Super Bowl
+            sb2, st2 = espn_scoreboard(week=LAST_WEEK, season=yr)
+            if sb2 and sb2.get("events"):
+                return sb2, st2
+        ev = (sb or {}).get("events") or []
+        wk = ((sb or {}).get("week") or {}).get("number")
         last = max((e.get("date") or "") for e in ev) if ev else ""
         # wait 16h after the last kickoff so the final game is graded and shown as Final first
         done_long = bool(last) and datetime.now(timezone.utc) - datetime.fromisoformat(last.replace("Z", "+00:00")) > timedelta(hours=16)
-        if ev and wk and typ == 2 and int(wk) < 18 and done_long and all(e["status"]["type"]["state"] == "post" for e in ev):
+        if ev and wk and typ in (2, 3) and int(wk) < LAST_WEEK and done_long and all(e["status"]["type"]["state"] == "post" for e in ev):
             nxt, st2 = espn_scoreboard(week=int(wk) + 1, season=yr)
             if nxt and nxt.get("events"):
                 return nxt, st2

@@ -507,3 +507,45 @@ def test_consensus_best_price():
             {"name": "Denver Broncos", "price": -190}, {"name": "Las Vegas Raiders", "price": 160}]}]}]}]
     b = consensus_from(ev)["LV@DEN"]["best"]
     assert b["DEN"] == {"odds": -190, "book": "FanDuel"} and b["LV"] == {"odds": 170, "book": "DraftKings"}
+
+
+def test_playoff_weeks_get_their_own_numbers():
+    from engine import fetch as F
+    sb = {"season": {"year": 2026, "type": 3}, "week": {"number": 1},
+          "events": [{"id": "1", "season": {"year": 2026, "type": 3}, "week": {"number": 1}},
+                     {"id": "pb", "season": {"year": 2026, "type": 3}, "week": {"number": 4}}]}
+    tbd = {"id": "t", "season": {"year": 2026, "type": 3}, "week": {"number": 2},
+           "competitions": [{"competitors": [{"team": {"abbreviation": "TBD"}}, {"team": {"abbreviation": "TBD"}}]}]}
+    sb["events"].append(tbd)
+    F.normalize_scoreboard(sb)
+    assert sb["week"]["number"] == 19 and sb["events"][0]["week"]["number"] == 19
+    assert [e["id"] for e in sb["events"]] == ["1"]                         # Pro Bowl dropped
+    F.normalize_scoreboard(sb)                                              # running twice changes nothing
+    assert sb["week"]["number"] == 19
+    reg = {"season": {"year": 2026, "type": 2}, "week": {"number": 12}, "events": []}
+    assert F.normalize_scoreboard(reg)["week"]["number"] == 12
+    assert F.week_label(12) == "Week 12" and F.week_label(19) == "Wild Card" and F.week_label(22) == "Super Bowl"
+    assert F.ESPN_POST[22] == 5 and F.ESPN_POST[21] == 3
+
+
+def test_game_day_alert_on_every_game_day(monkeypatch):
+    from datetime import datetime, timezone
+    from engine import run as R
+    monkeypatch.setattr(R, "load_tables", lambda: {"ok": True, "week": 12})
+    wed_kick = datetime(2026, 11, 26, 1, 0, tzinfo=timezone.utc)            # Wed 7 PM Central
+    fri_kick = datetime(2026, 11, 27, 20, 0, tzinfo=timezone.utc)           # Fri 2 PM Central
+    kicks = [wed_kick, fri_kick]
+    wed11 = datetime(2026, 11, 25, 17, 0, tzinfo=timezone.utc)              # Wed 11 AM Central
+    assert "top3" in R.due_jobs(wed11, {}, False, "2026-w12", kickoffs=kicks)
+    assert "top3" in R.due_jobs(datetime(2026, 11, 27, 17, 5, tzinfo=timezone.utc), {}, False, "2026-w12", kickoffs=kicks)
+    tue11 = datetime(2026, 11, 24, 17, 0, tzinfo=timezone.utc)              # no game Tuesday
+    assert "top3" not in R.due_jobs(tue11, {}, False, "2026-w12", kickoffs=kicks)
+    # inactives refresh 90 min before the first kickoff of the day
+    assert "inactives" in R.due_jobs(datetime(2026, 11, 27, 18, 35, tzinfo=timezone.utc), {}, False, "2026-w12", kickoffs=kicks)
+    assert "inactives" not in R.due_jobs(datetime(2026, 11, 27, 18, 0, tzinfo=timezone.utc), {}, False, "2026-w12", kickoffs=kicks)
+    # London game 8:30 AM Central: alert at 7 AM, not after kickoff
+    lon = datetime(2026, 10, 4, 13, 30, tzinfo=timezone.utc)
+    assert "top3" in R.due_jobs(datetime(2026, 10, 4, 12, 5, tzinfo=timezone.utc), {}, False, "2026-w12", kickoffs=[lon])
+    assert "top3" not in R.due_jobs(datetime(2026, 10, 4, 16, 5, tzinfo=timezone.utc), {}, False, "2026-w12", kickoffs=[lon])
+    assert R.next_check(datetime(2026, 11, 25, 20, 0, tzinfo=timezone.utc), kicks) == "Next check: Thu 12pm"
+    assert R.next_check(datetime(2026, 11, 26, 20, 0, tzinfo=timezone.utc), kicks) == "Next check: Fri 11am"

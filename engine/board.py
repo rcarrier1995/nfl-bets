@@ -11,7 +11,7 @@ from . import injuries as I
 from . import model as M
 from . import signals as SG
 from . import profiles as PF
-from .fetch import (espn_scoreboard, current_scoreboard, espn_summary, kalshi_events, kalshi_day_range, weather_batch, load_json,
+from .fetch import (LAST_WEEK, week_label, espn_scoreboard, current_scoreboard, espn_summary, kalshi_events, kalshi_day_range, weather_batch, load_json,
                     save_json, iso, now_utc, HEALTH)
 from .stats import abbrev, load_tables
 
@@ -275,7 +275,7 @@ def build(now=None, extra_shrink=1.0, calib=None, sb_override=None):
 
     # next week: early prices as soon as Kalshi lists them (no pushes, no combos, flagged early)
     next_games = []
-    if week and int(week) < 18:
+    if week and int(week) < LAST_WEEK:
         try:
             sb2, _ = espn_scoreboard(week=int(week) + 1, season=season)
             for ev in (sb2 or {}).get("events", []):
@@ -299,7 +299,7 @@ def build(now=None, extra_shrink=1.0, calib=None, sb_override=None):
                    "polymarket": not extra["poly"], "practice": extra["practice"] is None}
     HEALTH.save()
     return {
-        "generatedAt": iso(now), "season": season, "week": week,
+        "generatedAt": iso(now), "season": season, "week": week, "weekLabel": week_label(week),
         "games": games, "calls": calls, "top3": top3,
         "combos": {"standard": std, "combined": comb, "safer": safer, "pool": [l for pair in pool for l in pair],
                    "poolGames": len(pool)},

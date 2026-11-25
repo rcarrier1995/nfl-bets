@@ -640,7 +640,7 @@ function gameRow(g) {
   const o = S.open.has(id);
   const tm = c => { const p = c.fair; return `<div class="tm">${badge(c.team, "sm")}<span class="nm">${esc(c.name || c.team)}</span>${recOf(g, c.team) ? `<span class="rec">${esc(recOf(g, c.team))}</span>` : ""}<span class="sp"></span>${p != null ? `<span class="wpct">${Math.round(p)}%</span>${grd(gradeOf(p), 1)}` : ""}${sb ? `<span class="wp">${am(c.sbOdds)}</span>` : c.price != null ? `<span class="wp">${ct(c.price)}</span>` : ""}</div>`; };
   const meta = [spreadTxt(g), expertsTxt(g)].filter(Boolean).join(" · ");
-  let row = `${tagBar(g, id, o)}<div class="grow g2" onclick="toggle('${id}')"><div class="ghead"><span class="kt">${soon(g.kickoff) || kick(g.kickoff)}</span><span class="sp"></span><span class="pill c-${bc}">${esc(best.team)} ${LBL(bc)}</span>${FCHEV}</div>${tm(a)}${tm(h)}${meta ? `<div class="tiny muted meta">${esc(meta)}</div>` : ""}${sb ? "" : rowGap(g)}</div>`;
+  let row = `${tagBar(g, id, o)}<div class="grow g2" onclick="toggle('${id}')"><div class="ghead"><span class="kt">${soon(g.kickoff) || kick(g.kickoff)}</span><span class="sp"></span><span class="pill c-${bc}">${bc === "Pass" ? "" : esc(best.team) + " "}${LBL(bc)}</span>${FCHEV}</div>${tm(a)}${tm(h)}${meta ? `<div class="tiny muted meta">${esc(meta)}</div>` : ""}${sb ? "" : rowGap(g)}</div>`;
   if (o) row += `<div class="card">${gameDetail(g)}</div>`;
   return row;
 }
@@ -978,6 +978,10 @@ function pregame() {
   if (quiet) {   // nothing to buy: one short line, then the games
     h = h.slice(0, cut) + `<div class="quiet"><b>Nothing to buy right now.</b> <span class="muted">${esc(hint || "")}</span></div>` + h.slice(h.indexOf('<div class="searchw">'), h.indexOf('<div class="chips">'));
   }
+  // Best picks: the A+ / A teams by win chance (Rick's goal is picking winners), one tappable line
+  const bestPicks = pre.filter(c => (c.fair ?? 0) >= 75 && c.price != null && !c.dataHold).filter(filt).sort((a, b) => b.fair - a.fair);
+  if (bestPicks.length) h += `<div class="bestpicks"><span class="bp-h">Best picks</span>${bestPicks.map(c =>
+    `<button class="bp" onclick="openBreakdown('${esc(c.key)}')">${badge(c.team, "sm")}<b>${esc(c.team)}</b> ${Math.round(c.fair)}% ${grd(gradeOf(c.fair), 1)}<span class="muted">${ct(c.price)}</span></button>`).join("")}</div>`;
   const picksAt = quiet ? h.length : h.indexOf("<h2>Top 3 today</h2>") >= 0 ? h.indexOf("<h2>Top 3 today</h2>") : h.length;
   if (!quiet) h += `<h2>Best bets</h2>${vw.length ? vw.map(c => betCard(c, { vs: 1 })).join("") : NOREC(hint)}`;
   if (sells.length) h += `<h2>Sell if you own it</h2>${sells.map(c => betCard(c, { vs: 1 })).join("")}`;
@@ -1281,9 +1285,13 @@ function topCombosView() {
   let h = `<div class="ptitle">Combos</div><div class="psub">Top picks · this week and next week</div>${comboTabs("top")}${comboWarn()}<div class="row gbtns" style="margin:6px 0;flex-wrap:wrap"><button class="btn pri" onclick="buildGrade('A+')">${grd("A+", 1)}A+ combo (3+ teams) →</button><button class="btn pri" onclick="buildGrade('A')">${grd("A", 1)}Combo of all A picks →</button><button class="btn pri" onclick="buildGrade('AB')">${grd("A", 1)}${grd("B", 1)}Combo of all A + B picks →</button></div>`;
   const sec = (w, title, early) => {
     const x = T[w] || {};
-    h += `<h2${early ? ' data-fold="closed"' : ""}>${title} · 3 under ${T.cheapMax || 10}¢</h2><div class="small muted" style="margin:-4px 0 8px">Best chance to hit for under ${T.cheapMax || 10}¢, using as few of the same games as possible. Built mostly from favourites (they've been slightly underpriced); an underdog only when we expect it to win.${early ? " Early prices: news can change these." : ""}</div>`;
+    if (early && !(x.cheap || []).length && !(x.value || []).length) {   // nothing yet: one quiet line, no empty sections
+      h += `<div class="quiet"><b>${title}:</b> <span class="muted">combos show up once Robinhood lists next week's games${x.legs ? ` (${x.legs} teams so far)` : ""}.</span></div>`;
+      return;
+    }
+    h += `<h2${early ? ' data-fold="closed"' : ""}>${title} · 3 under ${T.cheapMax || 10}¢${early ? ` <span class="cnt">${(x.cheap || []).length}</span>` : ""}</h2><div class="small muted" style="margin:-4px 0 8px">Best chance to hit for under ${T.cheapMax || 10}¢, using as few of the same games as possible. Built mostly from favourites (they've been slightly underpriced); an underdog only when we expect it to win.${early ? " Early prices: news can change these." : ""}</div>`;
     h += (x.cheap || []).length ? x.cheap.slice().sort(comboRank).map((c, i) => topCard(c, i, w + "c")).join("") : NOREC(`${x.legs || 0} teams with prices`);
-    h += `<h2${early ? ' data-fold="closed"' : ""}>${title} · best value + chance</h2><div class="small muted" style="margin:-4px 0 8px">Any price: the best mix of our win chance and what it costs.</div>`;
+    h += `<h2${early ? ' data-fold="closed"' : ""}>${title} · best value + chance${early ? ` <span class="cnt">${(x.value || []).length}</span>` : ""}</h2><div class="small muted" style="margin:-4px 0 8px">Any price: the best mix of our win chance and what it costs.</div>`;
     h += (x.value || []).length ? x.value.slice().sort(comboRank).map((c, i) => topCard(c, i, w + "v")).join("") : NOREC();
   };
   sec("thisWeek", "This week");
@@ -1359,7 +1367,7 @@ function learning() {
     const id = "wk:" + w.week;
     const money = n => `${n >= 0 ? "+" : "−"}$${Math.abs(n / 100).toFixed(2)}`;
     const bu = w.buys?.n ? `Buy calls ${money(w.buys.net)} on ${w.buys.n} (per contract, after fees)` : "No Buy calls graded";
-    return `<div class="banner"><span class="u" onclick="toggle('${id}')">Week ${w.week} — ${bu}</span>${S.open.has(id) ? `<div class="small" style="margin-top:6px">${esc(w.lesson)}<br>${esc(w.shrink || "")}<br>Picks ${w.w}/${w.n} right · Brier ${w.brier}<br>${calibChart(w.calibration, "By fair value")}${Object.entries(w.combos || {}).map(([k, v]) => `${k} combos hit ${v.hit}/${v.n}${v.net != null ? ` (${money(v.net)} a contract)` : ""}`).join(" · ")}</div>` : ""}</div>`;
+    return `<div class="banner"><span class="u" onclick="toggle('${id}')">${esc(w.label ? w.label.split(":")[0] : "Week " + w.week)} — ${bu}</span>${S.open.has(id) ? `<div class="small" style="margin-top:6px">${esc(w.lesson)}<br>${esc(w.shrink || "")}<br>Picks ${w.w}/${w.n} right · Brier ${w.brier}<br>${calibChart(w.calibration, "By fair value")}${Object.entries(w.combos || {}).map(([k, v]) => `${k} combos hit ${v.hit}/${v.n}${v.net != null ? ` (${money(v.net)} a contract)` : ""}`).join(" · ")}</div>` : ""}</div>`;
   }).join("") : NOREC(S.B.nextCheck);
   // experts
   const E = S.B.experts;
@@ -1946,7 +1954,7 @@ function sbCombosView() {
     const T = sbTop(S.B[w]);
     h += `<h2${early ? ' data-fold="closed"' : ""}>${title} · 3 paying +900 or more</h2><div class="small muted" style="margin:-4px 0 8px">Best chance to hit for a $5 bonus bet that pays 10× or more, from teams we expect to win, sharing as few games as possible.${early ? " Early odds: news can change these." : ""}</div>`;
     h += T.long.length ? T.long.map((p, i) => sbTopCard(p, i, w + "l")).join("") : NOREC(`${T.n} favourites with odds`);
-    h += `<h2${early ? ' data-fold="closed"' : ""}>${title} · best value + chance</h2><div class="small muted" style="margin:-4px 0 8px">Any payout: the best mix of our chance and what the odds pay.</div>`;
+    h += `<h2${early ? ' data-fold="closed"' : ""}>${title} · best value + chance${early ? ` <span class="cnt">${(x.value || []).length}</span>` : ""}</h2><div class="small muted" style="margin:-4px 0 8px">Any payout: the best mix of our chance and what the odds pay.</div>`;
     h += T.val.length ? T.val.map((p, i) => sbTopCard(p, i, w + "v")).join("") : NOREC();
   }
   return h + `<div class="tiny muted" style="margin-top:8px">Info only — check each team's Buy/Wait/Pass. Our chance = our fair value.</div>`;
@@ -1995,7 +2003,7 @@ function render() {
   if (!S.B) return;
   S.buy = {}; S.buyN = 0;
   settleBets();
-  $("#weekLabel").innerHTML = `<span class="nb">NFL Bets · </span>Week ${esc(S.B.week)}`;
+  $("#weekLabel").innerHTML = `<span class="nb">NFL Bets · </span>${esc(S.B.weekLabel || ("Week " + S.B.week))}`;
   const age = (Date.now() - Date.parse(S.B.generatedAt)) / 60000;
   $("#updated").textContent = `Updated ${ago(S.B.generatedAt)}`;
   $("#dot").classList.toggle("stale", age > 12);

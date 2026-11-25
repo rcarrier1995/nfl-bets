@@ -535,3 +535,8 @@ details.bought>summary{min-height:40px;display:flex;align-items:center}
   .top .gear{width:32px;height:32px}}
 @media (max-width:360px){.mode button{padding:7px 6px;font-size:10.5px}}
 @media (max-width:340px){#shareBtn{display:none}}
+
+/* Best picks line (A+ / A by win chance) */
+.bestpicks{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:8px 0 10px}
+.bestpicks .bp-h{font-size:13px;font-weight:700;color:var(--muted);margin-right:2px}
+.bestpicks .bp{display:inline-flex;align-items:center;gap:5px;min-height:40px;padding:4px 10px;border:1px solid var(--line);border-radius:20px;background:var(--card);color:inherit;font:inherit;font-size:14px;cursor:pointer}
