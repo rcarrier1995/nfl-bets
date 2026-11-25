@@ -1,0 +1,24 @@
+name: probe
+on:
+  push:
+    branches: [claude/project-thread-5jaym2]
+    paths: [".github/workflows/probe.yml"]
+jobs:
+  p:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          curl -s https://gamma-api.polymarket.com/sports | python3 -c "import json,sys;d=json.load(sys.stdin);print([x for x in d if x.get('sport','').lower() in ('nfl','cfb')])"
+          curl -s "https://gamma-api.polymarket.com/events?tag_slug=nfl&closed=false&limit=200" -o ev.json
+          python3 - <<'PY'
+          import json
+          d=json.load(open('ev.json')); print('n events', len(d))
+          for e in d[:60]:
+              ms=e.get('markets') or []
+              print('E', e.get('slug'), e.get('title'), e.get('startTime'), e.get('seriesSlug'), len(ms))
+          for e in d:
+              if ' vs' in (e.get('title') or ''):
+                  for m in e['markets'][:6]:
+                      print('  M', {k:m.get(k) for k in ('question','slug','sportsMarketType','outcomes','outcomePrices','bestBid','bestAsk','lastTradePrice','volume24hr','volumeNum','gameStartTime','closed','line')})
+                  break
+          PY
