@@ -232,7 +232,14 @@ def build(now=None, extra_shrink=1.0, calib=None, sb_override=None):
     for ev in events:
         for t in ev["competitions"][0]["competitors"]:
             team_ids[str(t["team"].get("id"))] = C.espn_abbr(t["team"]["abbreviation"])
-    extra = {"poly": _safe(FD.poly_index, {}), "news": _safe(lambda: FD.news_feed(team_ids), {}),
+    nick = {}
+    for ev in events:
+        for t in ev["competitions"][0]["competitors"]:
+            nick[C.espn_abbr(t["team"]["abbreviation"])] = t["team"].get("name") or t["team"].get("shortDisplayName")
+    from . import books as BK
+    pre_kicks = [parse_dt(ev.get("date")) for ev in events if ev["status"]["type"]["state"] == "pre"]
+    extra = {"books": _safe(lambda: BK.refresh(nick, pre_kicks, now), {}),
+             "poly": _safe(FD.poly_index, {}), "news": _safe(lambda: FD.news_feed(team_ids), {}),
              "practice": _safe(lambda: FD.practice_update(season, week, now), None)}
     games, calls, legs_pool, alerts = [], [], [], []
     for ev in events:
@@ -610,10 +617,12 @@ def build_game(ev, tables, kidx, wx_all, pt_idx, live_state, snaps, prev_calls, 
     g["teams"] = teams
     if extra is not None:
         from . import feeds as FD
+        from . import books as BK
         for step in (lambda: FD.poly_attach(g, extra["poly"], kickoff, now), lambda: FD.fpi_attach(g, summary),
                      lambda: FD.news_attach(g, extra["news"], tables),
                      lambda: FD.practice_attach(g, extra["practice"], tables),
-                     lambda: FD.volume_attach(g, prices, now)):
+                     lambda: FD.volume_attach(g, prices, now),
+                     lambda: BK.attach(g, extra["books"])):
             _safe(step, None)
 
     # snapshot every pregame fair/price/call before kickoff
