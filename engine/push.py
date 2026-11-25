@@ -52,5 +52,5 @@ def send(title, body, tags="football", priority="default"):
 def public():
     cfg = config()
     st = state()
-    return {"topic": cfg.get("ntfyTopic"), "server": cfg.get("ntfyServer") or "https://ntfy.sh",
+    return {"hasTopic": bool(cfg.get("ntfyTopic")), "server": cfg.get("ntfyServer") or "https://ntfy.sh",
             "lastNote": st.get("lastNote"), "lastSent": st.get("lastSent"), "ok": st.get("ok")}

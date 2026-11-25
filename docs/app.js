@@ -1283,6 +1283,24 @@ window.openBreakdown = key => {
    </div>`);
 };
 
+// ---------- share the app (Rick 2026-11-25) ----------
+const APP_URL = "https://rcarrier1995.github.io/nfl-bets/";
+function shareCard() {
+  return `<div class="card"><h3>Share the app</h3>
+   <div class="small">Send the link to a friend. It works on any phone or computer, nothing to sign up for. Their bet log stays on their phone, and your alerts stay yours.</div>
+   <button class="btn pri" style="margin-top:10px;width:100%" onclick="shareApp()">Share app</button>
+   <div id="shareRes" class="small"></div></div>`;
+}
+window.shareApp = async () => {
+  const data = { title: "NFL Bets", text: "NFL picks helper (suggestions only):", url: APP_URL };
+  if (navigator.share) { try { await navigator.share(data); return; } catch (e) { if (e && e.name === "AbortError") return; } }
+  let ok = false;
+  try { await navigator.clipboard.writeText(APP_URL); ok = true; } catch (e) {}
+  openModal(`<h2>Share the app</h2><div class="small">${ok ? `<span class="ok">Link copied.</span> Paste it in a text or email.` : `Copy this link and send it:`}</div>
+   <input readonly value="${APP_URL}" style="width:100%;margin-top:8px" onclick="this.select()">
+   <div class="row" style="margin-top:12px"><span class="sp"></span><button class="btn pri" onclick="closeModal()">Done</button></div>`);
+};
+
 // ---------- add to home screen ----------
 let _bip = null;
 window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); _bip = e; });
@@ -1334,12 +1352,13 @@ window.copyLink = async () => {
 // ---------- setup + system ----------
 function setup() {
   const p = S.B.push || {};
-  const topic = localGet("topic") || p.topic || "";
+  const topic = localGet("topic") || "";   // never show the owner's server topic (app is shared)
   const h = S.B.health || {};
   return `<div class="ptitle">Setup</div><h2>Setup & Edge</h2>
+  ${shareCard()}
   ${installCard()}
   <div class="card"><h3>Phone alerts</h3>
-   <div class="small">Status: ${p.topic ? `<span class="ok">topic saved on server</span>` : `<span class="bad">no topic on server</span>`}${p.lastNote ? `<br>${esc(p.lastNote)}` : ""}</div>
+   <div class="small">Status: ${(p.hasTopic || p.topic) ? `<span class="ok">on — server alerts go only to the app owner's phone</span>` : `<span class="bad">no topic on server</span>`}${p.lastNote ? `<br>${esc(p.lastNote)}` : ""}</div>
    <div class="row" style="margin-top:8px"><input id="topic" placeholder="ntfy topic" value="${esc(topic)}" style="flex:1"><button class="btn pri" onclick="testPush()">Test</button></div>
    <div id="testRes" class="small"></div>
    <div class="small" style="margin:8px 0">Buzzes for: Buy now · Wait prices hit · slow prices · live dips · <b>injury news</b> (starter ruled out, confirmed out in-game, QB change).</div>
