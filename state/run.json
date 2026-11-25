@@ -4,7 +4,7 @@
  "pregameAt": "2026-11-25T01:48:24Z",
  "window-early": "2026-11-22",
  "alertsSent": [],
- "light": "2026-11-25T15:26:29Z",
+ "light": "2026-11-25T15:36:40Z",
  "window-late": "2026-11-22",
  "inactives": "2026-11-22",
  "valueSent": {},
@@ -24,5 +24,6 @@
   "2026-w12": 1795615442.338979
  },
  "weekly": "2026-w11",
- "gapSent": {}
+ "gapSent": {},
+ "wpLast": {}
 }
