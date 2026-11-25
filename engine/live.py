@@ -198,6 +198,7 @@ def live_update(g, summary, ev, tables, live_state, snap, now):
         else:
             p = ph if side == "home" else 1 - ph - tie
             c["liveFair"] = round(100 * (p + tie / 2), 1)
+            c["espnWP"] = c["liveFair"]          # raw ESPN win %, before our injury cuts (big-swing alerts)
         lines_ = []
         pause_dip, pause_vw = False, False
         # injury formula
