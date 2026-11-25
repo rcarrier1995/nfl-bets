@@ -817,11 +817,16 @@ function winChart(g, D) {
   // quarter breaks
   let qs = "";
   pts.forEach((p, i) => { if (i && p.q !== pts[i - 1].q) qs += `<line x1="${x(i - .5)}" x2="${x(i - .5)}" y1="6" y2="${H - 10}" class="qb"/><text x="${x(i - .5) + 2}" y="${H - 2}" class="ct">${p.q >= 5 ? "OT" : "Q" + p.q}</text>`; });
+  // big plays (10+ pt swings): biggest first, skip any that would sit within 12px of one already shown
+  const keep = [];
+  pts.map((p, i) => [Math.abs(p.dwp || 0), i]).filter(b => b[0] >= 0.10).sort((a, b) => b[0] - a[0])
+    .forEach(([, i]) => { if (i < n - 1 && keep.every(j => Math.abs(x(j) - x(i)) >= 12)) keep.push(i); });
+  const big = keep.map(i => `<circle cx="${x(i).toFixed(1)}" cy="${y(pts[i].wp * 100).toFixed(1)}" r="3.2" class="sdot"><title>${esc(pts[i].flags[0] || KLBL[pts[i].kind] || "Big play")}: ${esc(shortPlay(pts[i]))}</title></circle>`).join("");
   const last = pts[pts.length - 1], lv = Math.round(last.wp * 100), lk = K.length ? K[K.length - 1][1] : null;
   const now = `<circle cx="${x(n - 1)}" cy="${y(lv)}" r="4.5" class="nowd"/><text x="${x(n - 1) + 8}" y="${y(lv) + 4}" class="nowt">${lv}%</text>` +
     (lk != null ? `<text x="${x(n - 1) + 8}" y="${Math.min(H - 4, Math.max(10, y(lk) + 4 + (Math.abs(y(lk) - y(lv)) < 12 ? 12 : 0)))}" class="nowk">${Math.round(lk)}¢</text>` : "");
-  return `<div class="wch"><div class="row tiny muted" style="margin:6px 0 2px;gap:6px"><span><b style="color:var(--ink)">${esc(g.home)} win chance</b> · <span style="color:var(--fair)">━</span> ESPN · <span class="kd">●</span> Kalshi price</span><span class="sp"></span><button class="zbtn" onclick="S.wz=S.wz||{};S.wz['${g.id}']=!S.wz['${g.id}'];render()">${zoom ? "Whole game" : "This quarter"}</button></div>
-    <svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="ESPN win chance per play and Kalshi price">${grid}${qs}<path d="${line}" fill="none" stroke="var(--fair)" stroke-width="1.8" stroke-linejoin="round"/>${kd}${now}</svg></div>`;
+  return `<div class="wch"><div class="row tiny muted" style="margin:6px 0 2px;gap:6px"><span><b style="color:var(--ink)">${esc(g.home)} win chance</b> · <span style="color:var(--fair)">━</span> ESPN · <span class="kd">●</span> Kalshi price · <span class="sd">○</span> big play</span><span class="sp"></span><button class="zbtn" onclick="S.wz=S.wz||{};S.wz['${g.id}']=!S.wz['${g.id}'];render()">${zoom ? "Whole game" : "This quarter"}</button></div>
+    <svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="ESPN win chance per play and Kalshi price">${grid}${qs}<path d="${line}" fill="none" stroke="var(--fair)" stroke-width="1.8" stroke-linejoin="round"/>${kd}${big}${now}</svg></div>`;
 }
 function clockSecs(c) { const m = /^(\d+):(\d+)$/.exec(c || ""); return m ? +m[1] * 60 + +m[2] : null; }
 function toDots(n) { return n == null ? "" : `<span class="tos" title="${n} timeouts left">${[0, 1, 2].map(i => `<i class="${i < n ? "on" : ""}"></i>`).join("")}</span>`; }
