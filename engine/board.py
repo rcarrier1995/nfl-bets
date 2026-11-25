@@ -384,6 +384,23 @@ def espn_ml_p(odds):
     return round(ph / (ph + pa), 4)
 
 
+def espn_ml(odds):
+    """The ESPN feed's real moneyline per side, American odds (latest first). {} if missing."""
+    ml = (odds or {}).get("moneyline") or {}
+    out = {}
+    for side in ("home", "away"):
+        for k in ("close", "current", "open"):
+            v = ((ml.get(side) or {}).get(k) or {}).get("odds")
+            try:
+                v = int(round(float(str(v).replace("−", "-").replace("+", ""))))
+            except (TypeError, ValueError):
+                continue
+            if abs(v) >= 100:
+                out[side] = v
+                break
+    return out
+
+
 def _safe(fn, default):
     """A broken extra feed must never break the board: its slot just stays empty."""
     try:
@@ -426,6 +443,8 @@ def build_game(ev, tables, kidx, wx_all, pt_idx, live_state, snaps, prev_calls, 
     espn_spread = spread_home
     cs = (cons or {}).get(f"{away}@{home}") if state == "pre" else None
     ml_home = espn_ml_p(odds) if state == "pre" else None
+    ml_raw = espn_ml(odds) if state == "pre" else {}
+    espn_book = (odds or {}).get("provider", {}).get("name") if odds else None
     if cs:   # sharper: many-book consensus moneyline, as an equivalent spread
         from .odds import spread_from_p
         spread_home = spread_from_p(cs["pHome"])
@@ -533,6 +552,19 @@ def build_game(ev, tables, kidx, wx_all, pt_idx, live_state, snaps, prev_calls, 
         c["weatherWhy"] = None
         if p.get("weather"):
             c["weatherWhy"] = p["weatherWhy"] if p["weather"] > 0 else f"{p['weatherWhy']} favors {c['opp']} run game"
+        # Sports Book mode: real sportsbook moneyline (best across books with the Odds API key, else ESPN's book)
+        if state == "pre":
+            best = ((cs or {}).get("best") or {}).get(team)
+            if best:
+                c["sbOdds"], c["sbBook"] = best["odds"], best["book"]
+            elif side in ml_raw:
+                c["sbOdds"], c["sbBook"] = ml_raw[side], espn_book or "ESPN"
+            else:
+                c["sbOdds"] = c["sbBook"] = None
+            c["sb"] = M.sb_classify(c["fair"], c["sbOdds"])
+        else:
+            s0 = (snap.get("teams") or {}).get(team, {})
+            c["sbOdds"], c["sbBook"], c["sb"] = s0.get("sbOdds"), s0.get("sbBook"), s0.get("sb")
         if state == "pre":
             cl = M.classify(c["fair"], price)
             c.update(cl)
@@ -590,7 +622,8 @@ def build_game(ev, tables, kidx, wx_all, pt_idx, live_state, snaps, prev_calls, 
                        "kickoff": ev.get("date"), "away": away, "home": home, "week": g_week(ev),
                        "season": g_season(ev), "at": iso(now),
                        "teams": {teams[s]["team"]: {k: teams[s].get(k) for k in
-                                 ("fair", "price", "call", "edge", "buyAt", "fee", "confidence", "why")}
+                                 ("fair", "price", "call", "edge", "buyAt", "fee", "confidence", "why",
+                                  "sbOdds", "sbBook", "sb")}
                                  for s in ("away", "home")},
                        "thursday": snap.get("thursday"),
                        "open": snap.get("open") if snap.get("open") is not None else espn_spread}

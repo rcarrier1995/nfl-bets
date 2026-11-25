@@ -109,6 +109,42 @@ def classify(fair, price, fee=None):
     return {"call": "Pass", "edge": edge, "buyAt": None, "fee": fee}
 
 
+def american_imp(odds):
+    """American odds -> implied win chance in % (the book's cut included). None if missing/invalid."""
+    try:
+        o = float(odds)
+    except (TypeError, ValueError):
+        return None
+    if abs(o) < 100:
+        return None
+    return round(100 * (100 / (o + 100) if o > 0 else -o / (-o + 100)), 2)
+
+
+def american_from_p(p):
+    """Win chance in % -> the American odds that would imply it (rounded the way books quote)."""
+    if p is None or not 0 < p < 100:
+        return None
+    q = p / 100
+    o = -100 * q / (1 - q) if q >= 0.5 else 100 * (1 - q) / q
+    o = int(math.ceil(o / 5 - 1e-9) * 5)     # rounded toward the bettor-safe side (a bit longer odds)
+    return o if abs(o) >= 100 else 100
+
+
+def sb_classify(fair, odds):
+    """Sports Book mode (Rick 2026-11-25): same win chance, same bar, compared with the sportsbook's own odds.
+    The implied chance includes the book's cut (vig, ~4-5% a game), so no fee is added. Edge in % points.
+    Buy = 15+ points under our chance; Wait = 8-15 (bet only at betAt odds or better); else Pass."""
+    imp = american_imp(odds)
+    if fair is None or imp is None:
+        return {"call": "Pass", "edge": None, "betAt": None, "imp": imp}
+    edge = round(fair - imp, 1)
+    if edge >= C.VALUE_EDGE:
+        return {"call": "Value", "edge": edge, "betAt": int(odds), "imp": imp}
+    if edge >= C.WAIT_EDGE:
+        return {"call": "Wait", "edge": edge, "betAt": american_from_p(fair - C.VALUE_EDGE), "imp": imp}
+    return {"call": "Pass", "edge": edge, "betAt": None, "imp": imp}
+
+
 def sell_check(fair, bid, fee=None):
     """Sell (if you own it): the price you'd get now (bid) is >= 15c above fair after fees.
     Back-tested live 2024-26 (market win % vs our own model, first signal per team per game):
