@@ -3,7 +3,7 @@ decides (in America/Chicago time, DST-safe) which jobs are due:
 
   nfl-pregame-weekly   Thu 12:00 CT        full pregame refresh + nflverse tables + Thursday baseline
   nfl-sunday-inactives Sun 10:30 CT        inactives refresh, rebuild backup_map
-  morning Top 3 push   Thu & Sun 8:00 CT   ntfy push of just the Top 3
+  game-day alert       Thu & Sun 11:00 CT  one push: A picks, any Buys, top combo under 10c (Rick: 11 AM)
   nfl-live-sunday      every 10 min while games are live (any day)
   nfl-window-early     Sun 15:35 CT        early window review (also auto when the window's last game is final)
   nfl-window-late      Sun 18:50 CT
@@ -13,7 +13,7 @@ decides (in America/Chicago time, DST-safe) which jobs are due:
 """
 import os
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from . import board as B
 from . import config as C
@@ -49,6 +49,10 @@ def _nflverse_files(season):
             nflverse_csv(tag, f)
 
 
+DIGEST_AT = 11 * 60     # game-day morning alert, 11:00 AM Central (Rick, 2026-11-25)
+GAP_PUSH = 8            # cents: sportsbooks' win % above Robinhood's price -> one "Gap" push
+
+
 def due_jobs(now, rs, sb_live, week_key, force=()):
     t = ct(now)
     wd, hm, date = t.weekday(), t.hour * 60 + t.minute, t.strftime("%Y-%m-%d")
@@ -58,7 +62,7 @@ def due_jobs(now, rs, sb_live, week_key, force=()):
         jobs.add("pregame")
     if wd == 6 and hm >= 10 * 60 + 30 and rs.get("inactives") != date:
         jobs.add("inactives")
-    if wd in (3, 6) and 8 * 60 <= hm < 11 * 60 and rs.get("top3") != date:
+    if wd in (3, 6) and DIGEST_AT <= hm < DIGEST_AT + 3 * 60 and rs.get("top3") != date:
         jobs.add("top3")
     for name, at in (("early", 15 * 60 + 35), ("late", 18 * 60 + 50), ("snf", 23 * 60)):
         if wd == 6 and hm >= at and rs.get(f"window-{name}") != date:
@@ -85,8 +89,8 @@ def any_live(sb, now):
 def next_check(now):
     """Next scheduled check, for empty-state hints."""
     t = ct(now)
-    slots = [(3, 12, 0, "Thu 12pm"), (6, 8, 0, "Sun 8am"), (6, 10, 30, "Sun 10:30am"), (6, 15, 35, "Sun 3:35pm"),
-             (6, 18, 50, "Sun 6:50pm"), (6, 23, 0, "Sun 11pm"), (0, 23, 45, "Mon 11:45pm"), (3, 8, 0, "Thu 8am")]
+    slots = [(3, 12, 0, "Thu 12pm"), (6, 11, 0, "Sun 11am"), (6, 10, 30, "Sun 10:30am"), (6, 15, 35, "Sun 3:35pm"),
+             (6, 18, 50, "Sun 6:50pm"), (6, 23, 0, "Sun 11pm"), (0, 23, 45, "Mon 11:45pm"), (3, 11, 0, "Thu 11am")]
     best = None
     for wd, h, m, label in slots:
         d = (wd - t.weekday()) % 7
@@ -98,16 +102,51 @@ def next_check(now):
     return f"Next check: {best[1]}"
 
 
-def top3_message(board):
-    by = {c["key"]: c for c in board["calls"]}
+def _grade(p):
+    return next((g for lo, g in ((85, "A+"), (75, "A"), (60, "B"), (45, "C")) if p is not None and p >= lo), "F")
+
+
+def top3_message(board, now=None):
+    """Game-day morning alert: games kicking off today (Central), A/A+ picks, any Buys, the top combo under 10c."""
+    now = now or datetime.now(timezone.utc)
+    today = ct(now).strftime("%Y-%m-%d")
+    todays = {g["id"] for g in board["games"] if g.get("state") == "pre" and B.parse_dt(g.get("kickoff"))
+              and ct(B.parse_dt(g["kickoff"])).strftime("%Y-%m-%d") == today}
+    calls = [c for c in board["calls"] if c.get("gameId") in todays and c.get("price") is not None
+             and not c.get("priceStale") and not c.get("dataHold")]
     lines = []
-    for k in board["top3"]:
-        c = by[k]
-        if c["call"] == "Value":
-            lines.append(f"{c['team']} Buy {c['price']:.0f}c -> win {100 - c['price']:.0f}c · grade {c['confidence']['level']}")
-        else:
-            lines.append(f"{c['team']} Wait {c['price']:.0f}c, buy at {c['buyAt']}c -> win {100 - c['buyAt']}c · grade {c['confidence']['level']}")
-    return lines
+    for c in sorted([c for c in calls if c.get("call") == "Value"], key=lambda c: -(c.get("edge") or 0)):
+        lines.append(f"BUY {c['team']} {c['price']:.0f}c -> win {100 - c['price']:.0f}c · {_grade(c.get('fair'))}")
+    aa = sorted([c for c in calls if (c.get("fair") or 0) >= 75 and c.get("call") != "Value"], key=lambda c: -c["fair"])
+    if aa:
+        lines.append("A picks: " + ", ".join(f"{c['team']} {_grade(c['fair'])} {c['price']:.0f}c" for c in aa))
+    for c in calls:
+        if c.get("call") == "Wait" and c.get("buyAt"):
+            lines.append(f"Wait {c['team']}: buy at {c['buyAt']}c (now {c['price']:.0f}c)")
+    cheap = ((board.get("topCombos") or {}).get("thisWeek") or {}).get("cheap") or []
+    if cheap:
+        k = cheap[0]
+        lines.append(f"Top combo under 10c: {'+'.join(l['team'] for l in k['legs'])} ~{k['cost']:.0f}c · hits 1 in {k.get('oneIn', '?')}")
+    if lines and todays:
+        lines.insert(0, f"{len(todays)} game{'s' if len(todays) > 1 else ''} today")
+    return lines if todays else []
+
+
+def gap_alerts(board, rs):
+    """Idea 9: sportsbooks (3+ books, Odds API) give a team 8c+ more than Robinhood's price -> one push per team per price."""
+    sent = rs.setdefault("gapSent", {})
+    for c in board["calls"]:
+        gap = c.get("bookGap")
+        if c.get("state") != "pre" or gap is None or gap < GAP_PUSH or c.get("priceStale") or c.get("dataHold"):
+            continue
+        if sent.get(c["key"]) == round(c["price"]):
+            continue
+        P.send(f"Gap: {c['team']} {c['price']:.0f}c vs books {c['bookP']:.0f}%",
+               f"{c['team']} vs {c['opp']}: sportsbooks give {c['bookP']:.0f}% but Robinhood sells it at {c['price']:.0f}c "
+               f"({gap:.0f}c cheaper). Check the price in Robinhood. Call: {'Buy' if c.get('call') == 'Value' else c.get('call')}")
+        sent[c["key"]] = round(c["price"])
+    if len(sent) > 200:
+        rs["gapSent"] = dict(list(sent.items())[-200:])
 
 
 RECHECK_S = 60
@@ -351,9 +390,9 @@ def tick(force=()):
     AL.data(problems)
     # pushes
     if "top3" in jobs:
-        lines = top3_message(board)
+        lines = top3_message(board, now)
         if lines:
-            P.send("Top 3 today", "\n".join(lines))
+            P.send("Game day", "\n".join(lines))
         rs["top3"] = ct(now).strftime("%Y-%m-%d")
     sent = set(rs.get("alertsSent", []))
     for a in board["alerts"]:
@@ -397,6 +436,7 @@ def tick(force=()):
                priority="high")
         vsent[k] = round(sl["bid"])
     news_alerts(board, rs, now)
+    gap_alerts(board, rs)
     if len(vsent) > 400:
         rs["valueSent"] = dict(list(vsent.items())[-400:])
     board["nextCheck"] = next_check(now)

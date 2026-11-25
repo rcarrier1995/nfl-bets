@@ -23,6 +23,19 @@ function kick(iso) {
   const d = new Date(iso);
   return d.toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" }).replace(":00", "");
 }
+// "starts in 2h 10m" when a game kicks off within 12 hours
+function soon(iso) {
+  const m = Math.round((Date.parse(iso) - Date.now()) / 60000);
+  if (!(m > 0 && m < 720)) return "";
+  return m < 60 ? `Starts in ${m}m` : `Starts in ${Math.floor(m / 60)}h${m % 60 ? ` ${m % 60}m` : ""}`;
+}
+const byKick = (a, b) => String(a.kickoff).localeCompare(String(b.kickoff));
+// finished games fold away (Rick 2026-11-25); open/closed is remembered on this device
+function pastGames(fin, key) {
+  if (!fin.length) return "";
+  const open = localGet("past." + key) === "1";
+  return `<details class="others past"${open ? " open" : ""} ontoggle="localSet('past.${key}', this.open ? '1' : '0')"><summary>Finished games (${fin.length}) · ${fin.filter(g => g.result?.right).length} of ${fin.filter(g => g.result?.right != null).length} picks right</summary><div class="tiny muted" style="margin:6px 2px">✓ our pick won · ✗ our pick lost</div><div class="glist">${fin.map(finalLine).join("")}</div></details>`;
+}
 const callOf = c => { const k = c.state === "in" && c.liveCall ? c.liveCall : c.call; return k === "Pass" && c.sell && c.state !== "post" && !c.priceStale && !(c.state === "in" && (c.alertsOff || c.paused)) ? "Sell" : k; };
 const nextCalls = () => (S.B?.nextWeek || []).flatMap(g => [g.teams.away, g.teams.home]);
 const callsBy = () => Object.fromEntries((S.B?.calls || []).concat(nextCalls()).map(c => [c.key, c]));
@@ -156,6 +169,60 @@ function closeTag(c) {
   return `<div class="note"><b>Close game</b><br>${L.map(esc).join("<br>")}</div>`;
 }
 
+// ---------- "I bought this" (idea 7): folded away, can be hidden in Setup (Rick 2026-11-25) ----------
+const showBought = () => localGet("bought") !== "off";
+function boughtBox(spec) {
+  if (!showBought() || spec.price == null) return "";
+  const id = "bb" + (S.buyN = (S.buyN || 0) + 1);
+  S.buy[id] = spec;
+  const qty = spec.kind === "combo" ? Math.max(1, Math.floor(500 / Math.max(spec.price, 0.1))) : 1;
+  return `<details class="bought" onclick="event.stopPropagation()"><summary>I bought this</summary>
+    <div class="row" style="margin-top:8px;gap:8px"><label class="small">Price ¢<input id="${id}p" type="number" min="0.1" max="99" step="0.1" value="${Math.round(spec.price * 10) / 10}"></label>
+    <label class="small">Contracts<input id="${id}q" type="number" min="1" step="1" value="${qty}"></label>
+    <button class="btn pri" onclick="saveBought('${id}')">Save</button></div>
+    <div class="tiny muted" id="${id}m">Goes in your bet log (Learning). Win or loss fills in by itself after the game.</div></details>`;
+}
+window.saveBought = id => {
+  const sp = S.buy[id], price = Number($("#" + id + "p").value), qty = Math.max(1, Math.round(Number($("#" + id + "q").value) || 1));
+  if (!sp || !(price > 0 && price < 100)) { $("#" + id + "m").textContent = "Type the price you paid (1–99¢)."; return; }
+  const all = bets();
+  all.push({ kind: sp.kind, team: sp.team, game: sp.game, gameId: sp.gameId, legs: sp.legs, grade: sp.grade, call: sp.call,
+    price, qty, date: new Date().toISOString().slice(0, 10), result: "open", week: S.B.week, season: S.B.season });
+  saveBets(all);
+  $("#" + id + "m").innerHTML = `<span class="ok">Saved ✓ — ${qty} × ${ct(price)}. See Learning → Your bets.</span>`;
+};
+// open bets settle themselves once their games are final (this week's games only; you can still set it by hand)
+function settleBets() {
+  const G = gameBy(), all = bets();
+  let changed = false;
+  const res = (gid, team) => {
+    const g = G[gid];
+    if (!g || g.state !== "post" || g.score?.away == null || g.score?.home == null) return null;
+    const a = g.score.away, h = g.score.home;
+    if (a === h) return "tie";
+    return (a > h ? g.away : g.home) === team ? "win" : "loss";
+  };
+  for (const b of all) {
+    if (b.result !== "open") continue;
+    let r = null;
+    if (b.kind === "combo" && b.legs?.length) {
+      const rs = b.legs.map(l => res(l.gameId, l.team));
+      r = rs.includes("loss") ? "loss" : rs.every(x => x === "win") ? "win" : null;
+    } else if (b.gameId) r = res(b.gameId, b.team);
+    if (r) { b.result = r; b.auto = true; changed = true; }
+  }
+  if (changed) saveBets(all);
+}
+// your real record by grade (bets saved with a grade)
+function gradeRecord(all) {
+  const done = all.filter(b => b.result !== "open" && b.grade);
+  if (!done.length) return "";
+  const keys = ["A+", "A", "B", "C", "F"].filter(k => done.some(b => b.kind !== "combo" && b.grade === k));
+  const row = (lab, list) => { const st = betStats(list); return `<span class="rec">${lab} <b>${st.w}–${st.l}</b> <span class="${st.pnl >= 0 ? "ok" : "bad"}">${money(st.pnl)}</span></span>`; };
+  const combos = done.filter(b => b.kind === "combo");
+  return `<div class="card"><div class="small" style="margin-bottom:6px"><b>Your record by grade</b></div><div class="recs">${keys.map(k => row(grd(k, 1), done.filter(b => b.kind !== "combo" && b.grade === k))).join("")}${combos.length ? row("Combos", combos) : ""}</div></div>`;
+}
+
 // ---------- bet card ----------
 function betCard(c, opts = {}) {
   const call = callOf(c);
@@ -176,12 +243,22 @@ function betCard(c, opts = {}) {
     ${priceBar(c.price, fair, c.dayLo, c.dayHi)}
     ${fair != null ? `<div class="small muted" style="margin-top:6px">Win chance ${Math.round(fair)}% · grade ${gradeOf(fair)} picks won ${GRADE_TESTED[gradeOf(fair)]}% in testing</div>` : ""}
     ${tags.join("")}
+    ${gapLine(c)}${thinLine(c)}
     ${closeTag(c)}
     ${call !== "Pass" && call !== "Sell" ? bestLine(c) : ""}
+    ${c.state !== "post" ? boughtBox({ kind: "single", team: c.team, game: `${c.team} vs ${c.opp}`, gameId: c.gameId, grade: gradeOf(fair), call: LBL(call), price: c.price }) : ""}
     <div class="why u" onclick="toggle('${esc(id)}')">Details</div>
     ${open ? cardMore(c) : ""}
   </div>`;
 }
+// sportsbooks vs Robinhood (idea 9): only with the Odds API key on, only when the gap is 3¢+
+function gapLine(c) {
+  if (c.state !== "pre" || c.bookGap == null || Math.abs(c.bookGap) < 3) return "";
+  const g = Math.round(c.bookGap);
+  return `<div class="info">Sportsbooks give ${esc(c.team)} ${Math.round(c.bookP)}% · Robinhood ${ct(c.price)} → <b>${g > 0 ? `${g}¢ cheaper than the books` : `${-g}¢ dearer than the books`}</b></div>`;
+}
+// few trades or a wide buy/sell gap (idea 10): shown only when it applies
+const thinLine = c => c.thin ? `<div class="info warn">${esc(c.thin)}</div>` : "";
 // this team's own info only: its injuries, its side of the matchup, its grades
 function teamInfo(c) {
   const g = gameBy()[c.gameId];
@@ -414,8 +491,13 @@ function expertsLine(g) {
 // watch tags (combo study) + expert spots: one skinny banner at the top of the card, on that team's side.
 // Tags only — they never change the call. Tap the card for the why.
 // our confidence (win chance) for both teams, on every game row
+// a 5c+ gap between the sportsbooks and Robinhood shows on the game row too (only with the Odds API key on)
+function rowGap(g) {
+  const c = [g.teams.away, g.teams.home].filter(c => c.state === "pre" && c.bookGap != null && c.bookGap >= 5).sort((x, y) => y.bookGap - x.bookGap)[0];
+  return c ? `<div class="tiny" style="color:var(--fair);margin-top:2px">${esc(c.team)} ${Math.round(c.bookGap)}¢ cheaper than the sportsbooks</div>` : "";
+}
 function winLine(g) {
-  const f = c => { const p = c.state === "in" && c.liveFair != null ? c.liveFair : c.fair; return p != null ? `<span class="wt"><b>${esc(c.team)}</b> ${Math.round(p)}%${grd(gradeOf(p), 1)}</span>` : ""; };
+  const f = c => { const p = c.state === "in" && c.liveFair != null ? c.liveFair : c.fair; return p != null ? `<span class="wt"><b>${esc(c.team)}</b> ${Math.round(p)}%${grd(gradeOf(p), 1)}${c.price != null && c.state !== "post" ? `<span class="wp">${ct(c.price)}</span>` : ""}</span>` : ""; };
   const a = f(g.teams.away), h = f(g.teams.home);
   return a || h ? `<div class="winl muted" title="Win chance">${a}${h}</div>` : "";
 }
@@ -453,12 +535,12 @@ function tagBar(g, id) {
   if (e?.dogPicks?.length && items[e.dog]) items[e.dog].push(["exp", e.dog, `${e.dogPicks.map(lastName).join(", ")} pick${e.dogPicks.length > 1 ? "" : "s"} underdog ${e.dog}`]);
   if (!items[g.away].length && !items[g.home].length) return "";
   const chips = items[g.away].concat(items[g.home]);
-  return `<div class="wban"${id ? ` onclick="toggle('${id}')"` : ""}><div class="wcol">${chips.map(([k, p, x, early]) => `<span class="wchip ${k}"><b>${early ? "Early note" : "Note"} for ${esc(p)}:</b> ${esc(x)}</span>`).join("")}</div></div>`;
+  return `<div class="wban"${id ? ` onclick="toggle('${id}')"` : ""}><div class="wcol">${chips.map(([k, p, x, early]) => `<span class="wchip ${k}"><b>ⓘ ${early ? "Early info" : "Info"} · ${esc(p)}:</b> ${esc(x)}</span>`).join("")}</div></div>`;
 }
 function watchLine(g) {
   if (!g.watch?.length) return "";
   return `<div class="small" style="margin:8px 0 2px"><b>Watch tags</b> <span class="muted">· tags only, tracked live (see Learning)</span></div>` +
-    g.watch.map(w => `<div class="tiny" style="margin-top:2px"><span class="tag ${w.kind === "fade" ? "above" : "good"}">${esc(w.tag)}</span> <b>${esc(w.team)}</b> · ${esc(w.why)}</div>`).join("");
+    g.watch.map(w => `<div class="tiny" style="margin-top:2px"><span class="tag info">${esc(w.tag)}</span> <b>${esc(w.team)}</b> · ${esc(w.why)}</div>`).join("");
 }
 function expertsBlock(g) {
   const e = g.experts;
@@ -500,8 +582,8 @@ function gameRow(g) {
   const bc = callOf(best);
   const o = S.open.has(id);
   const tm = c => `<div class="tm">${badge(c.team, "sm")}<span>${esc(c.name || c.team)}</span><span class="sp"></span></div>`;
-  let row = `${tagBar(g, id)}<div class="grow" onclick="toggle('${id}')"><div class="mt sp">${tm(a)}${tm(h)}${spreadTxt(g) ? `<div class="tiny muted" style="margin-top:2px">${esc(spreadTxt(g))}</div>` : ""}${expertsLine(g)}${winLine(g)}</div>
-    <div class="rt"><span class="kt">${kick(g.kickoff)}</span><span class="pill c-${bc}">${esc(best.team)} ${LBL(bc)}</span></div>
+  let row = `${tagBar(g, id)}<div class="grow" onclick="toggle('${id}')"><div class="mt sp">${tm(a)}${tm(h)}${spreadTxt(g) ? `<div class="tiny muted" style="margin-top:2px">${esc(spreadTxt(g))}</div>` : ""}${expertsLine(g)}${winLine(g)}${rowGap(g)}</div>
+    <div class="rt"><span class="kt">${soon(g.kickoff) || kick(g.kickoff)}</span><span class="pill c-${bc}">${esc(best.team)} ${LBL(bc)}</span></div>
     <span class="chev ${o ? "open" : ""}">›</span></div>`;
   if (o) row += `<div class="card">${gameDetail(g)}</div>`;
   return row;
@@ -543,7 +625,9 @@ function liveCard(g) {
       ${verdict(c)}
       <div class="row small" style="margin-top:8px"><span>${fairPay(c, c.liveFair, call === "Wait" ? c.liveBuyAt : c.price, call)}</span><span class="sp"></span>${move(c)}</div>
       ${priceBar(c.price, c.liveFair, c.dayLo, c.dayHi, c.pregamePrice)}
+      ${thinLine(c)}
       ${closeTag(c)}
+      ${boughtBox({ kind: "single", team: c.team, game: `${c.team} vs ${c.opp}`, gameId: c.gameId, grade: gradeOf(c.liveFair ?? c.fair), call: LBL(call), price: c.price })}
       ${c.dipLine && call !== "Pass" ? `<div class="note">${esc(c.dipLine.replace("Price dropped: now ", "Price fell to ").replace(", was ", " from "))}</div>` : ""}
       ${c.bothOff && call === "Value" ? `<div class="note">${esc(c.bothOff)}</div>` : ""}
       ${call !== "Pass" && call !== "Sell" ? bestLine(c) : ""}
@@ -612,7 +696,7 @@ function pregame() {
   if (sells.length) h += `<h2>Sell if you own it</h2>${sells.map(c => betCard(c, { vs: 1 })).join("")}`;
   if (!quiet) h += `<h2>Wait list</h2>${waits.length ? waits.map(c => `<div class="grow" onclick="openBreakdown('${esc(c.key)}')">${badge(c.team, "sm")}<b>${esc(c.team)}</b><span class="small">now ${ct(c.price)}</span><span class="sp"></span><span class="small c-Wait">buy at ${ct(c.buyAt)} → +${ct(100 - c.buyAt)}</span></div>`).join("") : NOREC(closest ? `Closest: ${closest.team} at ${ct(closest.price)} — a Wait needs it about ${Math.max(1, Math.ceil(8 - closest.edge))}¢ cheaper` : "")}`;
   const games = S.B.games.filter(g => filt(g.teams.away) || filt(g.teams.home) || (S.chip === "All" && !S.q));
-  const up = games.filter(g => g.state === "pre"), lvg = games.filter(g => g.state === "in"), fin = games.filter(g => g.state === "post");
+  const up = games.filter(g => g.state === "pre").sort(byKick), lvg = games.filter(g => g.state === "in").sort(byKick), fin = games.filter(g => g.state === "post").sort(byKick);
   const nw = (S.B.nextWeek || []).filter(g => filt(g.teams.away) || filt(g.teams.home) || (S.chip === "All" && !S.q));
   const es = S.B.earlyStudy || {};
   const nwVal = nw.filter(earlyValue), nwRest = nw.filter(g => !earlyValue(g));
@@ -621,22 +705,22 @@ function pregame() {
     ${nw.length ? (nwVal.length ? `<div class="glist">${nwVal.map(gameRow).join("")}</div>` : NOREC("No early value yet: no team wins 5¢+ more than its price")) +
       (nwRest.length ? `<details class="others"${S.othersOpen ? " open" : ""} ontoggle="S.othersOpen = this.open"><summary>Other games next week (${nwRest.length}) · no early value</summary><div class="glist">${nwRest.map(gameRow).join("")}</div></details>` : "")
       : NOREC("Kalshi hasn't listed next week's games yet")}`;
-  h += `<h2>All games this week <span class="cnt">${games.length}</span></h2>${gradeKey()}${games.length ? `${lvg.map(gameRow).join("")}${up.length ? `<div class="glist">${up.map(gameRow).join("")}</div>` : ""}${fin.length ? `<div class="glist" style="margin-top:10px">${fin.map(gameRow).join("")}</div>` : ""}` : NOREC()}`;
+  h += `<h2>All games this week <span class="cnt">${games.length}</span></h2>${gradeKey()}${games.length ? `${lvg.map(gameRow).join("")}${up.length ? `<div class="glist${quiet ? " wide" : ""}">${up.map(g => `<div class="gitem${S.open.has("g:" + g.id) ? " open" : ""}">${gameRow(g)}</div>`).join("")}</div>` : ""}${pastGames(fin, "pre")}` : NOREC()}`;
   // desktop: games on the left, picks on the right (one column on a phone, picks first)
   const picksEnd = h.indexOf("<h2>All games this week");
   const head = h.slice(0, picksAt), picks = h.slice(picksAt, picksEnd), gamesH = h.slice(picksEnd);
-  if (quiet) return `${head}<div class="cols q"><div class="colR">${nextSec}</div><div class="colL">${gamesH}</div></div>`;
+  if (quiet) return `${head}${gamesH}${nextSec}`;   // nothing to buy: games use the full width (two columns on a computer)
   return `${head}<div class="cols"><div class="colR">${picks}</div><div class="colL">${gamesH}${nextSec}</div></div>`;
 }
 function live() {
-  const lv = S.B.games.filter(g => g.state === "in");
+  const lv = S.B.games.filter(g => g.state === "in").sort(byKick);
   const fin = S.B.games.filter(g => g.state === "post");
   const al = S.B.alerts || [];
-  let h = `<div class="ptitle">Live</div><div class="row"><div class="psub">${lv.length ? `${lv.length} game${lv.length > 1 ? "s" : ""} in progress` : `<b>No games live.</b> ${esc(nextKick() || "")}`}</div><span class="sp"></span><button class="btn" onclick="refreshNow(this)">↻ Refresh</button></div>
+  let h = `<div class="ptitle">Live</div><div class="row"><div class="psub">${lv.length ? `${lv.length} game${lv.length > 1 ? "s" : ""} in progress` : `<b>No games live yet.</b> ${esc(nextKick() || "")}`}</div><span class="sp"></span><button class="btn" onclick="refreshNow(this)">↻ Refresh</button></div>
     ${lv.length ? `<div class="tiny muted" style="margin:-4px 0 8px">${S.scoreAt ? "Score: live from ESPN · " : ""}Prices &amp; calls: ${esc(ago(S.B.generatedAt))}, checked every 6 min</div>` : ""}` + banners();
-  if (lv.length || al.length) h += `<h2>Live dip alerts</h2>${al.length ? al.map(a => `<div class="card bg-Value"><div class="row"><b>${esc(a.team)}</b><span class="small muted">${esc(a.game)}</span><span class="sp"></span><span class="hero" style="font-size:26px">${ct(a.price)}</span></div><div class="small"><b>+${ct(a.profit)} if it wins</b> · ${/^[ABCF]$/.test(a.confidence) ? `grade ${grd(a.confidence, 1)}` : esc(a.confidence)}</div><div class="why">${esc(a.why)}</div></div>`).join("") : NOREC(lv.length ? "" : S.B.nextCheck)}`;
+  if (al.length) h += `<h2>Live dip alerts</h2>${al.length ? al.map(a => `<div class="card bg-Value"><div class="row"><b>${esc(a.team)}</b><span class="small muted">${esc(a.game)}</span><span class="sp"></span><span class="hero" style="font-size:26px">${ct(a.price)}</span></div><div class="small"><b>+${ct(a.profit)} if it wins</b> · ${/^[ABCF]$/.test(a.confidence) ? `grade ${grd(a.confidence, 1)}` : esc(a.confidence)}</div><div class="why">${esc(a.why)}</div></div>`).join("") : NOREC(lv.length ? "" : S.B.nextCheck)}`;
   if (lv.length) h += `<h2>Live games</h2>${lv.map(liveCard).join("")}`;
-  h += `<h2>Final <span class="cnt">${fin.length}</span></h2>${fin.length ? `<div class="tiny muted" style="margin:-4px 0 6px">✓ our pick won · ✗ our pick lost</div>` : ""}${fin.length ? `<div class="glist">${fin.map(finalLine).join("")}</div>` : NOREC()}`;
+  if (fin.length) h += `<div style="margin-top:14px">${pastGames(fin.slice().sort(byKick), "live")}</div>`;
   return h;
 }
 function nextKick() {
@@ -702,6 +786,7 @@ function comboCard(cat, k, res, safe) {
     <div class="small" style="margin-top:8px"><b>Pay no more than ${ct1(t.maxPay)} for the combo.</b> ${t.mk > 1 ? `<span class="muted">Teams' prices multiplied ${ct1(t.cost)} + about ${Math.round((t.mk - 1) * 100)}% Robinhood combo markup.</span>` : `<span class="muted">Teams' prices multiplied: ${ct1(t.cost)}.</span>`}</div>
     <div class="kpis"><div><b>${pct(t.hit)}</b><span>Hits</span></div><div><b>${ct1(t.maxPay)}</b><span>Max pay</span></div><div><b class="${t.edge >= 0 ? "c-Value" : "bad"}">${t.edge >= 0 ? "+" : ""}${ct1(t.edge)}</b><span>Edge</span></div></div>
     <div style="margin-top:8px">${legs.map((l, i) => [l, i]).sort((x, y) => legRank(x[0], y[0])).map(([l, i]) => `<div class="leg" onclick="swapLeg('${ek}',${i})">${badge(l.team, "sm")}<div style="min-width:0"><b>${esc(l.team)}</b> <span class="small muted">vs ${esc(l.opp)}${l.state === "in" ? " · live" : ""}</span><br>${(l.tags || []).map(x => `<span class="tag ${x === "Shoe-in" ? "shoe" : ""}">${esc(x)}</span>`).join("")}</div><span class="sp"></span><span class="small muted">${pct(l.fair)}</span>${grd(gradeOf(l.fair), 1)}<span class="p">${ct(l.price)}</span>${edit && legs.length > 2 ? `<button class="x" onclick="event.stopPropagation();dropLeg('${ek}',${i})" aria-label="Remove">✕</button>` : ""}</div>`).join("")}</div>
+    ${boughtBox({ kind: "combo", team: legs.map(l => l.team).join("+"), game: `${legs.length}-team combo`, legs: legs.map(l => ({ team: l.team, gameId: l.gameId })), grade: gradeOf(t.hit, COMBO_CUTS), price: t.est })}
     <div class="row" style="margin-top:10px"><button class="btn" onclick="toggle('${id}')">${edit ? "Done" : "Edit"}</button>${edit ? `<button class="btn" onclick="addLeg('${ek}')">+ Add leg</button>` : ""}${S.comboEdits[ek] ? `<button class="btn" onclick="resetCombo('${ek}')">Reset</button>` : ""}</div>
     ${edit ? `<div class="small muted" style="margin-top:8px">Pick any leg to swap it, ✕ to drop it, or add one. Any size from 2 legs.</div>` : ""}
   </div>`;
@@ -767,7 +852,8 @@ function topCard(c, i) {
     <div class="row"><b>#${i + 1} · ${c.size} teams</b><span class="sp"></span>${hitChip(c.hit)}</div>
     ${big3(c.hit, c.cost)}
     <div class="tiny muted">${c.hit >= c.cost + 2 ? `Our chance beats the cost by ${(c.hit - c.cost).toFixed(1)}¢` : c.hit >= c.cost ? "About a fair price" : `Costs ${(c.cost - c.hit).toFixed(1)}¢ more than our chance`}${c.cost > 10 ? " · over 10¢: not a bonus bet" : ""}${c.reused ? ` · shares ${c.reused} game${c.reused > 1 ? "s" : ""} with a pick above` : ""}</div>
-    <div style="margin-top:8px">${legHead}${c.legs.slice().sort(legRank).map(l => `<div class="leg">${badge(l.team, "sm")}<div style="min-width:0"><b>${esc(l.team)}</b> <span class="small muted">vs ${esc(l.opp)}</span>${l.dog ? ` <span class="tag look">underdog</span>` : ""}<br>${(l.why || []).map(x => `<span class="tag good">${esc(x)}</span>`).join("")}</div><span class="sp"></span><span class="small muted">${Math.round(l.est)}%</span>${grd(gradeOf(l.est), 1)}<span class="p">${ct(l.price)}</span></div>`).join("")}</div>
+    ${boughtBox({ kind: "combo", team: c.legs.map(l => l.team).join("+"), game: `${c.size}-team combo`, legs: c.legs.map(l => ({ team: l.team, gameId: l.gameId })), grade: gradeOf(c.hit, COMBO_CUTS), price: c.cost })}
+    <div style="margin-top:8px">${legHead}${c.legs.slice().sort(legRank).map(l => `<div class="leg">${badge(l.team, "sm")}<div style="min-width:0"><b>${esc(l.team)}</b> <span class="small muted">vs ${esc(l.opp)}</span>${l.dog ? ` <span class="tag look">underdog</span>` : ""}<br>${(l.why || []).map(x => `<span class="tag info">${esc(x)}</span>`).join("")}</div><span class="sp"></span><span class="small muted">${Math.round(l.est)}%</span>${grd(gradeOf(l.est), 1)}<span class="p">${ct(l.price)}</span></div>`).join("")}</div>
   </div>`;
 }
 // ---------- build your own combo: Rick taps teams, we analyse it (all in the browser, from the board) ----------
@@ -888,7 +974,7 @@ function buildAnalysis(legs, pool) {
     <div class="row"><b>Your combo · ${k} teams</b><span class="sp"></span>${hitChip(hit)}</div>
     ${big3(hit, cost)}
     <div class="tiny muted">${verdict} · teams' prices multiplied ${r1(legsCost)}¢ + about ${Math.round((markup(k, legsCost) - 1) * 100)}% Robinhood markup${cost > 10 ? " · over 10¢: not a bonus bet" : ""}</div>
-    <div style="margin-top:8px">${legHead}${legs.map(l => `<div class="leg">${badge(l.team, "sm")}<div style="min-width:0"><b>${esc(l.team)}</b> <span class="small muted">vs ${esc(l.opp)}</span> <span class="small" style="color:var(--${{ Value: "good", Wait: "wait", Pass: "bad", Sell: "sell" }[l.call] || "muted"})">${esc(LBL(l.call) || "")}</span><br>${l.why.map(x => `<span class="tag good">${esc(x)}</span>`).join("")}</div><span class="sp"></span><span class="small muted">${Math.round(l.est)}%</span>${grd(gradeOf(l.est), 1)}<span class="p">${ct(l.price)}</span><button class="x" onclick="buildTap('${esc(l.gameId)}','${esc(l.team)}')" aria-label="Remove">✕</button></div>`).join("")}</div>
+    <div style="margin-top:8px">${legHead}${legs.map(l => `<div class="leg">${badge(l.team, "sm")}<div style="min-width:0"><b>${esc(l.team)}</b> <span class="small muted">vs ${esc(l.opp)}</span> <span class="small" style="color:var(--${{ Value: "good", Wait: "wait", Pass: "bad", Sell: "sell" }[l.call] || "muted"})">${esc(LBL(l.call) || "")}</span><br>${l.why.map(x => `<span class="tag info">${esc(x)}</span>`).join("")}</div><span class="sp"></span><span class="small muted">${Math.round(l.est)}%</span>${grd(gradeOf(l.est), 1)}<span class="p">${ct(l.price)}</span><button class="x" onclick="buildTap('${esc(l.gameId)}','${esc(l.team)}')" aria-label="Remove">✕</button></div>`).join("")}</div>
     ${flags.length ? `<div class="small" style="margin-top:8px"><b>Watch out</b>${flags.map(f => `<div class="tiny" style="margin-top:3px">⚠ ${f}</div>`).join("")}</div>` : `<div class="small" style="margin-top:8px;color:var(--good)">No weak legs: every leg is 45%+ and priced at or under its chance.</div>`}${early ? `<div class="tiny muted" style="margin-top:4px">Next week's prices are early: news can still move them.</div>` : ""}
     ${swaps.length ? `<div class="small" style="margin-top:8px"><b>Better swaps</b>${swaps.map(s => `<div class="tiny" style="margin-top:3px">${s.txt} <button class="btn sm" onclick="buildSwap('${esc(s.l.gameId)}','${esc(s.alt.gameId)}','${esc(s.alt.team)}')">Swap</button></div>`).join("")}</div>` : ""}
     <div class="small" style="margin-top:10px"><b>Robinhood's real price?</b> <span class="muted">Type the combo quote you see and we learn the true markup.</span>
@@ -958,19 +1044,10 @@ function learning() {
   const all = bets();
   const wk = all.filter(b => String(b.week) === String(S.B.week));
   const ws = betStats(wk), at = betStats(all);
-  let h = `<div class="ptitle">Learning</div><div class="mybets"><span>This week: ${ws.w}–${ws.l} · ${money(ws.pnl)}</span><span class="small">All: ${money(at.pnl)}</span></div>`;
+  let h = `<div class="ptitle">Learning</div><div class="mybets"><span>This week: ${ws.w}–${ws.l} · ${money(ws.pnl)}</span><span class="small">All: ${money(at.pnl)}</span></div>${gradeRecord(all)}`;
   h += banners();
   const t = L.totals;
   if (t) h += `<div class="banner"><b>${t.right}/${t.games} right · ${t.pct}%</b> <span class="small muted">(${t.baseline.right}/${t.baseline.games} backtest + ${t.reviewedRight}/${t.reviewed} reviewed)</span></div>`;
-  // weekly lessons
-  h += `<h2>Weekly lessons</h2>`;
-  const wl = (L.weekly || []).slice().reverse();
-  h += wl.length ? wl.map(w => {
-    const id = "wk:" + w.week;
-    const money = n => `${n >= 0 ? "+" : "−"}$${Math.abs(n / 100).toFixed(2)}`;
-    const bu = w.buys?.n ? `Buy calls ${money(w.buys.net)} on ${w.buys.n} (per contract, after fees)` : "No Buy calls graded";
-    return `<div class="banner"><span class="u" onclick="toggle('${id}')">Week ${w.week} — ${bu}</span>${S.open.has(id) ? `<div class="small" style="margin-top:6px">${esc(w.lesson)}<br>${esc(w.shrink || "")}<br>Picks ${w.w}/${w.n} right · Brier ${w.brier}<br>${calibChart(w.calibration, "By fair value")}${Object.entries(w.combos || {}).map(([k, v]) => `${k} combos hit ${v.hit}/${v.n}${v.net != null ? ` (${money(v.net)} a contract)` : ""}`).join(" · ")}</div>` : ""}</div>`;
-  }).join("") : NOREC(S.B.nextCheck);
   // calibration
   const bt = L.backtest;
   const useRev = (L.totals?.reviewed || 0) >= 20;
@@ -980,6 +1057,18 @@ function learning() {
   const head = calRows.length ? calRows.map(r => `${r.bucket}: ${Math.round(r.actual)}%`).join(" · ") : "—";
   h += `<h2>Were our chances right?</h2><div class="line u" onclick="toggle('${id1}')">${esc(head)}</div>${S.open.has(id1) ? `<div class="ig">${tile("By fair value", calibChart(calRows))}${tile("By grade", calibChart(calC))}</div><div class="tiny muted">${useRev ? "Reviewed games" : "Rebuilt backtest (Weeks 1–11) until 20 games are reviewed"}</div>` : ""}`;
   if (L.shrink) h += `<div class="line muted small">${esc(L.shrink.note)}</div>`;
+  // everything below is past research: folded into one line (Rick 2026-11-25: main views = what matters now)
+  const topH = h;
+  h = "";
+  // weekly lessons
+  h += `<h2>Weekly lessons</h2>`;
+  const wl = (L.weekly || []).slice().reverse();
+  h += wl.length ? wl.map(w => {
+    const id = "wk:" + w.week;
+    const money = n => `${n >= 0 ? "+" : "−"}$${Math.abs(n / 100).toFixed(2)}`;
+    const bu = w.buys?.n ? `Buy calls ${money(w.buys.net)} on ${w.buys.n} (per contract, after fees)` : "No Buy calls graded";
+    return `<div class="banner"><span class="u" onclick="toggle('${id}')">Week ${w.week} — ${bu}</span>${S.open.has(id) ? `<div class="small" style="margin-top:6px">${esc(w.lesson)}<br>${esc(w.shrink || "")}<br>Picks ${w.w}/${w.n} right · Brier ${w.brier}<br>${calibChart(w.calibration, "By fair value")}${Object.entries(w.combos || {}).map(([k, v]) => `${k} combos hit ${v.hit}/${v.n}${v.net != null ? ` (${money(v.net)} a contract)` : ""}`).join(" · ")}</div>` : ""}</div>`;
+  }).join("") : NOREC(S.B.nextCheck);
   // experts
   const E = S.B.experts;
   if (E?.table?.length) {
@@ -1074,9 +1163,11 @@ function learning() {
   const gr = (L.graded || []).slice().reverse();
   const gid = "graded";
   h += `<h2>Graded games</h2>${gr.length ? `<div class="line u" onclick="toggle('${gid}')">${gr.filter(r => r.right).length}/${gr.length} right</div>${S.open.has(gid) ? gr.map(r => `<div class="small line">${r.right ? "✓" : "✗"} ${esc(r.final)} · ${esc(r.category)} · Brier ${r.brier}<br><span class="muted">${esc(r.review)}</span></div>`).join("") : ""}` : NOREC()}`;
-  // bet log
-  h += `<h2>Bet log</h2>${betForm()}${betList(all)}`;
-  return h;
+  const ro = localGet("research") === "1";
+  const research = `<details class="others research"${ro ? " open" : ""} ontoggle="localSet('research', this.open ? '1' : '0')"><summary>Research &amp; tests · weekly lessons, experts, watch tags, studies</summary>${h}</details>`;
+  const fo = localGet("betform") === "1";
+  const log = `<h2>Your bets</h2>${betList(all)}<details class="others"${fo ? " open" : ""} ontoggle="localSet('betform', this.open ? '1' : '0')"><summary>Add a bet by hand</summary>${betForm()}</details>`;
+  return topH + log + research;
 }
 function betForm() {
   const teams = [...new Set(S.B.calls.map(c => c.team))].sort();
@@ -1089,13 +1180,13 @@ function betForm() {
     <button class="btn pri full" onclick="addBet()">Add bet</button><div id="bMsg" class="small bad"></div></div></div>`;
 }
 function betList(all) {
-  if (!all.length) return `<div class="row" style="margin-top:6px"><label class="btn">Import CSV<input type="file" accept=".csv" hidden onchange="importCsv(this)"></label></div>`;
+  if (!all.length) return `<div class="line muted small">No bets yet. Tap “I bought this” on a pick or combo and it shows up here.</div><div class="row" style="margin-top:6px"><label class="btn">Import CSV<input type="file" accept=".csv" hidden onchange="importCsv(this)"></label></div>`;
   let run = 0;
   const rows = all.map((b, i) => {
     const q = Number(b.qty || 1);
     const p = b.result === "win" ? (100 - b.price) * q : b.result === "loss" ? -b.price * q : b.result === "tie" ? (50 - b.price) * q : 0;
     run += p;
-    return `<div class="leg"><div><b>${esc(b.team)}</b> <span class="small muted">${esc(b.game || "")} ${esc(b.date)}</span><br><span class="small">${ct(b.price)} × ${q}</span></div><span class="sp"></span>
+    return `<div class="leg"><div style="flex:1;min-width:0"><b>${esc(b.team)}</b> ${b.grade ? grd(b.grade, 1) : ""} <span class="small muted">${esc(b.game || "")} ${esc(b.date)}${b.auto ? " · settled by itself" : ""}</span><br><span class="small">${ct(b.price)} × ${q}</span></div><span class="sp"></span>
       <select onchange="setRes(${i},this.value)">${["open", "win", "loss", "tie"].map(r => `<option ${b.result === r ? "selected" : ""}>${r}</option>`).join("")}</select>
       <span class="small ${p >= 0 ? "ok" : "bad"}" style="min-width:60px;text-align:right">${b.result === "open" ? "" : money(p / 100)}</span><span class="tiny muted">${money(run / 100)}</span>
       <button class="btn" onclick="delBet(${i})">✕</button></div>`;
@@ -1362,7 +1453,7 @@ function setup() {
    <div class="small">Status: ${(p.hasTopic || p.topic) ? `<span class="ok">on — server alerts go only to the app owner's phone</span>` : `<span class="bad">no topic on server</span>`}${p.lastNote ? `<br>${esc(p.lastNote)}` : ""}</div>
    <div class="row" style="margin-top:8px"><input id="topic" placeholder="ntfy topic" value="${esc(topic)}" style="flex:1"><button class="btn pri" onclick="testPush()">Test</button></div>
    <div id="testRes" class="small"></div>
-   <div class="small" style="margin:8px 0">Buzzes for: Buy now · Wait prices hit · slow prices · live dips · <b>injury news</b> (starter ruled out, confirmed out in-game, QB change).</div>
+   <div class="small" style="margin:8px 0">Buzzes for: <b>game-day summary</b> (Thu &amp; Sun 11 AM) · Buy now · Wait prices hit · slow prices · sportsbook gaps (8¢+, needs the Odds API key) · live dips · <b>injury news</b> (starter ruled out, confirmed out in-game, QB change).</div>
    <ol class="small"><li>Install the free <b>ntfy</b> app (App Store / Google Play).</li><li>Tap <b>+</b>, type the topic above, Subscribe.</li><li>Tap <b>Test</b> here — your phone should buzz.</li></ol>
    <div class="small"><a href="https://github.com/${REPO}/settings/secrets/actions" target="_blank" rel="noopener">Change the server topic</a> (it's the private <code>NTFY_TOPIC</code> secret: tap it, paste the new name, Update secret).</div>
   </div>
@@ -1390,6 +1481,7 @@ function setup() {
    <li>Bet log lives on this device only. Use Export/Import CSV to move it between phone and computer.</li></ul></div>
   <div class="card doc"><h3>Honest edge</h3><ul class="small"><li>Realistic edge 1–3¢. Model error ±3–5 pts pregame (the free model matches the sportsbook; edge = Kalshi lagging the line or late news), ±5–8 live. Markets are efficient.</li><li>Backtest market price was devigged moneyline — Kalshi history isn't free (biggest gap).</li><li>Weather rule never fired in Weeks 1–11. Live backtest estimated, not traded. 10-leg combos are essentially unplayable at a 1¢ tick after fees.</li><li>Backtest P&L was driven by Week 9 — not an edge.</li></ul></div>
   <div class="card"><h3>Feed health</h3>${healthTable(h)}</div>
+  <div class="card"><h3>"I bought this" button</h3><div class="small">A folded line on each pick and combo that saves the bet to your log.</div><div class="row" style="margin-top:8px">${[["on", "Show"], ["off", "Hide"]].map(([k, l]) => `<button class="btn${(showBought() ? "on" : "off") === k ? " pri" : ""}" onclick="localSet('bought','${k}');render()">${l}</button>`).join("")}</div></div>
   <div class="card"><h3>Display</h3><div class="row">${[["light","Light"],["dark","Dark"],["auto","Auto"]].map(([k,l]) => `<button class="btn${(document.documentElement.dataset.theme || "dark") === k ? " pri" : ""}" onclick="theme('${k}')">${l}</button>`).join("")}</div></div>`;
 }
 function healthTable(h) {
@@ -1421,6 +1513,8 @@ window.closeModal = closeModal;
 
 function render() {
   if (!S.B) return;
+  S.buy = {}; S.buyN = 0;
+  settleBets();
   $("#weekLabel").textContent = `NFL Bets · Week ${S.B.week}`;
   const age = (Date.now() - Date.parse(S.B.generatedAt)) / 60000;
   $("#updated").textContent = `Updated ${ago(S.B.generatedAt)}`;
