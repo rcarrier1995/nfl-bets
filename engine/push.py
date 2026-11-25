@@ -52,5 +52,29 @@ def send(title, body, tags="football", priority="default"):
 def public():
     cfg = config()
     st = state()
-    return {"hasTopic": bool(cfg.get("ntfyTopic")), "server": cfg.get("ntfyServer") or "https://ntfy.sh",
+    return {"hasTopic": bool(os.environ.get("NTFY_TOPIC") or cfg.get("ntfyTopic")), "server": cfg.get("ntfyServer") or "https://ntfy.sh",
             "lastNote": st.get("lastNote"), "lastSent": st.get("lastSent"), "ok": st.get("ok")}
+
+
+def migrate_topic():
+    """Review 2026-11-25: the old topic sat in the public config.json, so anyone could send fake alerts.
+    Once the private NTFY_TOPIC secret exists, say so on both channels and drop the public topic."""
+    new = (os.environ.get("NTFY_TOPIC") or "").strip()
+    cfg = config()
+    old = (cfg.get("ntfyTopic") or "").strip()
+    if not new or not old or not os.environ.get("GITHUB_ACTIONS"):
+        return
+    if new != old:
+        if not send("Alerts moved here", "Your NFL Bets alerts now come on this private channel."):
+            return
+        server = cfg.get("ntfyServer") or "https://ntfy.sh"
+        try:
+            req = urllib.request.Request(f"{server}/{old}", method="POST",
+                                         data="This alert channel is retired. Subscribe to the new one Claude gave you.".encode(),
+                                         headers={"Title": "Old alert channel retired", "Tags": "warning"})
+            urllib.request.urlopen(req, timeout=20).read()
+        except Exception as e:
+            print("old topic notice failed:", e)
+    cfg.pop("ntfyTopic", None)
+    with open(CONFIG, "w") as f:
+        json.dump(cfg, f, separators=(", ", ": "))

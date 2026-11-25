@@ -342,6 +342,13 @@ def tick(force=()):
                     retest_rules(season, wkn)
                     rs["retest14"] = iso(now)
                 break
+    # common-sense checks: hold calls (and every Buy/Sell/Dip push) if the data looks wrong
+    from . import alarm as AL
+    from . import sanity as SN
+    problems = SN.apply(board, now)
+    if problems:
+        print("data check:", problems)
+    AL.data(problems)
     # pushes
     if "top3" in jobs:
         lines = top3_message(board)
@@ -394,6 +401,13 @@ def tick(force=()):
         rs["valueSent"] = dict(list(vsent.items())[-400:])
     board["nextCheck"] = next_check(now)
     board["feedNotes"] = feed_notes(board, HEALTH.data)
+    if problems:
+        board["feedNotes"].insert(0, "Data looks off (" + "; ".join(problems)[:160] + ") — calls on hold, check Robinhood")
+    try:
+        AL.feeds(board, HEALTH.data, now)
+        P.migrate_topic()
+    except Exception as e:
+        print("alarm/topic failed:", e)
     board["health"] = HEALTH.data
     board["push"] = P.public()
     od = load_json(os.path.join(C.STATE, "odds.json"), {}) or {}

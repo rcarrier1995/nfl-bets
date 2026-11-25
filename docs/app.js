@@ -102,6 +102,7 @@ function verdict(c) {
   const lines = c.liveLines || [];
   let t;
   if (c.priceStale) t = "Don't buy: prices are delayed right now";
+  else if (c.dataHold && c.state !== "post") t = "On hold: data looks off right now — check Robinhood";
   else if (live && c.alertsOff) t = "Too late: under 5 minutes left";
   else if (call === "Value") t = `Buy now: ${ct(edge)} below fair after fees`;
   else if (call === "Wait" && c.lineCheck && !live) t = c.lineCheck.buyUnder ? `Check the line: buy under ${ct(c.lineCheck.buyUnder)} — the sportsbook line may be behind the news` : "Check the line: the sportsbook line may be behind the news";
@@ -1363,7 +1364,7 @@ function setup() {
    <div id="testRes" class="small"></div>
    <div class="small" style="margin:8px 0">Buzzes for: Buy now · Wait prices hit · slow prices · live dips · <b>injury news</b> (starter ruled out, confirmed out in-game, QB change).</div>
    <ol class="small"><li>Install the free <b>ntfy</b> app (App Store / Google Play).</li><li>Tap <b>+</b>, type the topic above, Subscribe.</li><li>Tap <b>Test</b> here — your phone should buzz.</li></ol>
-   <div class="small"><a href="https://github.com/${REPO}/edit/main/config.json" target="_blank" rel="noopener">Change the server topic</a> (change the <code>ntfyTopic</code> line, then press the green Commit changes button to save).</div>
+   <div class="small"><a href="https://github.com/${REPO}/settings/secrets/actions" target="_blank" rel="noopener">Change the server topic</a> (it's the private <code>NTFY_TOPIC</code> secret: tap it, paste the new name, Update secret).</div>
   </div>
   <div class="card"><h3>Sharper line (many sportsbooks)</h3><div class="small">${S.B.odds?.enabled ? `<span class="ok">On</span> · last check ${ago(S.B.odds.fetchedAt)}${S.B.odds.left != null ? ` · ${S.B.odds.left} free lookups left this month` : ""}${S.B.odds.error ? `<br><span class="bad">${esc(S.B.odds.error)}</span>` : ""}` : `Off — using ESPN's single sportsbook. Add a free key from the-odds-api.com as the repo secret <code>ODDS_API_KEY</code> to switch on.`}</div></div>
   <div class="card"><h3>Sunday inactives check</h3><div class="small">Re-checks inactives and backups now.</div>

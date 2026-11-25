@@ -1,0 +1,59 @@
+name: watchdog
+# Review 2026-11-25: a separate check every 15 minutes (GitHub may run it late) that looks at the LIVE app.
+# It buzzes Rick's phone once if the site stops loading or the data stops updating for 45+ minutes,
+# restarts the loop when it has stopped, and buzzes again when everything is back.
+on:
+  schedule:
+    - cron: "4,19,34,49 * * * *"
+  workflow_dispatch:
+concurrency:
+  group: nfl-watchdog
+  cancel-in-progress: false
+permissions:
+  contents: read
+  actions: write
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Restore watchdog memory
+        uses: actions/cache/restore@v4
+        with:
+          path: /tmp/watchdog
+          key: watchdog-${{ github.run_id }}
+          restore-keys: watchdog-
+      - name: Check the live app
+        id: check
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          GITHUB_ACTIONS: "true"
+        run: |
+          mkdir -p /tmp/watchdog
+          set +e
+          python -m engine.watchdog /tmp/watchdog/state.json
+          echo "code=$?" >> "$GITHUB_OUTPUT"
+      - name: Restart the loop if it stopped
+        if: steps.check.outputs.code == '3'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          R=${{ github.repository }}
+          # a loop that is "running" but hasn't updated in 45+ min is stuck: stop it so a fresh one can start
+          for id in $(gh run list -R $R --workflow loop.yml --status in_progress --json databaseId -q '.[].databaseId'); do
+            echo "cancelling stuck loop $id"; gh run cancel $id -R $R || true
+          done
+          sleep 20
+          if [ -z "$(gh run list -R $R --workflow loop.yml --status queued --json databaseId -q '.[].databaseId')" ]; then
+            gh workflow run loop.yml --ref main -R $R
+          fi
+      - name: Save watchdog memory
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: /tmp/watchdog
+          key: watchdog-${{ github.run_id }}
