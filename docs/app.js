@@ -638,11 +638,128 @@ function liveCard(g) {
   const wa = g.teams.away.liveFair, wh = g.teams.home.liveFair;
   const wp = wa != null && wh != null ? `<div class="wpbar"><i style="width:${wa / (wa + wh) * 100}%;background:${esc(COLORS()[g.away] || "#556")}"></i><i style="flex:1;background:${esc(COLORS()[g.home] || "#889")}"></i></div><div class="row tiny muted" style="margin:-6px 0 8px"><span>${pct(wa)} win</span><span class="sp"></span><span>${pct(wh)} win</span></div>` : "";
   const spr = spreadTxt(g) ? `<div class="tiny muted" style="text-align:center;margin:-4px 0 8px">Pregame: ${esc(spreadTxt(g))}${expertsLine(g)}</div>` : "";
-  return `<div class="card">${tagBar(g)}${scoreBlock(g)}${spr}${wp}
+  return `<div class="card">${tagBar(g)}${scoreBlock(g)}${driveBox(g)}${spr}${wp}
     <div class="teams2">${tc(g.teams.away)}${tc(g.teams.home)}</div>
     <div class="line u" onclick="toggle('${id}')">Quarters · ${(g.quarters || []).map(q => `Q${q.q} ${q.cumAway}-${q.cumHome}`).join(" · ") || "—"}</div>
     ${S.open.has(id) ? quarterTable(g) : ""}
     ${h2hDetails(g, `${priceChart(g)}${injLine(g)}${muLine(g)}${gradesBlock(g)}${gradeLines(g)}${toLine(g)}${wxLine(g)}${h2hHist(g)}${watchLine(g)}${expertsBlock(g)}`)}</div>`;
+}
+
+// ---------- live drive tracker ----------
+// Every play straight from ESPN's free game feed (the phone reads it every 15 s while a live card is on screen).
+// Field: home end zone on the left, away on the right. x = ESPN yardLine (yards from the home goal line).
+S.drv = S.drv || {};
+function playKind(p) {
+  const t = (p.type?.text || "").toLowerCase();
+  if (/interception|fumble recovery \(opponent\)|fumble return|blocked|safety/.test(t)) return "to";
+  if (p.scoringPlay) return "score";
+  if (/penalty/.test(t)) return "pen";
+  if (/kickoff|punt|field goal|extra point|two-point/.test(t)) return "kick";
+  if (/timeout|end period|end of|two-minute|end game/.test(t)) return "skip";
+  if (/sack/.test(t)) return "sack";
+  if (/incompletion/.test(t)) return "inc";
+  if (/pass|reception/.test(t)) return "pass";
+  if (/rush/.test(t)) return "run";
+  return "other";
+}
+function parseDrives(sum) {
+  const comp = sum.header?.competitions?.[0] || {};
+  const ab = {};
+  for (const c of comp.competitors || []) ab[c.team?.id] = c.team?.abbreviation;
+  const wp = {};
+  for (const w of sum.winprobability || []) wp[w.playId] = w.homeWinPercentage;
+  const d = sum.drives || {};
+  const all = [...(d.previous || [])];
+  if (d.current && !all.some(x => x.id === d.current.id)) all.push(d.current);
+  const plays = [];
+  const drives = all.map(dr => {
+    const ps = (dr.plays || []).map(p => ({
+      id: p.id, kind: playKind(p), text: p.text || "", q: p.period?.number, clock: p.clock?.displayValue || "",
+      team: ab[p.start?.team?.id] || dr.team?.abbreviation || "", yds: p.statYardage,
+      x0: p.start?.yardLine, x1: p.end?.yardLine, dn: p.start?.down, dist: p.start?.distance,
+      dd: p.start?.shortDownDistanceText || "", spot: p.start?.possessionText || "",
+      ytez: p.start?.yardsToEndzone, wp: wp[p.id], scoring: !!p.scoringPlay,
+      away: p.awayScore, home: p.homeScore,
+    })).filter(p => p.kind !== "skip");
+    plays.push(...ps.map(p => ({ ...p, drive: dr.team?.abbreviation })));
+    return { id: dr.id, team: dr.team?.abbreviation || "", desc: dr.description || "", result: dr.displayResult || dr.result || "",
+      isScore: !!dr.isScore, start: dr.start?.text || "", plays: ps, done: dr.id !== d.current?.id };
+  });
+  for (let i = 1; i < plays.length; i++) if (plays[i].wp != null && plays[i - 1].wp != null) plays[i].dwp = plays[i].wp - plays[i - 1].wp;
+  return { drives, plays, at: Date.now() };
+}
+async function pollDrives(force) {
+  if (!S.B || (!document.querySelector(".drv") && !force) || document.visibilityState !== "visible") return;
+  const lv = S.B.games.filter(g => g.state === "in");
+  await Promise.all(lv.map(async g => {
+    try {
+      const sum = await fetch(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary?event=${g.id}&t=${Date.now()}`).then(r => r.json());
+      S.drv[g.id] = parseDrives(sum);
+      const el = document.getElementById("drv-" + g.id);
+      if (el) el.outerHTML = driveBox(g);
+    } catch (e) {}
+  }));
+}
+const KLBL = { run: "Run", pass: "Pass", inc: "Incomplete", sack: "Sack", pen: "Penalty", to: "Turnover", score: "Score", kick: "Kick", other: "Play" };
+function shortPlay(p) {
+  let t = p.text.replace(/^\([^)]*\)\s*/, "").replace(/\s*\([^)]*\)\.?$/, "").replace(/\s+/g, " ");
+  return t.length > 90 ? t.slice(0, 88) + "…" : t;
+}
+function wpTag(g, p) {
+  if (p.wp == null) return "";
+  const who = p.team && p.team === g.away ? g.away : g.home;
+  const v = who === g.home ? p.wp : 1 - p.wp, dv = p.dwp == null ? null : (who === g.home ? p.dwp : -p.dwp);
+  const big = dv != null && Math.abs(dv) >= 0.05;
+  return ` <span class="wpd ${big ? (dv > 0 ? "up" : "dn") : ""}">${esc(who)} ${Math.round(v * 100)}%${dv != null && Math.round(dv * 100) ? ` (${dv > 0 ? "+" : ""}${Math.round(dv * 100)})` : ""}</span>`;
+}
+function fieldSvg(g, dr, sit) {
+  const C = COLORS(), W = 360, EZ = 30, Y = W - 2 * EZ, sx = y => EZ + (Math.max(0, Math.min(100, y)) / 100) * Y;
+  const ps = (dr?.plays || []).filter(p => p.x0 != null && p.x1 != null && p.kind !== "kick").slice(-8);
+  const lane = 15, top = 16, H = Math.max(96, top + ps.length * lane + 14);
+  let s = `<svg class="field" viewBox="0 0 ${W} ${H}" role="img" aria-label="Field with this drive's plays">`;
+  s += `<rect x="0" y="0" width="${W}" height="${H}" rx="8" class="turf"/>`;
+  s += `<rect x="0" y="0" width="${EZ}" height="${H}" rx="8" fill="${esc(C[g.home] || "#334")}" class="ez"/><rect x="${W - EZ}" y="0" width="${EZ}" height="${H}" rx="8" fill="${esc(C[g.away] || "#556")}" class="ez"/>`;
+  s += `<text x="${EZ / 2}" y="${H / 2}" class="ezt" transform="rotate(-90 ${EZ / 2} ${H / 2})">${esc(g.home)}</text><text x="${W - EZ / 2}" y="${H / 2}" class="ezt" transform="rotate(90 ${W - EZ / 2} ${H / 2})">${esc(g.away)}</text>`;
+  for (let y = 10; y < 100; y += 10) s += `<line x1="${sx(y)}" y1="0" x2="${sx(y)}" y2="${H}" class="yl"/><text x="${sx(y)}" y="11" class="yn">${y <= 50 ? y : 100 - y}</text>`;
+  if (sit?.x != null) {
+    s += `<line x1="${sx(sit.x)}" y1="0" x2="${sx(sit.x)}" y2="${H}" class="los"/>`;
+    if (sit.fd != null && sit.fd > 0 && sit.fd < 100) s += `<line x1="${sx(sit.fd)}" y1="0" x2="${sx(sit.fd)}" y2="${H}" class="fdl"/>`;
+  }
+  ps.forEach((p, i) => {
+    const y = top + i * lane + 6, a = sx(p.x0), b = sx(p.x1), dir = b >= a ? 1 : -1;
+    s += `<line x1="${a}" y1="${y}" x2="${b}" y2="${y}" class="pl k-${p.kind}"/>`;
+    if (Math.abs(b - a) > 3) s += `<path d="M${b} ${y} l${-5 * dir} -3.5 v7 z" class="ph k-${p.kind}"/>`;
+    else s += `<circle cx="${a}" cy="${y}" r="2.6" class="ph k-${p.kind}"/>`;
+  });
+  if (sit?.x != null) s += `<ellipse cx="${sx(sit.x)}" cy="${H - 8}" rx="6" ry="3.6" class="ball"/>`;
+  return s + `</svg>`;
+}
+function driveBox(g) {
+  const D = S.drv[g.id];
+  if (!D) return `<div class="drv" id="drv-${g.id}"><div class="tiny muted">Loading plays from ESPN…</div></div>`;
+  const last = D.drives[D.drives.length - 1];
+  const dr = last && last.plays.some(p => p.kind !== "kick") ? last : D.drives[D.drives.length - 2] || last;
+  const real = D.plays.filter(p => p.kind !== "other" || p.text);
+  const lp = real[real.length - 1];
+  // where the ball is now: last play's end spot; first-down line from the scoreboard's down & distance
+  let sit = null;
+  if (lp && lp.x1 != null) {
+    const off = g.possession || lp.team, toRight = off === g.home;   // home drives toward the away end zone (right)
+    const m = /(\d+)(?:st|nd|rd|th) & (\d+|Goal)/i.exec(g.downDist || "");
+    const dist = m ? (/goal/i.test(m[2]) ? null : +m[2]) : null;
+    sit = { x: lp.x1, fd: dist != null ? lp.x1 + (toRight ? dist : -dist) : null };
+  }
+  const ytez = lp && g.possession ? (g.possession === g.home ? 100 - (lp.x1 ?? 0) : lp.x1 ?? 100) : null;
+  const rz = ytez != null && ytez <= 20 && ytez > 0;
+  const head = `<div class="row small drvh"><b>${esc(g.downDist || "Between plays")}</b>${g.possession ? `<span class="muted">· ${esc(g.possession)} ball</span>` : ""}${rz ? `<span class="tag rz">Red zone</span>` : ""}<span class="sp"></span><span class="tiny muted">${dr ? esc(`${dr.team} drive: ${dr.desc || dr.plays.length + " plays"}${dr.done && dr.result ? " · " + dr.result : ""}`) : ""}</span></div>`;
+  const recent = real.filter(p => p.kind !== "other").slice(-6).reverse();
+  const tick = recent.map(p => `<span class="tk k-${p.kind}"><i></i><b>${esc(p.team)}</b> ${esc(KLBL[p.kind])}${p.yds != null && /run|pass|sack|pen/.test(p.kind) ? ` ${p.yds > 0 ? "+" : ""}${p.yds}` : ""}: ${esc(shortPlay(p))}${wpTag(g, p)}</span>`).join("");
+  const id = "dl:" + g.id;
+  const list = S.open.has(id) ? `<div class="drvl">${(dr?.plays || []).slice().reverse().map(p => `<div class="pp"><span class="dotk k-${p.kind}"></span><span class="tiny muted">Q${p.q} ${esc(p.clock)} · ${esc(p.dd || "")}${p.spot ? " at " + esc(p.spot) : ""}</span><br><span class="small">${esc(shortPlay(p))}</span>${wpTag(g, p)}</div>`).join("")}</div>` : "";
+  return `<div class="drv" id="drv-${g.id}">${head}${fieldSvg(g, dr, sit)}
+    <div class="legend tiny muted">${[["k-run", "Run"], ["k-pass", "Pass"], ["k-inc", "Incomplete"], ["k-pen", "Penalty"], ["k-to", "Turnover"], ["fd", "1st down line"]].map(([k, t]) => `<span><i class="lg ${k}"></i>${t}</span>`).join("")}</div>
+    ${recent.length ? `<div class="ticker" onclick="toggle('${id}')"><div class="tkin">${tick}${tick}</div></div>` : ""}
+    <div class="line u tiny" onclick="toggle('${id}')">${S.open.has(id) ? "Hide" : "Show"} every play this drive · win % from ESPN</div>${list}</div>`;
 }
 
 // ---------- tabs ----------
@@ -1581,17 +1698,19 @@ async function load() {
     S.B = b; S.L = l;
     if (b.games.some(g => g.state === "in")) await liveScores();
     render();
+    if (b.games.some(g => g.state === "in") && (!S.drvAt || Date.now() - S.drvAt > 10000)) { S.drvAt = Date.now(); pollDrives(); }
   } catch (e) {
     if (!S.B) $("#view").innerHTML = `<div class="empty">Couldn't load data. Pull to refresh.</div>`;
   }
 }
-document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => { S.tab = b.dataset.tab; localSet("tab", S.tab); window.scrollTo(0, 0); render(); });
+document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => { S.tab = b.dataset.tab; localSet("tab", S.tab); window.scrollTo(0, 0); render(); pollDrives(); });
 $("#gear").onclick = () => { S.tab = "setup"; document.querySelectorAll("#tabs button").forEach(b => b.classList.remove("on")); window.scrollTo(0, 0); render(); };
 $("#modalClose").onclick = closeModal;
 $("#modal").onclick = e => { if (e.target.id === "modal") closeModal(); };
 const th = localGet("theme"); if (th) document.documentElement.dataset.theme = th;   // default: dark
 load();
 setInterval(() => { if (document.visibilityState === "visible") load(); }, 60000);
+setInterval(() => pollDrives(), 15000);
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") load(); });
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then(r => r.update()).catch(() => {});
