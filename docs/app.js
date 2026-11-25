@@ -798,13 +798,15 @@ function fieldSvg(g, D, dr, sit) {
   return s + `</g></svg>`;
 }
 function winChart(g, D) {
-  // x = play number (every play gets the same room, so a busy final 2 minutes isn't squeezed)
+  // x = play number, with older plays squeezed so the latest 30 plays get half the width
   let pts = D.plays.filter(p => p.wp != null);
   if (pts.length < 4) return "";
   const zoom = S.wz?.[g.id], qNow = pts[pts.length - 1].q;
   if (zoom) { const z = pts.filter(p => p.q === qNow); if (z.length >= 4) pts = z; }
   const n = pts.length, W = 340, H = 104, P = 24, R = 46;
-  const x = i => P + i / Math.max(1, n - 1) * (W - P - R), y = v => 8 + (100 - v) / 100 * (H - 20);
+  const k = n > 45 ? n - 30 : 0;   // Rick's idea: squeeze older plays, the last 30 get half the width
+  const fx = i => !k ? i / Math.max(1, n - 1) : i <= k ? 0.5 * i / k : 0.5 + 0.5 * (i - k) / Math.max(1, n - 1 - k);
+  const x = i => P + fx(i) * (W - P - R), y = v => 8 + (100 - v) / 100 * (H - 20);
   const line = pts.map((p, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(p.wp * 100).toFixed(1)}`).join("");
   // Kalshi price from our own checks, placed at the play nearest in time
   const ts = pts.map(p => p.t);
