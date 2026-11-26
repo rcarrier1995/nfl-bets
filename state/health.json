@@ -1,7 +1,7 @@
 {
  "espn": {
   "ok": true,
-  "lastOk": "2026-11-26T21:51:05Z",
+  "lastOk": "2026-11-26T21:47:42Z",
   "note": "",
   "fails": 0
  },
@@ -40,22 +40,20 @@
   "fails": 0
  },
  "polymarket": {
-  "ok": false,
+  "ok": true,
   "lastOk": "2026-11-26T21:47:37Z",
   "note": "",
-  "fails": 2,
-  "lastFail": "2026-11-26T21:50:48Z",
-  "error": "<urlopen error Tunnel connection failed: 403 Forbidden (agent proxy: no rule or network setting allows this host)>"
+  "fails": 0
  },
  "espn-news": {
   "ok": true,
-  "lastOk": "2026-11-26T21:50:48Z",
+  "lastOk": "2026-11-26T21:47:37Z",
   "note": "",
   "fails": 0
  },
  "practice": {
   "ok": true,
-  "lastOk": "2026-11-26T21:50:12Z",
+  "lastOk": "2026-11-26T19:50:47Z",
   "note": "",
   "fails": 0
  },
