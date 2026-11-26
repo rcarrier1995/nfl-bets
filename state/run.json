@@ -4,7 +4,7 @@
  "pregameAt": "2026-11-25T01:48:24Z",
  "window-early": "2026-11-22",
  "alertsSent": [],
- "light": "2026-11-26T00:01:55Z",
+ "light": "2026-11-26T00:12:14Z",
  "window-late": "2026-11-22",
  "inactives": "2026-11-25",
  "valueSent": {},
@@ -26,7 +26,8 @@
   "401873079|LAR|Steve Avila|Out": "2026-11-25T21:15:38Z",
   "401873091|SEA|Abraham Lucas|Out": "2026-11-25T21:25:53Z",
   "401873091|SEA|Quenton Nelson|Out": "2026-11-25T21:25:53Z",
-  "401873079|GB|Josh Jacobs|Out": "2026-11-26T00:01:55Z"
+  "401873079|GB|Josh Jacobs|Out": "2026-11-26T00:01:55Z",
+  "401873079|GB|Zaire Franklin|Out": "2026-11-26T00:12:14Z"
  },
  "newsSeeded": true,
  "window-snf": "2026-11-22",
