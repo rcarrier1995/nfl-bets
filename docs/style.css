@@ -447,7 +447,7 @@ details.research{margin-top:18px}
 .legend .lg.k-run{background:var(--ink)} .legend .lg.fd{background:#f5d142} .legend .lg.los{background:#59a8ff}
 .ticker{overflow:hidden;white-space:nowrap;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:6px 0;margin-top:4px;cursor:pointer;mask-image:linear-gradient(90deg,transparent,#000 4%,#000 96%,transparent)}
 .tkin{display:inline-block;animation:tick 45s linear infinite}
-.ticker:hover .tkin{animation-play-state:paused}
+.ticker:hover .tkin,.ticker:active .tkin{animation-play-state:paused}
 .tk{display:inline-flex;align-items:center;gap:4px;font-size:12.5px;margin-right:24px}
 .tk i,.dotk{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--k)}
 .tk.k-run i,.dotk.k-run{background:var(--ink)}
