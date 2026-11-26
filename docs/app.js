@@ -429,8 +429,8 @@ function winLose(c) {
     const me = g.home === t ? g.score.home : g.score.away, them = g.home === t ? g.score.away : g.score.home;
     if (me > them) W.push([99, `Leading ${me}–${them}`]); else if (me < them) L.push([99, `Trailing ${me}–${them}`]);
   } else if (g.spreadHome != null && g.spreadHome !== 0) {
-    const sp = g.home === t ? g.spreadHome : -g.spreadHome;   // negative = favoured
-    if (sp < 0) W.push([99, `Favoured by ${Math.abs(sp)} pts`]); else L.push([99, `Underdog by ${sp} pts`]);
+    const sp = g.home === t ? g.spreadHome : -g.spreadHome;   // negative = favored
+    if (sp < 0) W.push([99, `Favored by ${Math.abs(sp)} pts`]); else L.push([99, `Underdog by ${sp} pts`]);
   }
   const outs = (g.injuries || []).filter(i => i.starter && ["Out", "Doubtful"].includes(i.status));
   const mine = outs.filter(i => i.team === t), theirs = outs.filter(i => i.team === o);
@@ -1414,14 +1414,20 @@ function combosView() {
   const found = sizes.filter(x => r[x].combo).length;
   let h = `<div class="ptitle">Combos</div><div class="psub">${found ? `${found} size${found > 1 ? "s" : ""} clear the bar` : "Nothing clears the bar right now"} · live + upcoming games</div>
     ${comboTabs(cat)}`;
-  h += `<h2>${cat === "standard" ? "Weekly combos — live + upcoming" : "Big favorites + price drops — sure things plus teams whose price fell"}</h2>`;
+  h += `<h2>${cat === "standard" ? "Weekly combos — live + upcoming" : "Big favorites + price drops: teams 70%+ to win, plus teams whose price just dropped"}</h2>`;
   if (!sizes.length) return h + NOREC(`${S.B.combos.poolGames || 0} games with prices — need 2`) + (cat === "standard" ? watchCombo() : "");
   h += `<div class="sizes">${sizes.map(x => `<button class="${x === k ? "on" : ""} ${r[x].combo ? "has" : ""}" onclick="setCombo('${cat}',${x})"><b>${x}</b><span>${r[x].combo ? "+" + ct1(r[x].combo.edge) : "teams"}</span></button>`).join("")}</div>`;
   h += comboCard(cat, String(k), r[k]);
+  // Rick 2026-11-26: the 4- and 5-team "favorites + best mid-tier" combo shows on these size views too
+  if (k === 4 || k === 5) {
+    const mt = (S.B.topCombos?.thisWeek?.midTier || []).find(c => c.size === k);
+    h += `<h2>${k} teams: favorites + best mid-tier</h2><div class="small muted" style="margin:-4px 0 8px">The ${k - 1} most likely winners plus the strongest 50–70% team. Upcoming games this week.</div>`;
+    h += mt ? topCard(mt, 0, "thisWeekm" + k) : NOREC(`Not enough upcoming teams for ${k} legs with one 50–70% team`);
+  }
   if (cat === "standard") {
     const sr = (S.B.combos.safer || {})[String(k)];
     const mf = sr?.minFair || 60;
-    h += `<h2>Safer ${k}-leg combo — every leg ${mf}%+ to win</h2><div class="small muted" style="margin:-4px 0 8px">Most likely to hit while still costing no more than max pay. One loss loses the combo, so this favours winners over value.</div>`;
+    h += `<h2>Safer ${k}-leg combo — every leg ${mf}%+ to win</h2><div class="small muted" style="margin:-4px 0 8px">Most likely to hit while still costing no more than max pay. One loss loses the combo, so this favors winners over value.</div>`;
     h += sr ? comboCard("safer", String(k), sr, true) : NOREC(`Not enough teams at ${mf}%+ for ${k} legs`);
     h += watchCombo(k);
   }
@@ -1914,7 +1920,7 @@ window.systemModal = systemModal;
 
 // ---------- modal / render ----------
 // Rick 2026-11-26: US spelling. Saved data can still hold older UK words, so convert on the way to the screen.
-const US = h => String(h).replace(/avourite/g, "avorite").replace(/([Dd])efence/g, "$1efense").replace(/([Cc])olour/g, "$1olor");
+const US = h => String(h).replace(/avourite/g, "avorite").replace(/([Dd])efence/g, "$1efense").replace(/([Cc])olour/g, "$1olor").replace(/([Ff])avour/g, "$1avor");
 function openModal(html) { $("#modalBody").innerHTML = US(html); foldify($("#modalBody"), "m"); $("#modal").hidden = false; }
 function closeModal() { $("#modal").hidden = true; }
 window.closeModal = closeModal;

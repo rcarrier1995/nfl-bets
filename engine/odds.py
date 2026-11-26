@@ -79,7 +79,7 @@ def consensus_from(events):
 
 
 def spread_from_p(p_home):
-    """Win chance -> equivalent home spread in the model's own scale (negative = home favoured)."""
+    """Win chance -> equivalent home spread in the model's own scale (negative = home favored)."""
     p = min(max(p_home, 0.005), 0.995)
     # inverse normal CDF (Acklam-style via erfinv approximation)
     z = math.sqrt(2) * _erfinv(2 * p - 1)
