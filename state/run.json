@@ -4,7 +4,7 @@
  "pregameAt": "2026-11-25T01:48:24Z",
  "window-early": "2026-11-22",
  "alertsSent": [],
- "light": "2026-11-26T19:44:08Z",
+ "light": "2026-11-26T19:50:41Z",
  "window-late": "2026-11-22",
  "inactives": "2026-11-26",
  "valueSent": {},
@@ -31,7 +31,8 @@
   "401873079|GB|OL K.Zeitler out \u2014 impact +0.0 pt": "2026-11-26T03:40:53Z",
   "401873079|GB|WR C.Watson out \u2014 impact -1.3 pt": "2026-11-26T03:40:53Z",
   "401873081|DET|DJ Wonnum|Out": "2026-11-26T16:47:57Z",
-  "401873081|DET|Chuck Clark|Out": "2026-11-26T16:47:57Z"
+  "401873081|DET|Chuck Clark|Out": "2026-11-26T16:47:57Z",
+  "401873083|PIT|Alex Highsmith|Out": "2026-11-26T19:50:41Z"
  },
  "newsSeeded": true,
  "window-snf": "2026-11-22",
@@ -49,7 +50,9 @@
   "news|50589984|PIT": "2026-11-25T16:07:20Z",
   "news|50595660|PIT": "2026-11-25T19:01:46Z",
   "news|50596930|SF": "2026-11-26T00:22:32Z",
-  "prac|401873092|Carson Beck|DNP Thu": "2026-11-26T07:26:05Z"
+  "prac|401873092|Carson Beck|DNP Thu": "2026-11-26T07:26:05Z",
+  "prac|401873093|Justin Herbert|DNP Thu": "2026-11-26T19:50:41Z",
+  "prac|401873091|Brock Purdy|DNP Thu": "2026-11-26T19:50:41Z"
  },
  "feedSeeded": true,
  "buySeen": {},
