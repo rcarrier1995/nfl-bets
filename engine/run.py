@@ -638,7 +638,9 @@ def tick(force=()):
 if __name__ == "__main__":
     args = sys.argv[1:] or ["tick"]
     cmd = args[0]
+    if cmd == "odds":            # Refresh button: pull the odds feeds now (quota.py keeps taps 30 min apart)
+        os.environ["NFL_FORCE_ODDS"] = "1"
     force = {"tick": (), "pregame": ("pregame",), "inactives": ("inactives",), "top3": ("top3",),
              "window": tuple(f"window-{w}" for w in (args[1:] or ["early", "late", "snf"])),
-             "weekly": ("weekly-check",), "board": ("board",), "backfill": ("backfill",)}.get(cmd, ())
+             "weekly": ("weekly-check",), "board": ("board",), "backfill": ("backfill",), "odds": ("board",)}.get(cmd, ())
     tick(force=set(force) | ({"board"} if cmd != "tick" else set()))

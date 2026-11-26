@@ -333,7 +333,7 @@ function betCard(c, opts = {}) {
     ${priceBar(c.price, fair, c.dayLo, c.dayHi)}
     ${fair != null ? `<div class="small muted" style="margin-top:6px">Win chance ${Math.round(fair)}% · grade ${gradeOf(fair)} picks won ${GRADE_TESTED[gradeOf(fair)]}% in testing</div>` : ""}
     ${tags.join("")}
-    ${gapLine(c)}${thinLine(c)}${feedLines(c)}
+    ${wherePlace(c)}${gapLine(c)}${thinLine(c)}${feedLines(c)}
     ${closeTag(c)}
     ${call !== "Pass" && call !== "Sell" ? bestLine(c) : ""}
     ${c.state !== "post" ? boughtBox({ kind: "single", team: c.team, game: `${c.team} vs ${c.opp}`, gameId: c.gameId, grade: gradeOf(fair), call: LBL(call), price: c.price }) : ""}
@@ -353,9 +353,20 @@ const thinLine = c => c.thin ? `<div class="info warn">${esc(c.thin)}</div>` : "
 function practiceKey(c) {   // a QB on the report, or a starter who missed the last practice
   return (c.practice || []).filter(p => p.qb || p.dnp).slice(0, 2);
 }
+// Refresh button for the limited odds feeds: opens GitHub's Run page (keys never reach this site);
+// the server skips the pull if one ran in the last 30 min, so taps can't burn the monthly quota.
+const ODDS_RUN = `https://github.com/${REPO}/actions/workflows/refresh-odds.yml`;
+function oddsBtn() { return `<a class="btn" href="${ODDS_RUN}" target="_blank" rel="noopener">↻ Update sportsbook odds</a>`; }
+function oddsNote() {
+  const o = S.B.odds;
+  if (!o?.enabled || !o.fetchedAt || (Date.now() - Date.parse(o.fetchedAt)) < 3 * 3600e3) return "";
+  return `<div class="tiny muted" style="margin:-4px 0 8px">Sportsbook odds checked ${esc(ago(o.fetchedAt))} · <a href="${ODDS_RUN}" target="_blank" rel="noopener">Update now</a> (opens GitHub → Run workflow → Run)</div>`;
+}
 function feedLines(c) {
   if (c.state === "post") return "";
   let h = "";
+  if (c.sharpLine) h += `<div class="info">${esc(c.sharpLine)}</div>`;
+  if (c.liveBookLine && c.state === "in") h += `<div class="info">${esc(c.liveBookLine)}</div>`;
   if (c.polyLine) h += `<div class="info">${esc(c.polyLine)}</div>`;
   if (c.moneyLine) h += `<div class="info">${esc(c.moneyLine)}</div>`;
   const n = (c.news || [])[0];
@@ -368,7 +379,8 @@ function feedLines(c) {
 function feedInfo(c) {
   const fpi = c.fpi != null ? `ESPN FPI ${Math.round(c.fpi)}%${c.fpiNote ? ` <span class="muted">(${esc(c.fpiNote)})</span>` : ""}` : `ESPN FPI <span class="muted">unavailable</span>`;
   const poly = c.poly ? `Polymarket ${ct(c.poly.ask)}` : `Polymarket <span class="muted">unavailable</span>`;
-  let h = `<div class="small" style="margin:4px 0"><b>Second opinions:</b> ${fpi} · ${poly} <span class="muted">· info only</span></div>`;
+  const bk = Object.entries(c.books || {}).map(([b, v]) => `${esc(b)} ${Math.round(v)}%`).join(" · ");
+  let h = `<div class="small" style="margin:4px 0"><b>Second opinions:</b> ${fpi} · ${poly}${bk ? ` · ${bk}` : ""} <span class="muted">· info only</span></div>`;
   if (c.practice == null) h += `<div class="small muted" style="margin:4px 0">Practice report unavailable</div>`;
   else if (c.practice.length) h += `<div class="small" style="margin:4px 0"><b>Practice (starters):</b><br>${c.practice.map(p => `${esc(p.pos)} ${esc(p.player)} — ${esc(p.line)}${p.injury ? ` <span class="muted">(${esc(p.injury)})</span>` : ""}`).join("<br>")}</div>`;
   if ((c.news || []).length) h += `<div class="small" style="margin:4px 0"><b>News:</b><br>${c.news.map(n => `${esc(ago(n.at))}: ${esc(n.headline)}`).join("<br>")}</div>`;
@@ -1023,7 +1035,7 @@ function pregame() {
   const pre = S.B.calls.filter(c => c.state === "pre");
   const nV = pre.filter(c => c.call === "Value").length, nW = pre.filter(c => c.call === "Wait").length;
   const nG = S.B.games.filter(g => g.state !== "post").length;
-  let h = `<div class="ptitle">Pregame</div><div class="stats"><div class="stat"><b class="c-Value">${nV}</b><span>Buy now</span></div><div class="stat"><b class="c-Wait">${nW}</b><span>Wait for a dip</span></div><div class="stat"><b>${nG}</b><span>Games left</span></div></div>
+  let h = `<div class="ptitle">Pregame</div><div class="stats"><div class="stat"><b class="c-Value">${nV}</b><span>Buy now</span></div><div class="stat"><b class="c-Wait">${nW}</b><span>Wait for a dip</span></div><div class="stat"><b>${nG}</b><span>Games left</span></div></div>${oddsNote()}
     <div class="searchw">${ic("search")}<input class="search" id="q" placeholder="Search team" value="${esc(S.q)}"></div>
     <div class="chips">${["All", "Value", "Wait"].map(x => `<button class="chip ${S.chip === x ? "on" : ""}" data-chip="${x}">${LBL(x)}</button>`).join("")}</div>`;
   const top = (S.B.top3 || []).map(k => by[k]).filter(Boolean).filter(filt);
@@ -1830,7 +1842,7 @@ function setup() {
    <ol class="small"><li>Install the free <b>ntfy</b> app (App Store / Google Play).</li><li>Tap <b>+</b>, type the topic above, Subscribe.</li><li>Tap <b>Test</b> here — your phone should buzz.</li></ol>
    <div class="small"><a href="https://github.com/${REPO}/settings/secrets/actions" target="_blank" rel="noopener">Change the server topic</a> (it's the private <code>NTFY_TOPIC</code> secret: tap it, paste the new name, Update secret).</div>
   </div>
-  <div class="card"><h3>Sharper line (many sportsbooks)</h3><div class="small">${S.B.odds?.enabled ? `<span class="ok">On</span> · last check ${ago(S.B.odds.fetchedAt)}${S.B.odds.left != null ? ` · ${S.B.odds.left} free lookups left this month` : ""}${S.B.odds.error ? `<br><span class="bad">${esc(S.B.odds.error)}</span>` : ""}` : `Off — using ESPN's single sportsbook. Add a free key from the-odds-api.com as the repo secret <code>ODDS_API_KEY</code> to switch on.`}</div></div>
+  <div class="card"><h3>Sharper line (many sportsbooks)</h3><div class="small">${S.B.odds?.enabled ? `<span class="ok">On</span> · last check ${ago(S.B.odds.fetchedAt)}${S.B.odds.left != null ? ` · ${S.B.odds.left} free lookups left this month` : ""}${S.B.odds.error ? `<br><span class="bad">${esc(S.B.odds.error)}</span>` : ""}` : `Off — using ESPN's single sportsbook. Add a free key from the-odds-api.com as the repo secret <code>ODDS_API_KEY</code> to switch on.`}</div>${S.B.odds?.enabled ? `<div style="margin-top:8px">${oddsBtn()}</div><div class="tiny muted" style="margin-top:4px">Opens GitHub → tap “Run workflow” → Run. Checks run by themselves every 20 min during games, every 30 min in the 2 h before kickoff and at 9 AM + 6 PM otherwise. A tap within 30 min of the last check is skipped to save the monthly limit.</div>` : ""}</div>
   <div class="card"><h3>Sunday inactives check</h3><div class="small">Re-checks inactives and backups now.</div>
    <a class="btn" href="https://github.com/${REPO}/actions/workflows/manual.yml" target="_blank" rel="noopener">Run inactives check</a>
    <div class="tiny muted" style="margin-top:4px">Opens GitHub → tap “Run workflow”, pick <code>inactives</code>.</div></div>
@@ -1918,6 +1930,16 @@ function sbBar(imp, fair) {
   if (fair != null) h += `<div class="mk f" style="left:calc(${fair}% - 1px)" title="Our chance"></div>`;
   return h + `</div><div class="pkey">${imp != null ? `<span><i></i>odds say ${Math.round(imp)}%</span>` : ""}${fair != null ? `<span><i class="f"></i>our chance ${Math.round(fair)}%</span>` : ""}</div>`;
 }
+// Sportsbook edge vs Prediction edge (Rick 2026-11-25): same win chance against both prices, after costs
+// (Robinhood: price + fee; sportsbook: the odds' implied %, vig included). Info only: Buy/Wait/Pass per mode unchanged.
+function wherePlace(c) {
+  if (c.state !== "pre" || c.edge == null || c.sb?.edge == null || c.price == null || c.sbOdds == null) return "";
+  const rhE = c.edge, sbE = c.sb.edge, d = sbE - rhE, fee = c.fee ?? 2;
+  const rhOdds = decAm(100 / Math.min(99.5, c.price + fee));
+  const head = Math.abs(d) < 1 ? "About the same at both" : d > 0 ? "Better at the sportsbook" : "Better on Robinhood";
+  const n = x => (x >= 0 ? "+" : "−") + Math.abs(x).toFixed(1);
+  return `<div class="info where"><b>${head}</b> · ${am(c.sbOdds)}${c.sbBook ? ` (${esc(c.sbBook)})` : ""} vs ${ct(c.price)} ≈ ${am(rhOdds)} after fees<br><span class="muted">Edge: sportsbook ${n(sbE)} · Robinhood ${n(rhE)} points</span></div>`;
+}
 function sbCard(c, opts = {}) {
   const call = sbCall(c), f = c.fair, id = "c:" + c.key, g = gameBy()[c.gameId], target = f != null ? pAm(f - 15) : null;
   return `<div class="card bg-${call}" data-card="${esc(c.key)}">
@@ -1926,6 +1948,7 @@ function sbCard(c, opts = {}) {
     <div class="row" style="margin-top:12px"><span class="hero">${am(c.sbOdds)}</span><span class="sp"></span><span class="small muted">${esc(c.sbBook || "")}</span></div>
     <div class="sub">${c.sbOdds != null ? `<b>$10 wins ${usd(10 * (amDec(c.sbOdds) - 1))}</b>` : "No odds"}${f != null ? ` · fair odds ${am(pAm(f))}` : ""}</div>
     ${sbBar(sbImp(c), f)}
+    ${wherePlace(c)}
     ${f != null ? `<div class="small muted" style="margin-top:6px">Win chance ${Math.round(f)}% · grade ${gradeOf(f)} picks won ${GRADE_TESTED[gradeOf(f)]}% in testing${call === "Pass" && target != null && target > 0 && c.sbOdds != null && target > c.sbOdds ? ` · a Buy at ${am(target)} or longer` : ""}</div>` : ""}
     ${feedLines(c)}
     <div class="why u" onclick="toggle('${esc(id)}')">Details</div>

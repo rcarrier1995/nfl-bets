@@ -4,9 +4,9 @@
  "pregameAt": "2026-11-25T01:48:24Z",
  "window-early": "2026-11-22",
  "alertsSent": [],
- "light": "2026-11-25T20:24:01Z",
+ "light": "2026-11-26T00:01:55Z",
  "window-late": "2026-11-22",
- "inactives": "2026-11-22",
+ "inactives": "2026-11-25",
  "valueSent": {},
  "newsSent": {
   "401873078|CIN|Dalton Risner|Out": "2026-11-23T02:15:04Z",
@@ -19,13 +19,20 @@
   "401873082|KC|Kenneth Walker III|Out": "2026-11-25T16:58:27Z",
   "401873082|KC|Jaylon Moore|Out": "2026-11-25T17:08:40Z",
   "401873080|PHI|Jonathan Jones|Out": "2026-11-25T18:00:22Z",
-  "401873080|DAL|Jake Ferguson|Out": "2026-11-25T19:32:44Z"
+  "401873080|DAL|Jake Ferguson|Out": "2026-11-25T19:32:44Z",
+  "401873081|CHI|Kyler Gordon|Out": "2026-11-25T20:44:52Z",
+  "401873080|DAL|P.J. Locke|Out": "2026-11-25T20:44:52Z",
+  "401873093|NE|A.J. Brown|Doubtful": "2026-11-25T21:05:23Z",
+  "401873079|LAR|Steve Avila|Out": "2026-11-25T21:15:38Z",
+  "401873091|SEA|Abraham Lucas|Out": "2026-11-25T21:25:53Z",
+  "401873091|SEA|Quenton Nelson|Out": "2026-11-25T21:25:53Z",
+  "401873079|GB|Josh Jacobs|Out": "2026-11-26T00:01:55Z"
  },
  "newsSeeded": true,
  "window-snf": "2026-11-22",
  "expertsAt": {
   "2026-w11": 1795565234.710964,
-  "2026-w12": 1795637615.543643
+  "2026-w12": 1795648804.523843
  },
  "weekly": "2026-w11",
  "gapSent": {},

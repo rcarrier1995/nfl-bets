@@ -590,3 +590,90 @@ def test_sync_newest_wins_and_quotes_checked():
     assert len(quotes) == 1 and quotes[0]["quote"] == 11.0 and len(st["quotes"]) == 1
     assert S.apply([msg({"op": "put", "bet": {"id": "b3", "upd": "2026-11-25T10:30Z", "price": 80}})], sf, quotes) == set()
     assert "b3" not in st["bets"]                                       # deleted later than this edit
+
+
+def test_extra_books_parse_and_sharp_line():
+    """PinnWire / OddsPapi / TheRundown replies (documented shapes) -> de-vigged win % per team, Pinnacle line on card."""
+    from unittest import mock
+    from datetime import datetime, timezone
+    from engine import books as BK
+    T = BK.Teams({"GB": "Packers", "LAR": "Rams"})
+    pw = {"events": [{"league_name": "NFL", "away": "Green Bay Packers", "home": "Los Angeles Rams",
+                      "periods": {"num_0": {"money_line": {"away": 2.35, "home": 1.65}}}}]}
+    with mock.patch.object(BK, "_get", lambda *a, **k: pw):
+        p = BK.pinnwire("k", T)[frozenset(("GB", "LAR"))]["Pinnacle"]
+    assert 41 < p["GB"] < 42 and abs(p["GB"] + p["LAR"] - 100) < 0.2
+    rd = {"events": [{"teams": [{"team_id": 1, "mascot": "Packers", "is_away": True}, {"team_id": 2, "mascot": "Rams", "is_home": True}],
+                      "markets": [{"market_id": 1, "participants": [
+                          {"id": 1, "lines": [{"prices": {"19": {"price": 140}}}]},
+                          {"id": 2, "lines": [{"prices": {"19": {"price": -160}}}]}]}]}]}
+    with mock.patch.object(BK, "_get", lambda *a, **k: rd):
+        r = BK.rundown("k", T, ["2026-11-25"])[frozenset(("GB", "LAR"))]["DraftKings"]
+    assert r["LAR"] > r["GB"]
+    g = {"away": "GB", "home": "LAR", "state": "pre",
+         "teams": {"away": {"team": "GB", "price": 46.0}, "home": {"team": "LAR", "price": 58.0}}}
+    BK.attach(g, {frozenset(("GB", "LAR")): {"Pinnacle": p}})
+    assert "Robinhood 5¢ dearer" in g["teams"]["away"]["sharpLine"]
+    assert g["teams"]["home"]["sharpLine"] is None
+
+
+def test_extra_books_off_without_keys(monkeypatch, tmp_path):
+    from datetime import datetime, timezone
+    from engine import books as BK
+    for k in BK.KEYS.values():
+        monkeypatch.delenv(k, raising=False)
+    monkeypatch.setattr(BK, "STATE_FILE", str(tmp_path / "b.json"))
+    called = []
+    monkeypatch.setattr(BK, "_get", lambda *a, **k: called.append(a) or {})
+    now = datetime(2026, 11, 25, tzinfo=timezone.utc)
+    assert BK.refresh({"GB": "Packers"}, [datetime(2026, 11, 27, tzinfo=timezone.utc)], now) == {}
+    assert not called
+
+
+def test_quota_schedule(monkeypatch):
+    """Rick 2026-11-25: 20 min live, 30 min in the 2 h before kickoff, 9 AM + 6 PM CT otherwise, taps 30 min apart."""
+    from datetime import datetime, timedelta, timezone
+    from engine import quota as Q
+    monkeypatch.delenv("NFL_FORCE_ODDS", raising=False)
+    U = timezone.utc
+    sun = datetime(2026, 11, 29, 18, 0, tzinfo=U)            # Sunday noon CT kickoff
+    games = [(sun, "pre"), (sun + timedelta(hours=7, minutes=20), "pre")]
+    # quiet Wednesday: 9 AM CT slot (15:00Z), not again until 6 PM CT
+    wed9 = datetime(2026, 11, 25, 15, 5, tzinfo=U)
+    assert Q.due(datetime(2026, 11, 25, 1, 0, tzinfo=U), wed9, games, 20, 30)
+    assert not Q.due(wed9, wed9 + timedelta(hours=3), games, 20, 30)
+    assert Q.due(wed9, datetime(2026, 11, 26, 0, 1, tzinfo=U), games, 20, 30)
+    # 8:00 AM CT before any slot: nothing
+    assert not Q.due(datetime(2026, 11, 25, 0, 30, tzinfo=U), datetime(2026, 11, 25, 14, 0, tzinfo=U), games, 20, 30)
+    # pregame window: 30 min
+    t = sun - timedelta(minutes=90)
+    assert Q.window(games, t) == "pre"
+    assert not Q.due(t - timedelta(minutes=20), t, games, 20, 30)
+    assert Q.due(t - timedelta(minutes=31), t, games, 20, 30)
+    # live: 20 min
+    live = [(sun, "in"), (sun + timedelta(hours=7), "pre")]
+    assert Q.due(sun, sun + timedelta(minutes=21), live, 20, 30)
+    assert not Q.due(sun, sun + timedelta(minutes=15), live, 20, 30)
+    # all games over this week: nothing, even at a slot
+    done = [(sun, "post")]
+    assert not Q.due(None, datetime(2026, 11, 30, 15, 5, tzinfo=U), done, 20, 30)
+    # Refresh tap: allowed after 30 min, skipped inside 30 min
+    monkeypatch.setenv("NFL_FORCE_ODDS", "1")
+    assert Q.due(wed9, wed9 + timedelta(minutes=31), done, 20, 30)
+    assert not Q.due(wed9, wed9 + timedelta(minutes=10), done, 20, 30)
+
+
+def test_live_book_line():
+    from datetime import datetime, timedelta, timezone
+    from engine.odds import live_attach
+    k = datetime(2026, 11, 29, 18, 0, tzinfo=timezone.utc)
+    now = k + timedelta(hours=1)
+    g = {"state": "in", "away": "GB", "home": "DET",
+         "teams": {"away": {"team": "GB", "price": 40}, "home": {"team": "DET", "price": 61}}}
+    cons = {"GB@DET": {"pHome": 0.65, "books": 8, "at": (now - timedelta(minutes=5)).strftime("%Y-%m-%dT%H:%M:%SZ")}}
+    live_attach(g, cons, k, now)
+    assert g["teams"]["away"]["liveBookLine"] == "Sportsbooks now (8): GB 35% · Robinhood 5¢ dearer"
+    assert g["teams"]["home"]["liveBookLine"] == "Sportsbooks now (8): DET 65% · Robinhood 4¢ cheaper"
+    cons["GB@DET"]["at"] = (k - timedelta(minutes=5)).strftime("%Y-%m-%dT%H:%M:%SZ")   # pregame pull: not live
+    live_attach(g, cons, k, now)
+    assert g["teams"]["away"]["liveBookLine"] is None
