@@ -4,7 +4,7 @@
  "pregameAt": "2026-11-25T01:48:24Z",
  "window-early": "2026-11-22",
  "alertsSent": [],
- "light": "2026-11-26T16:58:43Z",
+ "light": "2026-11-26T17:09:02Z",
  "window-late": "2026-11-22",
  "inactives": "2026-11-26",
  "valueSent": {},
@@ -51,5 +51,6 @@
  },
  "feedSeeded": true,
  "buySeen": {},
- "lastCall": {}
+ "lastCall": {},
+ "top3": "2026-11-26"
 }
