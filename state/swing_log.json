@@ -70,5 +70,17 @@
   "to": 46,
   "kalshi": 65.0,
   "won": null
+ },
+ {
+  "t": "2026-11-26T21:30:43Z",
+  "gameId": "401873081",
+  "game": "CHI @ DET",
+  "q": 4,
+  "clock": "0:03",
+  "team": "CHI",
+  "from": 46,
+  "to": 100,
+  "kalshi": 100.0,
+  "won": null
  }
 ]
