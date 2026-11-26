@@ -1,21 +1,21 @@
 {
  "espn": {
   "ok": true,
-  "lastOk": "2026-11-26T08:11:44Z",
+  "lastOk": "2026-11-26T08:22:36Z",
   "note": "",
   "fails": 0
  },
  "kalshi": {
-  "ok": true,
+  "ok": false,
   "lastOk": "2026-11-26T08:11:37Z",
   "note": "",
-  "fails": 0,
-  "lastFail": "2026-11-23T02:19:30Z",
-  "error": "HTTP Error 429: Too Many Requests"
+  "fails": 1,
+  "lastFail": "2026-11-26T08:21:58Z",
+  "error": "HTTP Error 500: Internal Server Error"
  },
  "weather": {
   "ok": true,
-  "lastOk": "2026-11-26T08:11:37Z",
+  "lastOk": "2026-11-26T08:21:58Z",
   "note": "",
   "fails": 0,
   "lastFail": "2026-11-26T08:01:25Z",
@@ -41,13 +41,13 @@
  },
  "polymarket": {
   "ok": true,
-  "lastOk": "2026-11-26T08:11:38Z",
+  "lastOk": "2026-11-26T08:21:59Z",
   "note": "",
   "fails": 0
  },
  "espn-news": {
   "ok": true,
-  "lastOk": "2026-11-26T08:11:38Z",
+  "lastOk": "2026-11-26T08:21:59Z",
   "note": "",
   "fails": 0
  },
