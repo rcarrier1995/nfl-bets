@@ -706,3 +706,65 @@ def test_mid_tier_combo():
     assert [l["team"] for l in c["legs"]] == ["A", "B", "C", "E"] and c["mid"] == "E"
     assert c["allFav"]["teams"] == ["A", "B", "C", "D"]
     assert T.mid_tier(legs[:2], 4) is None
+
+
+def test_last_call_once_per_game():
+    from datetime import datetime, timezone
+    from engine import recaps as RC
+    now = datetime(2026, 11, 29, 17, 30, tzinfo=timezone.utc)
+    g1 = {"id": "g1", "state": "pre", "kickoff": "2026-11-29T18:00Z", "away": "AAA", "home": "BBB"}
+    g2 = {"id": "g2", "state": "pre", "kickoff": "2026-11-29T21:25Z", "away": "CCC", "home": "DDD"}
+    calls = [{"gameId": "g1", "team": "AAA", "state": "pre", "price": 60.0, "fair": 70.0, "call": "Value"},
+             {"gameId": "g1", "team": "BBB", "state": "pre", "price": 42.0, "fair": 30.0, "call": "Pass"},
+             {"gameId": "g2", "team": "CCC", "state": "pre", "price": 50.0, "fair": 50.0, "call": "Pass"},
+             {"gameId": "g2", "team": "DDD", "state": "pre", "price": 52.0, "fair": 50.0, "call": "Pass"}]
+    board = {"games": [g1, g2], "calls": calls}
+    rs, sent = {"buySeen": {"g1": ["BBB"]}}, []
+    lines = RC.last_call(board, rs, now, lambda t, b: sent.append((t, b)))
+    assert any(l.startswith("Still BUY AAA 60c") for l in lines)
+    assert any("BBB no longer a Buy: now Pass at 42c" in l for l in lines)
+    assert len(sent) == 1 and sent[0][0].startswith("Last call: 1 game")
+    assert RC.last_call(board, rs, now, lambda t, b: sent.append((t, b))) == [] and len(sent) == 1
+    # nothing worth saying -> no push, but the game is still marked done
+    now2 = datetime(2026, 11, 29, 21, 0, tzinfo=timezone.utc)
+    assert RC.last_call(board, rs, now2, lambda t, b: sent.append((t, b))) == [] and len(sent) == 1 and "g2" in rs["lastCall"]
+
+
+def test_weekly_recap():
+    from engine import recaps as RC
+    mk = lambda gid, away, home, winner, calls, pf: {"key": f"2026-w13|{gid}", "season": 2026, "week": 13, "away": away, "home": home,
+                                                     "winner": winner, "tie": winner is None, "pick": max(calls, key=lambda t: calls[t]["fair"]),
+                                                     "pickFair": pf, "final": f"{away} 1 — {home} 2", "calls": calls}
+    c = lambda call, fair, price: {"call": call, "fair": fair, "price": price}
+    g = {"a": mk("g1", "AAA", "BBB", "AAA", {"AAA": c("Value", 62, 50), "BBB": c("Pass", 38, 50)}, 62),
+         "b": mk("g2", "CCC", "DDD", "CCC", {"CCC": c("Pass", 20, 22), "DDD": c("Pass", 80, 78)}, 80)}
+    for r in g.values():
+        r["right"] = r["pick"] == r["winner"]
+    L = {"graded": g}
+    store = {"bets": {"x": {"kind": "single", "team": "AAA", "gameId": "g1", "price": 50, "qty": 2, "result": "open", "season": 2026, "week": 13},
+                      "y": {"kind": "combo", "legs": [{"gameId": "g1", "team": "AAA"}, {"gameId": "g2", "team": "DDD"}],
+                            "price": 5, "qty": 100, "result": "open", "season": 2026, "week": 13}}}
+    lines = RC.recap_lines(L, 2026, 13, store)
+    assert lines[0] == "Picks 1-1" and "Buys 1-0 · +50c per contract" in lines and "A picks 0-1" in lines
+    assert "Best: Buy AAA at 50c won (+50c)" in lines and lines[-2].startswith("Worst: DDD (80%) lost")
+    assert lines[-1] == "Your bets 1-1 · -$4.00"   # +$1.00 single, -$5.00 combo
+    rs, sent = {}, []
+    RC.recap(L, 2026, 13, rs, lambda t, b: sent.append(t), store={})
+    RC.recap(L, 2026, 13, rs, lambda t, b: sent.append(t), store={})
+    assert sent == ["Week 13 recap"]
+
+
+def test_rest_flag():
+    from engine import rest as R
+    d = {"children": [{"standings": {"entries": [
+        {"team": {"abbreviation": "DEN"}, "stats": [{"name": "clincher", "displayValue": "*"}]},
+        {"team": {"abbreviation": "KC"}, "stats": [{"name": "clincher", "displayValue": "e"}]}]}}]}
+    codes = R.parse(d)
+    assert codes == {"DEN": "*", "KC": "e"}
+    g = {"id": "g1", "state": "pre", "away": "KC", "home": "DEN"}
+    calls = [{"gameId": "g1", "team": "KC"}, {"gameId": "g1", "team": "DEN"}]
+    board = {"week": 18, "season": 2026, "games": [g], "calls": calls}
+    assert R.attach(board, fetch=lambda s: codes) == 2
+    assert calls[1]["restLine"].startswith("DEN has locked the #1 seed") and "its starters" in calls[0]["restLine"]
+    board["week"] = 12
+    assert R.attach(board, fetch=lambda s: codes) == 0 and "restLine" not in calls[0]

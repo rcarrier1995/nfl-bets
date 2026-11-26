@@ -459,6 +459,11 @@ def tick(force=()):
             item = LR.weekly_review(board, L, season, wkn)
             if item:
                 rs["weekly"] = f"{season}-w{wkn}"
+                try:   # Monday night recap push (Rick 2026-11-26): once per week, when the week's last game is final
+                    from . import recaps as RC
+                    RC.recap(L, season, wkn, rs, P.send)
+                except Exception as e:
+                    print("recap failed:", e)
                 if wkn >= 14 and not rs.get("retest14"):
                     # auto re-test after Weeks 12-14 with the same scripts
                     run_backtest(season, wkn)
@@ -525,6 +530,13 @@ def tick(force=()):
                priority="high")
         vsent[k] = round(sl["bid"])
     news_alerts(board, rs, now)
+    try:   # last call ~30 min before each kickoff (Rick 2026-11-26)
+        from . import recaps as RC
+        RC.note_buys(board, rs)
+        if not problems:
+            RC.last_call(board, rs, now, P.send)
+    except Exception as e:
+        print("last call failed:", e)
     from .feeds import feed_alerts
     feed_alerts(board, rs, now, P.send)
     swing_alerts(board, rs, now)
@@ -587,6 +599,11 @@ def tick(force=()):
         board["watch"] = WT.track(board)
     except Exception as e:
         print("watch failed:", e)
+    try:   # resting-starters flag, Weeks 15-18: info only (Rick 2026-11-26)
+        from . import rest as RS
+        RS.attach(board)
+    except Exception as e:
+        print("rest flag failed:", e)
     try:   # top combos (under 10c + best value), this week and next week; logged and graded weekly
         from . import topcombos as TC
         board["topCombos"] = TC.build(board)

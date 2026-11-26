@@ -303,6 +303,57 @@ function settleBets() {
   }
   if (changed) saveBets(all);
 }
+// Rick 2026-11-26 (idea 3): a combo down to its last game. Buying the other team's contracts (same count as the
+// combo's) pays the same either way; the card shows that sure amount next to letting it ride.
+function legResult(G, gid, team) {
+  const g = G[gid];
+  if (!g || g.state !== "post" || g.score?.away == null || g.score?.home == null) return null;
+  const a = g.score.away, h = g.score.home;
+  return a === h ? "tie" : (a > h ? g.away : g.home) === team ? "win" : "loss";
+}
+function lockIns() {
+  const G = gameBy(), out = [];
+  for (const b of bets()) {
+    if (b.result !== "open" || b.kind !== "combo" || !(b.legs?.length >= 2)) continue;
+    const rs = b.legs.map(l => legResult(G, l.gameId, l.team));
+    const left = b.legs.filter((l, i) => rs[i] == null);
+    if (left.length !== 1 || rs.some(r => r === "loss" || r === "tie")) continue;
+    const l = left[0], g = G[l.gameId];
+    if (!g || g.state === "post") continue;
+    const me = (S.B.calls || []).find(c => c.gameId === l.gameId && c.team === l.team);
+    const op = (S.B.calls || []).find(c => c.gameId === l.gameId && c.team !== l.team);
+    if (!op || op.price == null || op.priceStale || op.dataHold) continue;
+    const q = Math.max(1, Math.round(Number(b.qty) || 1));
+    const fair = me ? (me.state === "in" ? me.liveFair : me.fair) : null;
+    out.push({ b, l, opp: op.team, p: op.price, q, fair, live: g.state === "in" });
+  }
+  return out;
+}
+function lockCards() {
+  return lockIns().map(x => {
+    const fee = 2, cost = x.q * (x.p + fee) / 100, sure = x.q * (100 - x.p - fee) / 100, ride = x.q;
+    const h = Math.floor(x.q / 2), hc = h * (x.p + fee) / 100;
+    const ev = x.fair != null ? ride * x.fair / 100 : null;
+    const vs = ev == null ? "" : sure >= ev ? "Locking in also beats riding on average." : `Riding is worth about ${usd(ev - sure)} more on average; lock in if you'd rather have a sure thing.`;
+    return `<div class="card"><div class="row"><b>Your combo needs only ${esc(x.l.team)}</b><span class="sp"></span><span class="small muted">${x.live ? "live" : "not started"}</span></div>
+      <div class="small" style="margin-top:6px"><b>Lock it in:</b> buy ${x.q} × ${esc(x.opp)} at ${ct(x.p)} (about ${usd(cost)}) → you get <b>${usd(sure)}</b> back whoever wins.</div>
+      <div class="small" style="margin-top:4px"><b>Let it ride:</b> ${usd(ride)} if ${esc(x.l.team)} wins${x.fair != null ? ` (${Math.round(x.fair)}% chance)` : ""}, $0 if not.</div>
+      ${h >= 1 ? `<div class="tiny muted" style="margin-top:4px">In between: buy ${h} × ${esc(x.opp)} (about ${usd(hc)}) → ${usd(ride - hc)} if ${esc(x.l.team)} wins, ${usd(h - hc)} if not.</div>` : ""}
+      ${vs ? `<div class="tiny muted" style="margin-top:4px">${vs} Check ${esc(x.opp)}'s price in Robinhood first.</div>` : ""}</div>`;
+  }).join("");
+}
+// Rick 2026-11-26 (idea 4): what a $5 bonus bet brings back on average. Robinhood contracts pay $1 each, so
+// $5 buys 5 / (cost + 2¢ fee) contracts and brings back about $5 × chance ÷ (cost + 2¢).
+const bonusKeep = (hit, cost) => cost > 0 ? 5 * hit / (cost + 2) : 0;
+const bonusLine = (hit, cost) => cost > 0 && cost <= 10 ? `<div class="tiny" style="margin-top:4px">$5 bonus bet: brings back about <b>${usd(bonusKeep(hit, cost))}</b> on average</div>` : "";
+// Sports Book bonus bets keep only the winnings: $5 × chance × (decimal odds − 1)
+const sbBonusKeep = p => 5 * (p.hit / 100) * (p.dec - 1);
+function bestBonus(list, keep, label) {
+  if (!list.length) return "";
+  let bi = 0;
+  list.forEach((c, i) => { if (keep(c) > keep(list[bi])) bi = i; });
+  return `<div class="quiet small">Best for a $5 bonus bet: <b>#${bi + 1}</b> (${esc(label(list[bi]))}) brings back about <b>${usd(keep(list[bi]))}</b> on average.</div>`;
+}
 // your real record by grade (bets saved with a grade)
 function gradeRecord(all) {
   const done = all.filter(b => b.result !== "open" && b.grade);
@@ -369,6 +420,7 @@ function feedLines(c) {
   if (c.liveBookLine && c.state === "in") h += `<div class="info">${esc(c.liveBookLine)}</div>`;
   if (c.polyLine) h += `<div class="info">${esc(c.polyLine)}</div>`;
   if (c.moneyLine) h += `<div class="info">${esc(c.moneyLine)}</div>`;
+  if (c.restLine && c.state === "pre") h += `<div class="info warn">${esc(c.restLine)}</div>`;
   const n = (c.news || [])[0];
   if (n && c.state === "pre") h += `<div class="info">📰 ${esc(ago(n.at))}: ${esc(n.headline)}</div>`;
   const p = c.state === "pre" ? practiceKey(c) : [];
@@ -1041,7 +1093,8 @@ function pregame() {
   const pre = S.B.calls.filter(c => c.state === "pre");
   const nV = pre.filter(c => c.call === "Value").length, nW = pre.filter(c => c.call === "Wait").length;
   const nG = S.B.games.filter(g => g.state !== "post").length;
-  let h = `<div class="ptitle">Pregame</div><div class="stats"><div class="stat"><b class="c-Value">${nV}</b><span>Buy now</span></div><div class="stat"><b class="c-Wait">${nW}</b><span>Wait for a dip</span></div><div class="stat"><b>${nG}</b><span>Games left</span></div></div>${oddsNote()}
+  let h = `<div class="ptitle">Pregame</div>${lockCards()}<div class="stats"><div class="stat"><b class="c-Value">${nV}</b><span>Buy now</span></div><div class="stat"><b class="c-Wait">${nW}</b><span>Wait for a dip</span></div><div class="stat"><b>${nG}</b><span>Games left</span></div></div>${oddsNote()}
+
     <div class="searchw">${ic("search")}<input class="search" id="q" placeholder="Search team" value="${esc(S.q)}"></div>
     <div class="chips">${["All", "Value", "Wait"].map(x => `<button class="chip ${S.chip === x ? "on" : ""}" data-chip="${x}">${LBL(x)}</button>`).join("")}</div>`;
   const top = (S.B.top3 || []).map(k => by[k]).filter(Boolean).filter(filt);
@@ -1094,7 +1147,7 @@ function live() {
   const fin = S.B.games.filter(g => g.state === "post");
   const al = S.B.alerts || [];
   let h = `<div class="ptitle">Live</div><div class="row"><div class="psub">${lv.length ? `${lv.length} game${lv.length > 1 ? "s" : ""} in progress` : `<b>No games live yet.</b> ${esc(nextKick() || "")}`}</div><span class="sp"></span><button class="btn" onclick="refreshNow(this)">↻ Refresh</button></div>
-    ${lv.length ? `<div class="tiny muted" style="margin:-4px 0 8px">${S.scoreAt ? "Score: live from ESPN · " : ""}Prices &amp; calls: ${esc(ago(S.B.generatedAt))}, checked every 6 min</div>` : ""}` + banners();
+    ${lv.length ? `<div class="tiny muted" style="margin:-4px 0 8px">${S.scoreAt ? "Score: live from ESPN · " : ""}Prices &amp; calls: ${esc(ago(S.B.generatedAt))}, checked every 6 min</div>` : ""}` + lockCards() + banners();
   if (SBM() && lv.length) h += `<div class="quiet small">Sports Book mode: live sportsbook odds aren't free, so there are no live calls here. Win chances and the drive tracker still update. Live calls are in Predictions mode.</div>`;
   if (al.length && !SBM()) h += `<h2>Live dip alerts</h2>${al.length ? al.map(a => `<div class="card bg-Value"><div class="row"><b>${esc(a.team)}</b><span class="small muted">${esc(a.game)}</span><span class="sp"></span><span class="hero" style="font-size:26px">${ct(a.price)}</span></div><div class="small"><b>+${ct(a.profit)} if it wins</b> · ${/^[ABCF]$/.test(a.confidence) ? `grade ${grd(a.confidence, 1)}` : esc(a.confidence)}</div><div class="why">${esc(a.why)}</div></div>`).join("") : NOREC(lv.length ? "" : S.B.nextCheck)}`;
   if (lv.length) h += `<h2>Live games</h2>${lv.map(liveCard).join("")}`;
@@ -1245,6 +1298,7 @@ function topCard(c, i, sk = "") {
     ${head}
     ${big3(c.hit, c.cost)}
     <div class="tiny muted">${c.hit >= c.cost + 2 ? `Our chance beats the cost by ${(c.hit - c.cost).toFixed(1)}¢` : c.hit >= c.cost ? "About a fair price" : `Costs ${(c.cost - c.hit).toFixed(1)}¢ more than our chance`}${c.cost > 10 ? " · over 10¢: not a bonus bet" : ""}${c.reused ? ` · shares ${c.reused} game${c.reused > 1 ? "s" : ""} with a pick above` : ""}</div>
+    ${bonusLine(c.hit, c.cost)}
     ${c.allFav ? `<div class="tiny muted" style="margin-top:4px">All favorites instead: ${pct(c.allFav.hit)} for ${ct1(c.allFav.cost)}</div>` : ""}
     ${weakLine(c.legs, buildLegs(sk.startsWith("nextWeek") ? S.B.nextWeek : S.B.games))}
     ${boughtBox({ kind: "combo", team: c.legs.map(l => l.team).join("+"), game: `${c.size}-team combo`, legs: c.legs.map(l => ({ team: l.team, gameId: l.gameId })), grade: gradeOf(c.hit, COMBO_CUTS), price: c.cost })}
@@ -1368,6 +1422,7 @@ function buildAnalysis(legs, pool) {
   return `<div class="card">
     <div class="row"><b>Your combo · ${k} teams</b><span class="sp"></span>${hitChip(hit)}</div>
     ${big3(hit, cost)}
+    ${bonusLine(hit, cost)}
     <div class="tiny muted">${verdict} · teams' prices multiplied ${r1(legsCost)}¢ + about ${Math.round((markup(k, legsCost) - 1) * 100)}% Robinhood markup${cost > 10 ? " · over 10¢: not a bonus bet" : ""}</div>
     <div style="margin-top:8px">${legHead}${legs.map(l => `<div class="leg">${badge(l.team, "sm")}<div style="min-width:0"><b>${esc(l.team)}</b> <span class="small muted">vs ${esc(l.opp)}</span> <span class="small" style="color:var(--${{ Value: "good", Wait: "wait", Pass: "bad", Sell: "sell" }[l.call] || "muted"})">${esc(LBL(l.call) || "")}</span><br>${l.why.map(x => `<span class="tag info">${esc(x)}</span>`).join("")}</div><span class="sp"></span><span class="small muted">${Math.round(l.est)}%</span>${grd(gradeOf(l.est), 1)}<span class="p">${ct(l.price)}</span><button class="x" onclick="buildTap('${esc(l.gameId)}','${esc(l.team)}')" aria-label="Remove">✕</button></div>`).join("")}</div>
     ${weakLine(legs, pool)}
@@ -1390,7 +1445,8 @@ function topCombosView() {
       return;
     }
     h += `<h2${early ? ' data-fold="closed"' : ""}>${title} · 3 under ${T.cheapMax || 10}¢${early ? ` <span class="cnt">${(x.cheap || []).length}</span>` : ""}</h2><div class="small muted" style="margin:-4px 0 8px">Best chance to hit for under ${T.cheapMax || 10}¢, using as few of the same games as possible. Built mostly from favorites (they've been slightly underpriced); an underdog only when we expect it to win.${early ? " Early prices: news can change these." : ""}</div>`;
-    h += (x.cheap || []).length ? x.cheap.slice().sort(comboRank).map((c, i) => topCard(c, i, w + "c")).join("") : NOREC(`${x.legs || 0} teams with prices`);
+    const cheapS = (x.cheap || []).slice().sort(comboRank);
+    h += cheapS.length ? bestBonus(cheapS, c => bonusKeep(c.hit, c.cost), c => c.legs.map(l => l.team).join("+")) + cheapS.map((c, i) => topCard(c, i, w + "c")).join("") : NOREC(`${x.legs || 0} teams with prices`);
     h += `<h2${early ? ' data-fold="closed"' : ""}>${title} · best value + chance${early ? ` <span class="cnt">${(x.value || []).length}</span>` : ""}</h2><div class="small muted" style="margin:-4px 0 8px">Any price: the best mix of our win chance and what it costs.</div>`;
     h += (x.value || []).length ? x.value.slice().sort(comboRank).map((c, i) => topCard(c, i, w + "v")).join("") : NOREC();
     h += `<h2${early ? ' data-fold="closed"' : ""}>${title} · 4 and 5 teams: favorites + best mid-tier${early ? ` <span class="cnt">${(x.midTier || []).length}</span>` : ""}</h2><div class="small muted" style="margin:-4px 0 8px">The most likely winners plus the strongest 50–70% team. Cheaper than all favorites, but hits less often.</div>`;
@@ -2064,7 +2120,7 @@ function sbTopCard(p, i, sk) {
   const head = `<button class="cardh" onclick="foldCard('${id}', ${i === 0})" aria-expanded="${o}"><b>#${i + 1} · ${p.size} teams</b><span class="sp"></span>${hitChip(p.hit)}<span class="fchev"></span></button>`;
   const strip = `<div class="lstrip">${p.legs.slice().sort(sbLegRank).map(l => `<span>${badge(l.team, "sm")}${esc(l.team)}</span>`).join("")}</div>`;
   if (!o) return `<div class="card folded">${head}${sbBig3(p)}${strip}<button class="showmore" onclick="foldCard('${id}', ${i === 0})">Show teams &amp; details</button></div>`;
-  return `<div class="card open">${head}${sbBig3(p)}<div class="tiny muted">${sbPrice(p)}${p.reused ? ` · shares ${p.reused} game${p.reused > 1 ? "s" : ""} with a pick above` : ""}</div>
+  return `<div class="card open">${head}${sbBig3(p)}<div class="tiny" style="margin-bottom:4px">$5 bonus bet: keeps about <b>${usd(sbBonusKeep(p))}</b> on average</div><div class="tiny muted">${sbPrice(p)}${p.reused ? ` · shares ${p.reused} game${p.reused > 1 ? "s" : ""} with a pick above` : ""}</div>
     <div style="margin-top:8px">${sbLegHead}${p.legs.slice().sort(sbLegRank).map(l => sbLegRow(l)).join("")}</div></div>`;
 }
 const sbNote = () => `<details class="quiet small warnfold"><summary><b>How parlays are priced here</b></summary><div class="muted" style="margin-top:6px">Each team's sportsbook odds multiplied, one team per game (same-game parlays are priced differently). Some books shave parlay payouts: check your bet slip before you bet.</div></details>${comboKey()}`;
@@ -2077,7 +2133,7 @@ function sbCombosView() {
   for (const [w, title, early] of [["games", "This week", 0], ["nextWeek", "Next week (early)", 1]]) {
     const T = sbTop(S.B[w]);
     h += `<h2${early ? ' data-fold="closed"' : ""}>${title} · 3 paying +900 or more</h2><div class="small muted" style="margin:-4px 0 8px">Best chance to hit for a $5 bonus bet that pays 10× or more, from teams we expect to win, sharing as few games as possible.${early ? " Early odds: news can change these." : ""}</div>`;
-    h += T.long.length ? T.long.map((p, i) => sbTopCard(p, i, w + "l")).join("") : NOREC(`${T.n} favorites with odds`);
+    h += T.long.length ? bestBonus(T.long, sbBonusKeep, p => p.legs.map(l => l.team).join("+")) + T.long.map((p, i) => sbTopCard(p, i, w + "l")).join("") : NOREC(`${T.n} favorites with odds`);
     h += `<h2${early ? ' data-fold="closed"' : ""}>${title} · best value + chance${early ? ` <span class="cnt">${(x.value || []).length}</span>` : ""}</h2><div class="small muted" style="margin:-4px 0 8px">Any payout: the best mix of our chance and what the odds pay.</div>`;
     h += T.val.length ? T.val.map((p, i) => sbTopCard(p, i, w + "v")).join("") : NOREC();
   }
