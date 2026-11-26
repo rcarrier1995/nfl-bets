@@ -1710,7 +1710,7 @@ function partsTile(c) {
   const items = [["Line", p.spread], ["EPA adj", p.epa], ["Weather", p.weather], ["Injuries", p.inj]];
   const mx = Math.max(6, ...items.map(i => Math.abs(i[1] || 0)));
   return items.map(([k, v]) => `<div class="hb"><span class="lab">${k}</span><span class="trk"><i class="${(v || 0) < 0 ? "alt" : ""}" style="width:${Math.abs(v || 0) / mx * 100}%"></i></span><span class="val">${(v || 0) >= 0 ? "+" : ""}${(v || 0).toFixed(1)} pt</span></div>`).join("") +
-    `<div class="tiny muted">= ${p.pts >= 0 ? "+" : ""}${p.pts} pts × ${p.shrink} ÷ 13.5 → win chance → fair ${ct1(c.fair)}</div>`;
+    `<div class="tiny muted">= ${p.pts >= 0 ? "+" : ""}${p.pts} pts × ${p.shrink} ÷ 13.5 → win chance${p.eqwd ? ` ${p.eqwd > 0 ? "+" : "−"}${Math.abs(p.eqwd)}¢ Elite QB, weak D` : ""} → fair ${ct1(c.fair)}</div>`;
 }
 function gaugeTile(g, c) {
   if (g.spreadHome == null) return `<div class="muted small">No sportsbook line</div>`;

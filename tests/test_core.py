@@ -677,3 +677,20 @@ def test_live_book_line():
     cons["GB@DET"]["at"] = (k - timedelta(minutes=5)).strftime("%Y-%m-%dT%H:%M:%SZ")   # pregame pull: not live
     live_attach(g, cons, k, now)
     assert g["teams"]["away"]["liveBookLine"] is None
+
+
+def test_eqwd_boost_rule():
+    from engine import watch as WT
+    st = {"qb": {"q1": [0.25, 50], "q2": [0.05, 50]}, "dsr": {"AAA": 0.47, "BBB": 0.40}}
+    WT._EQ.clear()
+    WT._EQ[(2026, 12)] = (st, {"AAA": ("q1", "Al Able"), "BBB": ("q2", "Bo Baker")})
+    WT._EQ["at"] = __import__("time").time()
+    assert WT.eqwd_team(2026, 12, "AAA", "BBB") == "AAA"
+    # listed starter out: no boost
+    assert WT.eqwd_team(2026, 12, "AAA", "BBB", [{"player": "Al Able", "status": "Out"}]) is None
+    # opponent also qualifies: no boost
+    st["qb"]["q2"] = [0.2, 50]
+    st["dsr"]["BBB"] = 0.46
+    assert WT.eqwd_team(2026, 12, "AAA", "BBB") is None
+    assert WT.EQWD_BOOST == 3
+    WT._EQ.clear()
