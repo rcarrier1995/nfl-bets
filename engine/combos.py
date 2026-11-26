@@ -29,7 +29,7 @@ def leg_label(leg):
 
 
 def sanitize(leg):
-    """Shoe-in label ONLY for genuine favourites with fair >= 70c (also used on stored legs)."""
+    """Shoe-in label ONLY for genuine favorites with fair >= 70c (also used on stored legs)."""
     tags = [t for t in leg.get("tags", []) if t != "Shoe-in"]
     if leg.get("fair") is not None and leg["fair"] >= C.SHOE_IN:
         tags.insert(0, "Shoe-in")

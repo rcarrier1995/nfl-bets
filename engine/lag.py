@@ -103,7 +103,7 @@ def detect(rows, now):
     base = base or rows[0]
     if None in (cur[1], base[1], cur[2], cur[3], base[2], base[3]):
         return None
-    move = cur[1] - base[1]               # negative = home became a bigger favourite
+    move = cur[1] - base[1]               # negative = home became a bigger favorite
     if abs(move) < LAG_MIN_PTS:
         return None
     side = "home" if move < 0 else "away"

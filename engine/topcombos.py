@@ -3,7 +3,7 @@
     (a reused game costs a small penalty, so strong legs can still repeat when nothing else works);
   * "value": the 3 best blends of win chance and price at any cost (chance minus cost, leaning to chance).
 Win chance per leg = our fair value (watch tags are shown, never added: review 2026-11-23). Combo-study finding:
-cheap combos work best as stacked favourites (60-85c legs); a longshot leg hurts, so it only gets in when
+cheap combos work best as stacked favorites (60-85c legs); a longshot leg hurts, so it only gets in when
 our numbers say it's worth its price. Every suggestion is logged and graded (learn weekly).
 Info only: never changes a Buy/Wait/Pass call. The real Robinhood quote can run well above legs multiplied.
 """
@@ -140,7 +140,7 @@ def mid_score(l):
 
 def mid_tier(legs, k):
     """k-leg combo = the k-1 most likely winners (one per game) + the best 50-70% team from another game.
-    Also returns the all-favourites k-leg combo for comparison. Never invents: needs real prices on every leg."""
+    Also returns the all-favorites k-leg combo for comparison. Never invents: needs real prices on every leg."""
     favs, seen = [], set()
     for l in sorted(legs, key=lambda l: (-l["est"], l["price"])):
         if l["gameId"] not in seen and l["est"] >= 50:

@@ -113,7 +113,7 @@ def study():
     T['backupQB']=T.groupby(['season','team'],group_keys=False).apply(backup)
     T['oppBackupQB']=T.set_index(['gid','team'])['backupQB'].reindex(list(zip(T.gid,T.opp))).values
     lon=lambda t: C.STADIUMS.get(t,(0,0))[1]
-    T['tzshift']=[(lon(o)-lon(t)) for t,o in zip(T.team,T.opp)]   # positive = travelling east
+    T['tzshift']=[(lon(o)-lon(t)) for t,o in zip(T.team,T.opp)]   # positive = traveling east
     T['early']=T.gametime.astype(str)<='13:05'
     T['prime']=(T.gametime.astype(str)>='19:00')|(~T.weekday.isin(['Sunday']))
     T['fav']=T.spread>0
@@ -133,14 +133,14 @@ def study():
      'Rest advantage 3+ days': T.rest-T.orest>=3,
      'Short week vs rested opp': (T.rest<=5)&(T.orest>=7),
      'Off a bye vs normal rest': (T.rest>=13)&(T.orest<=8),
-     'Division game · favourite': T['div'].astype(bool)&T.fav,
+     'Division game · favorite': T['div'].astype(bool)&T.fav,
      'Division game · underdog': T['div'].astype(bool)&~T.fav,
      'West team, 1pm ET road game': (~T.home)&(T.tzshift>25)&T.early,
      'Home team in freezing outdoor game': T.home&outdoor&(T.temp<=32),
-     'Windy (15+ mph) · favourite': outdoor&(T.wind>=15)&T.fav,
-     'Prime time · favourite': T.prime&T.fav,
+     'Windy (15+ mph) · favorite': outdoor&(T.wind>=15)&T.fav,
+     'Prime time · favorite': T.prime&T.fav,
      'Prime time · home underdog': T.prime&T.home&~T.fav,
-     'Big favourite (10+ pts)': T.spread>=10,
+     'Big favorite (10+ pts)': T.spread>=10,
      'Home team (all)': T.home,
      'Home underdog': T.home&~T.fav,
      'After a 20+ pt loss': T.prev_margin<=-20,
@@ -148,15 +148,15 @@ def study():
      'Backup QB starting': T.backupQB.astype(bool),
      'Opponent on backup QB': T.oppBackupQB.astype(bool),
      'Late season (wk 15+) underdog': (T.week>=15)&~T.fav,
-     'Neutral site · favourite': (T.location=='Neutral')&T.fav,
+     'Neutral site · favorite': (T.location=='Neutral')&T.fav,
      # short weeks and rest (Rick 2026-11-25, item 8)
      'Thursday game · road team': (T.weekday=='Thursday')&~T.home&(T.rest<=5),
-     'Thursday game · favourite': (T.weekday=='Thursday')&T.fav&(T.rest<=5),
+     'Thursday game · favorite': (T.weekday=='Thursday')&T.fav&(T.rest<=5),
      'Thanksgiving · home team': (T.weekday=='Thursday')&T.home&T.gameday.astype(str).str[5:7].eq('11')&(T.week>=11),
      'Thanksgiving · road team': (T.weekday=='Thursday')&~T.home&T.gameday.astype(str).str[5:7].eq('11')&(T.week>=11),
-     'Short week · favourite': (T.rest<=5)&T.fav,
+     'Short week · favorite': (T.rest<=5)&T.fav,
      'Short week · underdog': (T.rest<=5)&~T.fav,
-     'Off a bye · favourite': (T.rest>=13)&T.fav&~T.post,
+     'Off a bye · favorite': (T.rest>=13)&T.fav&~T.post,
      'Off a bye · underdog': (T.rest>=13)&~T.fav&~T.post,
      'Playoffs · team off a bye': T.post&(T.rest>=13),
     }
@@ -179,7 +179,7 @@ def study():
     out.sort(key=lambda r: -abs(r["z"]) if np.sign(r["pts"]) == np.sign(r["ptsTest"]) else -abs(r["z"]) / 4)
     res = {"games": int(len(g)), "train": "2006–2022", "test": "2023–2026", "rows": out,
            "finding": (f"None of {len(out)} situations beat the closing line in both samples. Rest, byes, travel, "
-                       "division games, prime time, weather, blowouts and big favourites are already priced. "
+                       "division games, prime time, weather, blowouts and big favorites are already priced. "
                        "Altitude, cold, dome/open-air splits, Thursday/Thanksgiving short weeks and byes (incl. playoffs) are in the list too, all priced. Closest: a team starting a backup QB did ~0.7 pts worse than its line in both samples, "
                        "too small and too noisy to price (≈2¢).")}
     with open(FILE, "w") as f:

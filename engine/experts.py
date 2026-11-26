@@ -6,7 +6,7 @@ Sources
   editor's written reason per game ("Why X picked the Y").
 
 Every pick is graded with ESPN's final scores (not the sites' own labels) and backtested at the price
-the moneyline implied: profit per 1-unit pick, favourites vs underdogs. Experts are ranked by that
+the moneyline implied: profit per 1-unit pick, favorites vs underdogs. Experts are ranked by that
 profit (ROI) once they have MIN_PICKS graded picks; the top SHOW are shown. Re-ranked every run,
 so the list changes as results come in.
 Context only: expert picks never move our fair price unless they prove they beat the line.
@@ -260,8 +260,8 @@ def _finish(s):
 
 
 def stats(st):
-    """Per expert: W-L, favourites vs underdogs (picks, wins, units), profit per 1-unit pick (ROI) at the
-    listed moneyline. Baselines: always the favourite / always the underdog. 'Experts agree': every
+    """Per expert: W-L, favorites vs underdogs (picks, wins, units), profit per 1-unit pick (ROI) at the
+    listed moneyline. Baselines: always the favorite / always the underdog. 'Experts agree': every
     expert (8+) on one side — does it win more than its price says?"""
     past = (load_json(PAST, {}) or {}).get("seasons") or {}
     allw, res = {}, {}

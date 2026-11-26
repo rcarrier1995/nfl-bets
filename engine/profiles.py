@@ -477,12 +477,12 @@ def study():
         if r:
             r["kind"] = "pregame"
             rows.append(r)
-    # rain / snow (favourite perspective)
+    # rain / snow (favorite perspective)
     wx = X.weather.fillna("").str.lower()
     wet = wx.str.contains("rain|snow|shower|sleet|drizzle|flurr") & X.roof.isin(["outdoors", "open"])
     fav = np.sign(X.spread)
     rf = (X.r * fav).values
-    for nm, m in (("Rain or snow · favourite", wet.values),):
+    for nm, m in (("Rain or snow · favorite", wet.values),):
         a, b = rf[m & tr], rf[m & te]
         if len(a) >= 30:
             se = a.std() / math.sqrt(len(a))

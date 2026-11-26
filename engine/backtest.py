@@ -103,7 +103,7 @@ def run(season, last_week, local_games=None, local_team=None):
            "aboveSingles": {"n": len(above), "won": sum(c["won"] for c in above)},
            "builtAt": iso(), "method": "Rebuilt: nflverse spread + prior-week EPA, devigged moneyline as market proxy",
            "original": {"right": 97, "games": 151, "pct": 64.2, "brierB": 0.2197,
-                        "note": "Original backtest (your files): 97/151 = 64.2%; 80%+ favourites won 66.7% (n=12)"}}
+                        "note": "Original backtest (your files): 97/151 = 64.2%; 80%+ favorites won 66.7% (n=12)"}}
     save_json(OUT, res)
     return res
 
