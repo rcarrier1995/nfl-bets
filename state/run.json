@@ -4,7 +4,7 @@
  "pregameAt": "2026-11-25T01:48:24Z",
  "window-early": "2026-11-22",
  "alertsSent": [],
- "light": "2026-11-26T20:21:52Z",
+ "light": "2026-11-26T20:28:04Z",
  "window-late": "2026-11-22",
  "inactives": "2026-11-26",
  "valueSent": {},
@@ -32,7 +32,8 @@
   "401873079|GB|WR C.Watson out \u2014 impact -1.3 pt": "2026-11-26T03:40:53Z",
   "401873081|DET|DJ Wonnum|Out": "2026-11-26T16:47:57Z",
   "401873081|DET|Chuck Clark|Out": "2026-11-26T16:47:57Z",
-  "401873083|PIT|Alex Highsmith|Out": "2026-11-26T19:50:41Z"
+  "401873083|PIT|Alex Highsmith|Out": "2026-11-26T19:50:41Z",
+  "401873080|DAL|Tyler Booker|Out": "2026-11-26T20:28:04Z"
  },
  "newsSeeded": true,
  "window-snf": "2026-11-22",
@@ -43,7 +44,7 @@
  "weekly": "2026-w11",
  "gapSent": {},
  "wpLast": {
-  "401873081": 82.5
+  "401873081": 62.5
  },
  "feedSent": {
   "news|50589757|PIT": "2026-11-25T16:07:20Z",
