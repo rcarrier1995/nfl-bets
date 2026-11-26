@@ -4,7 +4,7 @@
  "pregameAt": "2026-11-25T01:48:24Z",
  "window-early": "2026-11-22",
  "alertsSent": [],
- "light": "2026-11-26T03:34:15Z",
+ "light": "2026-11-26T03:40:53Z",
  "window-late": "2026-11-22",
  "inactives": "2026-11-25",
  "valueSent": {},
@@ -27,7 +27,9 @@
   "401873091|SEA|Abraham Lucas|Out": "2026-11-25T21:25:53Z",
   "401873091|SEA|Quenton Nelson|Out": "2026-11-25T21:25:53Z",
   "401873079|GB|Josh Jacobs|Out": "2026-11-26T00:01:55Z",
-  "401873079|GB|Zaire Franklin|Out": "2026-11-26T00:12:14Z"
+  "401873079|GB|Zaire Franklin|Out": "2026-11-26T00:12:14Z",
+  "401873079|GB|OL K.Zeitler out \u2014 impact +0.0 pt": "2026-11-26T03:40:53Z",
+  "401873079|GB|WR C.Watson out \u2014 impact -1.3 pt": "2026-11-26T03:40:53Z"
  },
  "newsSeeded": true,
  "window-snf": "2026-11-22",
@@ -38,7 +40,7 @@
  "weekly": "2026-w11",
  "gapSent": {},
  "wpLast": {
-  "401873079": 83.7
+  "401873079": 87.4
  },
  "feedSent": {
   "news|50589757|PIT": "2026-11-25T16:07:20Z",
