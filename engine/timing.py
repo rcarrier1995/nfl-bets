@@ -3,7 +3,7 @@
 Study (run by hand: python -m engine.timing): 1,519 regular-season games 2021-2026 from nflverse
 play-by-play. At every quarter end and right after every touchdown, the live win probability
 (which already knows the pregame line) was compared with how often teams in that spot really won,
-split by favourite/underdog, leading/tied/trailing and how far the price had fallen.
+split by favorite/underdog, leading/tied/trailing and how far the price had fallen.
 Fitted on 2021-25, checked on 2026. Result: every situation is within noise of fair. A lead,
 a deficit, a TD or a dip is already in the live price, so no game moment is cheap by itself.
 So the best time is decided by the edge, not the clock: buy when price is below fair by the
@@ -94,7 +94,7 @@ def study():
     td_idx = td_idx[td_idx < len(df)]
     after = df.loc[td_idx]
     S = pd.concat([persp(qe, "Quarter end"), persp(after, "After a TD")])
-    S["side"] = np.where(S.p0 >= 0.5, "Favourite", "Underdog")
+    S["side"] = np.where(S.p0 >= 0.5, "Favorite", "Underdog")
     S["spot"] = np.where(S.lead > 0, "leading", np.where(S.lead < 0, "trailing", "tied"))
     S["dip"] = pd.cut((S.p0 - S.wp) * 100, [-101, -15, -5, 5, 15, 30, 101],
                       labels=["up 15+", "up 5-15", "flat", "down 5-15", "down 15-30", "down 30+"])
@@ -116,7 +116,7 @@ def study():
     out = {"games": int(df.game_id.nunique()), "seasons": f"2021–{CUR}", "rows": rows,
            "edges": [r for r in rows if r["holds"]],
            "finding": ("No game moment is cheap by itself: at quarter ends and after TDs, leaders, trailers "
-                       "and dipped favourites all won about as often as the live price said. Best time = "
+                       "and dipped favorites all won about as often as the live price said. Best time = "
                        "whenever the price sits below fair by the Buy bar."),
            "note": (f"{len(edges)} of {len(rows)} spots held up in {CUR}"
                     + (" (" + "; ".join(f"{e['spot']} {e['gap']:+.0f}¢" for e in edges) + ")" if edges else "")

@@ -22,7 +22,7 @@ MODEL_TAG = "k1.15-noepa"   # bump when the fair model changes: backfilled snaps
 EPA_ADJ_WEIGHT = 0.0    # tested 0-0.75 on 2021-2026 (1,519 games): any weight made fairs worse -> 0 (EPA shown, not priced)
 HOME_FIELD = 1.5        # pts, used only inside the EPA-implied margin
 # Spread-to-probability scale. Fitted on 2021-2025 (1,359 games, log loss), checked on 2026 W1-11:
-# k=1.15 is calibrated in every bucket; the old x0.85 / x0.80 shrink made favourites too cheap.
+# k=1.15 is calibrated in every bucket; the old x0.85 / x0.80 shrink made favorites too cheap.
 SHRINK = 1.15
 SHRINK_FAV = 1.15
 LINE_MOVE_PRICED = 2.0  # pts: if the line moved this much since the injury news, the book already priced it
@@ -125,7 +125,7 @@ MK_SHRINK = 5   # each real quote counts like 1 of 6 votes vs the prior until mo
 
 def markup_curve(m, legs_cost):
     """Markup shrinks as the combo gets pricier (Rick's quote 2026-11-24: JAX+CIN+DAL legs 61.2c, Robinhood 60.1c,
-    so ~0% on favourite combos; the ~26% hold is a cheap-longshot number). 26% at ~1c, ~20% at 8c, ~1.5% at 61c."""
+    so ~0% on favorite combos; the ~26% hold is a cheap-longshot number). 26% at ~1c, ~20% at 8c, ~1.5% at 61c."""
     return 1 + (m - 1) * (1 - legs_cost / 100) ** 3
 
 
@@ -149,7 +149,7 @@ def quote_factor(cfg=None):
 
 
 def combo_markup(n, legs_cost=None):
-    """Estimated Robinhood combo quote vs legs multiplied. Without a cost: flat ~26% (old behaviour).
+    """Estimated Robinhood combo quote vs legs multiplied. Without a cost: flat ~26% (old behavior).
     With the legs' cost: the curve above, scaled by Rick's real quotes. Huge combos keep the old steeper curve."""
     if n < 2:
         return 1.0

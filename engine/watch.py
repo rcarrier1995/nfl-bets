@@ -3,7 +3,7 @@ were found by searching many combinations. They are TAGS ONLY (no price or call 
 live here; promote only if they keep holding.
 
 "Elite QB, weak D": the team's starting QB has a career EPA/play (as main passer, every prior game) in
-  the top 20%, AND the team's own defence is in the worst 20% for success rate allowed (season to date,
+  the top 20%, AND the team's own defense is in the worst 20% for success rate allowed (season to date,
   blended with last season at 4 games' weight). Skipped if the opponent also qualifies.
   Study: 2006-20 397 games won 68.5% at 61c; 2021-26 162 games won 68.5% at 58.5c.
 "Their D banged up": the opponent has 2+ key defenders (DL/LB/CB/S who averaged 70%+ of defensive snaps

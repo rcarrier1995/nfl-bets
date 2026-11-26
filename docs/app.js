@@ -113,7 +113,7 @@ const LOGOS = () => Object.assign({}, ...(S.B?.games || []).map(g => g.logos || 
 function badge(team, size = "") {
   const c = COLORS()[team] || "#334155";
   const lg = LOGOS()[team];
-  // real team logo; if it can't load, the colour badge with the abbreviation shows instead
+  // real team logo; if it can't load, the color badge with the abbreviation shows instead
   if (lg && /^https:\/\/a\.espncdn\.com\//.test(lg)) return `<span class="tb lg-wrap ${size}" style="--c:${esc(c)}"><img src="${esc(lg)}" alt="${esc(team)}" loading="lazy" onerror="this.parentNode.classList.remove('lg-wrap');this.replaceWith(document.createTextNode('${esc(team)}'))"></span>`;
   return `<span class="tb ${size}" style="--c:${esc(c)}">${esc(team)}</span>`;
 }
@@ -541,7 +541,7 @@ function sitLine(g) {
 const LBL = c => c === "Value" ? "Buy" : c;
 // rank chips: #1 green ... #32 red
 const chip = (k, r, tip) => `<span class="gchip" title="${esc(tip || "")}" style="--h:${Math.round((32 - r) / 31 * 120)}"><b>#${r}</b>${esc(k)}</span>`;
-// player grade 1-10 (from the 0-100 percentile), coloured the same way
+// player grade 1-10 (from the 0-100 percentile), colored the same way
 const pgrade = g => { const v = Math.max(1, Math.min(10, Math.ceil(g / 10))); return `<span class="gchip" style="--h:${Math.round((v - 1) / 9 * 120)};margin-left:4px"><b>${v}</b>/10</span>`; };
 function teamChips(g, team, keys) {
   const gs = (g.grades || {})[team] || [];
@@ -595,7 +595,7 @@ function liveInjLines(c) {
   }).join("");
 }
 
-// "SF −3.5 (opened −3) · O/U 45.5" — the sportsbook line, favourite first
+// "SF −3.5 (opened −3) · O/U 45.5" — the sportsbook line, favorite first
 function spreadTxt(g) {
   // show the real market line (ESPN's book), not our model-equivalent spread
   const real = g.espnSpread != null;
@@ -1216,7 +1216,7 @@ function big3(hit, cost) {
   return `<div class="big3"><div><b>${pct(hit)}</b><span>chance it hits</span></div><div><b>${ct1(cost)}</b><span>cost</span></div><div><b>${n ? "$" + n : "—"}</b><span>$5 wins</span></div></div>`;
 }
 const legHead = `<div class="leghead"><span>Team</span><span class="sp"></span><span>Our chance</span><span>Price</span></div>`;
-const comboWarn = () => `<details class="quiet small warnfold"><summary><b>Check Robinhood's real price first</b></summary><div class="muted" style="margin-top:6px">Cheap combos there cost more than the teams' prices multiplied (we add about ${Math.round((markup(2, 8) - 1) * 100)}% at 8¢); pricey favourite combos are close to the product (your 60.1¢ JAX+CIN+DAL quote). Skip a combo if Robinhood's price is 10%+ above our cost.</div></details>${comboKey()}`;
+const comboWarn = () => `<details class="quiet small warnfold"><summary><b>Check Robinhood's real price first</b></summary><div class="muted" style="margin-top:6px">Cheap combos there cost more than the teams' prices multiplied (we add about ${Math.round((markup(2, 8) - 1) * 100)}% at 8¢); pricey favorite combos are close to the product (your 60.1¢ JAX+CIN+DAL quote). Skip a combo if Robinhood's price is 10%+ above our cost.</div></details>${comboKey()}`;
 // Rick 2026-11-26: one short line naming the combo's weakest leg, and what dropping or swapping it does
 function weakLine(legs, pool) {
   if (!legs || legs.length < 2) return "";
@@ -1239,13 +1239,13 @@ function topCard(c, i, sk = "") {
     ${head}
     ${big3(c.hit, c.cost)}
     <div class="tiny muted">${c.hit >= c.cost + 2 ? `Our chance beats the cost by ${(c.hit - c.cost).toFixed(1)}¢` : c.hit >= c.cost ? "About a fair price" : `Costs ${(c.cost - c.hit).toFixed(1)}¢ more than our chance`}${c.cost > 10 ? " · over 10¢: not a bonus bet" : ""}${c.reused ? ` · shares ${c.reused} game${c.reused > 1 ? "s" : ""} with a pick above` : ""}</div>
-    ${c.allFav ? `<div class="tiny muted" style="margin-top:4px">All favourites instead: ${pct(c.allFav.hit)} for ${ct1(c.allFav.cost)}</div>` : ""}
+    ${c.allFav ? `<div class="tiny muted" style="margin-top:4px">All favorites instead: ${pct(c.allFav.hit)} for ${ct1(c.allFav.cost)}</div>` : ""}
     ${weakLine(c.legs, buildLegs(sk.startsWith("nextWeek") ? S.B.nextWeek : S.B.games))}
     ${boughtBox({ kind: "combo", team: c.legs.map(l => l.team).join("+"), game: `${c.size}-team combo`, legs: c.legs.map(l => ({ team: l.team, gameId: l.gameId })), grade: gradeOf(c.hit, COMBO_CUTS), price: c.cost })}
     <div style="margin-top:8px">${legHead}${c.legs.slice().sort(legRank).map(l => `<div class="leg">${badge(l.team, "sm")}<div style="min-width:0"><b>${esc(l.team)}</b> <span class="small muted">vs ${esc(l.opp)}</span>${l.dog ? ` <span class="tag look">underdog</span>` : ""}${c.mid === l.team ? ` <span class="tag info">mid-tier</span>` : ""}<br>${(l.why || []).map(x => `<span class="tag info">${esc(x)}</span>`).join("")}</div><span class="sp"></span><span class="small muted">${Math.round(l.est)}%</span>${grd(gradeOf(l.est), 1)}<span class="p">${ct(l.price)}</span></div>`).join("")}</div>
   </div>`;
 }
-// ---------- build your own combo: Rick taps teams, we analyse it (all in the browser, from the board) ----------
+// ---------- build your own combo: Rick taps teams, we analyze it (all in the browser, from the board) ----------
 const lsGet = k => { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch (e) { return null; } };
 const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
 // same leg estimate as the Top picks (engine/topcombos.legs_for): our fair + best value tag, fades move value to the other side
@@ -1373,7 +1373,7 @@ function buildAnalysis(legs, pool) {
     <div class="row" style="margin-top:10px"><button class="btn" onclick="buildClear()">Clear</button></div>
   </div>`;
 }
-const comboTabs = cat => `<div class="ctabs">${ctabTop()}<button class="${cat === "build" ? "on" : ""}" onclick="setCombo('build')">Build your own</button><button class="${cat === "standard" ? "on" : ""}" onclick="setCombo('standard')">All games</button><button class="${cat === "combined" ? "on" : ""}" onclick="setCombo('combined')">Favourites + drops</button></div>`;
+const comboTabs = cat => `<div class="ctabs">${ctabTop()}<button class="${cat === "build" ? "on" : ""}" onclick="setCombo('build')">Build your own</button><button class="${cat === "standard" ? "on" : ""}" onclick="setCombo('standard')">All games</button><button class="${cat === "combined" ? "on" : ""}" onclick="setCombo('combined')">Favorites + drops</button></div>`;
 function topCombosView() {
   const T = S.B.topCombos || {};
   let h = `<div class="ptitle">Combos</div><div class="psub">Top picks · this week and next week</div>${comboTabs("top")}${comboWarn()}<div class="row gbtns" style="margin:6px 0;flex-wrap:wrap"><button class="btn pri" onclick="buildGrade('A+')">${grd("A+", 1)}A+ combo (3+ teams) →</button><button class="btn pri" onclick="buildGrade('A')">${grd("A", 1)}Combo of all A picks →</button><button class="btn pri" onclick="buildGrade('AB')">${grd("A", 1)}${grd("B", 1)}Combo of all A + B picks →</button></div>`;
@@ -1383,11 +1383,11 @@ function topCombosView() {
       h += `<div class="quiet"><b>${title}:</b> <span class="muted">combos show up once Robinhood lists next week's games${x.legs ? ` (${x.legs} teams so far)` : ""}.</span></div>`;
       return;
     }
-    h += `<h2${early ? ' data-fold="closed"' : ""}>${title} · 3 under ${T.cheapMax || 10}¢${early ? ` <span class="cnt">${(x.cheap || []).length}</span>` : ""}</h2><div class="small muted" style="margin:-4px 0 8px">Best chance to hit for under ${T.cheapMax || 10}¢, using as few of the same games as possible. Built mostly from favourites (they've been slightly underpriced); an underdog only when we expect it to win.${early ? " Early prices: news can change these." : ""}</div>`;
+    h += `<h2${early ? ' data-fold="closed"' : ""}>${title} · 3 under ${T.cheapMax || 10}¢${early ? ` <span class="cnt">${(x.cheap || []).length}</span>` : ""}</h2><div class="small muted" style="margin:-4px 0 8px">Best chance to hit for under ${T.cheapMax || 10}¢, using as few of the same games as possible. Built mostly from favorites (they've been slightly underpriced); an underdog only when we expect it to win.${early ? " Early prices: news can change these." : ""}</div>`;
     h += (x.cheap || []).length ? x.cheap.slice().sort(comboRank).map((c, i) => topCard(c, i, w + "c")).join("") : NOREC(`${x.legs || 0} teams with prices`);
     h += `<h2${early ? ' data-fold="closed"' : ""}>${title} · best value + chance${early ? ` <span class="cnt">${(x.value || []).length}</span>` : ""}</h2><div class="small muted" style="margin:-4px 0 8px">Any price: the best mix of our win chance and what it costs.</div>`;
     h += (x.value || []).length ? x.value.slice().sort(comboRank).map((c, i) => topCard(c, i, w + "v")).join("") : NOREC();
-    h += `<h2${early ? ' data-fold="closed"' : ""}>${title} · 4 and 5 teams: favourites + best mid-tier${early ? ` <span class="cnt">${(x.midTier || []).length}</span>` : ""}</h2><div class="small muted" style="margin:-4px 0 8px">The most likely winners plus the strongest 50–70% team. Cheaper than all favourites, but hits less often.</div>`;
+    h += `<h2${early ? ' data-fold="closed"' : ""}>${title} · 4 and 5 teams: favorites + best mid-tier${early ? ` <span class="cnt">${(x.midTier || []).length}</span>` : ""}</h2><div class="small muted" style="margin:-4px 0 8px">The most likely winners plus the strongest 50–70% team. Cheaper than all favorites, but hits less often.</div>`;
     h += (x.midTier || []).length ? x.midTier.slice().sort(comboRank).map((c, i) => topCard(c, i, w + "m")).join("") : NOREC("Not enough teams for 4 legs with one 50–70% team");
   };
   sec("thisWeek", "This week");
@@ -1408,7 +1408,7 @@ function combosView() {
   const found = sizes.filter(x => r[x].combo).length;
   let h = `<div class="ptitle">Combos</div><div class="psub">${found ? `${found} size${found > 1 ? "s" : ""} clear the bar` : "Nothing clears the bar right now"} · live + upcoming games</div>
     ${comboTabs(cat)}`;
-  h += `<h2>${cat === "standard" ? "Weekly combos — live + upcoming" : "Big favourites + price drops — sure things plus teams whose price fell"}</h2>`;
+  h += `<h2>${cat === "standard" ? "Weekly combos — live + upcoming" : "Big favorites + price drops — sure things plus teams whose price fell"}</h2>`;
   if (!sizes.length) return h + NOREC(`${S.B.combos.poolGames || 0} games with prices — need 2`) + (cat === "standard" ? watchCombo() : "");
   h += `<div class="sizes">${sizes.map(x => `<button class="${x === k ? "on" : ""} ${r[x].combo ? "has" : ""}" onclick="setCombo('${cat}',${x})"><b>${x}</b><span>${r[x].combo ? "+" + ct1(r[x].combo.edge) : "teams"}</span></button>`).join("")}</div>`;
   h += comboCard(cat, String(k), r[k]);
@@ -1475,7 +1475,7 @@ function learning() {
     if (S.open.has(id)) {
       h += `<table class="qt"><tr><th>#</th><th>Expert</th><th>Right</th><th>Profit</th><th>Underdogs</th></tr>${E.table.map(r => `<tr><td>${r.rank || "–"}</td><td>${esc(r.name)} <span class="muted">${esc(r.source)}</span></td><td>${r.w}-${r.n - r.w} (${r.pct}%)</td><td class="${(r.roi ?? 0) >= 0 ? "ok" : "bad"}">${pc(r.roi)}${Object.keys(r.bySeason || {}).length > 1 ? `<div class="tiny muted">${Object.entries(r.bySeason).sort((a, b) => b[0] - a[0]).map(([y, v]) => `${y.slice(2)}: ${pc(v.roi)}`).join(" · ")}</div>` : ""}</td><td>${r.dog[1]}/${r.dog[0]} · ${r.dog[2] >= 0 ? "+" : ""}${r.dog[2]}u</td></tr>`).join("")}</table>`;
       const b = E.baseline || {}, a = E.agree || {};
-      h += `<div class="small muted" style="margin-top:6px">Profit = per 1-unit pick at the moneyline when they picked. Always picking the favourite: ${pc(b.fav?.roi)}. Always the underdog: ${pc(b.dog?.roi)}.${a.all ? ` When every expert agreed: won ${a.all.pct}% vs ${a.all.implied}% the price implied (${a.all.n} games) — no extra edge, so it's a tag only.` : ""} ${E.dogExperts?.length && E.dogGroup?.n ? ` Underdog experts (${esc(E.dogExperts.map(n => n.split(" ").slice(-1)[0]).join(", "))}): their underdog picks won ${E.dogGroup.w} of ${E.dogGroup.n}, ${E.dogGroup.profit >= 0 ? "+" : ""}${E.dogGroup.profit} units — small sample, picked after the fact.` : ""} Ranked by profit over ${esc((E.seasons || []).join(" + "))}, re-ranked every week. Sources: ${esc((E.sources || []).join(", "))}.</div>`;
+      h += `<div class="small muted" style="margin-top:6px">Profit = per 1-unit pick at the moneyline when they picked. Always picking the favorite: ${pc(b.fav?.roi)}. Always the underdog: ${pc(b.dog?.roi)}.${a.all ? ` When every expert agreed: won ${a.all.pct}% vs ${a.all.implied}% the price implied (${a.all.n} games) — no extra edge, so it's a tag only.` : ""} ${E.dogExperts?.length && E.dogGroup?.n ? ` Underdog experts (${esc(E.dogExperts.map(n => n.split(" ").slice(-1)[0]).join(", "))}): their underdog picks won ${E.dogGroup.w} of ${E.dogGroup.n}, ${E.dogGroup.profit >= 0 ? "+" : ""}${E.dogGroup.profit} units — small sample, picked after the fact.` : ""} Ranked by profit over ${esc((E.seasons || []).join(" + "))}, re-ranked every week. Sources: ${esc((E.sources || []).join(", "))}.</div>`;
     }
   }
   // watch tags
@@ -1862,7 +1862,7 @@ function setup() {
    <a class="btn" href="https://github.com/${REPO}/actions/workflows/manual.yml" target="_blank" rel="noopener">Run inactives check</a>
    <div class="tiny muted" style="margin-top:4px">Opens GitHub → tap “Run workflow”, pick <code>inactives</code>.</div></div>
   <div class="card doc"><h3>How pricing works</h3>
-   <p><code>fair = Φ((spread + weather + fresh injury news) × 1.15 ÷ 13.5)</code>. The 1.15 scale was fitted on 1,359 games (2021–25) and checked on 2026: calibrated in every bucket. The old ×0.85/×0.80 shrink priced favourites too cheap and lost money in testing, so it's gone.</p>
+   <p><code>fair = Φ((spread + weather + fresh injury news) × 1.15 ÷ 13.5)</code>. The 1.15 scale was fitted on 1,359 games (2021–25) and checked on 2026: calibrated in every bucket. The old ×0.85/×0.80 shrink priced favorites too cheap and lost money in testing, so it's gone.</p>
    <p>Weather/run +1.0–1.5 pts to the run-heavy team in open air if wind ≥15 mph or ≤35°F. QB out −3.5, 2+ WR/CB out −1 — only when the news is fresh (not out Thursday, line moved &lt;2 pts); otherwise the line already priced it.</p>
    <p>EPA is shown (matchup bars, breakdown) but not added to the price: every EPA weight tested made the fairs worse.</p>
    <p>Edge = fair − price − fee (fee 2¢: Robinhood commission ≤1¢ + exchange fee ≤1¢). <b>Buy</b> ≥15¢. <b>Wait for a dip</b> 8–15¢, buy-at = fair − 15¢ − fee. Else <b>Pass</b>.</p>
@@ -1907,7 +1907,9 @@ function systemModal() {
 window.systemModal = systemModal;
 
 // ---------- modal / render ----------
-function openModal(html) { $("#modalBody").innerHTML = html; foldify($("#modalBody"), "m"); $("#modal").hidden = false; }
+// Rick 2026-11-26: US spelling. Saved data can still hold older UK words, so convert on the way to the screen.
+const US = h => String(h).replace(/avourite/g, "avorite").replace(/([Dd])efence/g, "$1efense").replace(/([Cc])olour/g, "$1olor");
+function openModal(html) { $("#modalBody").innerHTML = US(html); foldify($("#modalBody"), "m"); $("#modal").hidden = false; }
 function closeModal() { $("#modal").hidden = true; }
 window.closeModal = closeModal;
 
@@ -2016,7 +2018,7 @@ function parlay(legs) {
 }
 const sbRank = (x, y) => (y.hit - x.hit) || (y.dec - x.dec);
 const sbLegRank = (x, y) => (y.est - x.est) || (y.dec - x.dec);
-// every set of favourites (one team per game, our chance 50%+), then 3 picks that share as few games as possible
+// every set of favorites (one team per game, our chance 50%+), then 3 picks that share as few games as possible
 function sbTop(gl) {
   const fav = sbLegs(gl).filter(l => l.est >= 50).sort(sbLegRank).slice(0, 16);
   const all = [];
@@ -2063,7 +2065,7 @@ function sbCombosView() {
   for (const [w, title, early] of [["games", "This week", 0], ["nextWeek", "Next week (early)", 1]]) {
     const T = sbTop(S.B[w]);
     h += `<h2${early ? ' data-fold="closed"' : ""}>${title} · 3 paying +900 or more</h2><div class="small muted" style="margin:-4px 0 8px">Best chance to hit for a $5 bonus bet that pays 10× or more, from teams we expect to win, sharing as few games as possible.${early ? " Early odds: news can change these." : ""}</div>`;
-    h += T.long.length ? T.long.map((p, i) => sbTopCard(p, i, w + "l")).join("") : NOREC(`${T.n} favourites with odds`);
+    h += T.long.length ? T.long.map((p, i) => sbTopCard(p, i, w + "l")).join("") : NOREC(`${T.n} favorites with odds`);
     h += `<h2${early ? ' data-fold="closed"' : ""}>${title} · best value + chance${early ? ` <span class="cnt">${(x.value || []).length}</span>` : ""}</h2><div class="small muted" style="margin:-4px 0 8px">Any payout: the best mix of our chance and what the odds pay.</div>`;
     h += T.val.length ? T.val.map((p, i) => sbTopCard(p, i, w + "v")).join("") : NOREC();
   }
@@ -2131,7 +2133,7 @@ function render() {
   document.querySelectorAll("#modeSw button").forEach(b => b.classList.toggle("on", b.dataset.mode === S.mode));
   const y = window.scrollY;
   const v = $("#view");
-  v.innerHTML = views[S.tab]() + `<button class="sysbtn" onclick="systemModal()">System / Details</button>`;
+  v.innerHTML = US(views[S.tab]()) + `<button class="sysbtn" onclick="systemModal()">System / Details</button>`;
   if (S._lastTab !== S.tab) { v.classList.remove("enter"); void v.offsetWidth; v.classList.add("enter"); S._lastTab = S.tab; }
   foldify(v, S.tab);
   window.scrollTo(0, y);

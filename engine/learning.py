@@ -168,7 +168,7 @@ def lesson_for(recs):
         return f"More upsets than our chances expected ({luck}). One week is still small — logged, no change yet."
     big = [r for r in wrong if r["pickFair"] >= 70]
     if big:
-        return f"{len(big)} favourite(s) at 70¢+ lost; {luck} — within normal luck, no change."
+        return f"{len(big)} favorite(s) at 70¢+ lost; {luck} — within normal luck, no change."
     q3 = [r for r in wrong if r["q3Leader"] and r["q3Leader"] != r["pick"]]
     if q3:
         return f"{len(q3)} miss(es) trailed after Q3; {luck} — no change."
@@ -225,11 +225,11 @@ def profit_buys(recs):
 
 
 def update_shrink(L):
-    """If favourites prove systematically overconfident, shrink next week's fairs toward 50c.
+    """If favorites prove systematically overconfident, shrink next week's fairs toward 50c.
     Only activates with >=4 reviewed games."""
     recs = [r for r in L["graded"].values() if r["pickFair"] >= 65]
     if len(recs) < SHRINK_MIN:     # review 2026-11-23: 4 games could trip it by luck
-        L["shrink"] = {"factor": 1.0, "note": f"Needs {SHRINK_MIN}+ favourites at 65¢+ before any auto-adjust ({len(recs)} so far)"}
+        L["shrink"] = {"factor": 1.0, "note": f"Needs {SHRINK_MIN}+ favorites at 65¢+ before any auto-adjust ({len(recs)} so far)"}
         return L["shrink"]
     pred = sum(r["pickFair"] for r in recs) / len(recs)
     act = 100 * sum(r["right"] for r in recs) / len(recs)
@@ -237,10 +237,10 @@ def update_shrink(L):
     se = 100 * ((pred / 100) * (1 - pred / 100) / len(recs)) ** 0.5
     if gap > 3 and gap > 2 * se:   # only a real, statistically clear miss (n=12 noise fooled the old rule)
         f = max(0.85, round(1 - gap / 100 * 1.5, 3))
-        L["shrink"] = {"factor": f, "note": f"Favourites 65¢+ hit {act:.0f}% vs {pred:.0f}% predicted — fairs shrunk ×{f}",
+        L["shrink"] = {"factor": f, "note": f"Favorites 65¢+ hit {act:.0f}% vs {pred:.0f}% predicted — fairs shrunk ×{f}",
                        "n": len(recs), "at": iso()}
     else:
-        L["shrink"] = {"factor": 1.0, "note": f"Favourites {act:.0f}% vs {pred:.0f}% predicted (n={len(recs)}) — within noise, no extra shrink",
+        L["shrink"] = {"factor": 1.0, "note": f"Favorites {act:.0f}% vs {pred:.0f}% predicted (n={len(recs)}) — within noise, no extra shrink",
                        "n": len(recs), "at": iso()}
     return L["shrink"]
 
