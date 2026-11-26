@@ -4,7 +4,7 @@
  "pregameAt": "2026-11-25T01:48:24Z",
  "window-early": "2026-11-22",
  "alertsSent": [],
- "light": "2026-11-26T15:45:42Z",
+ "light": "2026-11-26T15:56:27Z",
  "window-late": "2026-11-22",
  "inactives": "2026-11-25",
  "valueSent": {},
@@ -47,5 +47,7 @@
   "news|50596930|SF": "2026-11-26T00:22:32Z",
   "prac|401873092|Carson Beck|DNP Thu": "2026-11-26T07:26:05Z"
  },
- "feedSeeded": true
+ "feedSeeded": true,
+ "buySeen": {},
+ "lastCall": {}
 }
