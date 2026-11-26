@@ -128,12 +128,47 @@ def pick(legs, kind, n=3):
     return out
 
 
+MID_LO, MID_HI = 50.0, 70.0   # "mid-tier" leg: a 50-70% team (Rick 2026-11-26)
+CALL_BONUS = {"Value": 2.0, "Wait": 1.0, "Pass": 0.0, "Sell": -5.0}
+
+
+def mid_score(l):
+    """Strongest mid-tier leg: win chance first (backtest: the strongest one hit 36% in 4-leg combos vs 26% for
+    the weakest), then a small nudge for value vs its price and for its Buy/Wait call."""
+    return l["est"] + 0.5 * (l["est"] - l["price"]) + CALL_BONUS.get(l.get("call"), 0.0)
+
+
+def mid_tier(legs, k):
+    """k-leg combo = the k-1 most likely winners (one per game) + the best 50-70% team from another game.
+    Also returns the all-favourites k-leg combo for comparison. Never invents: needs real prices on every leg."""
+    favs, seen = [], set()
+    for l in sorted(legs, key=lambda l: (-l["est"], l["price"])):
+        if l["gameId"] not in seen and l["est"] >= 50:
+            favs.append(l)
+            seen.add(l["gameId"])
+    if len(favs) < k - 1:
+        return None
+    top = favs[:k - 1]
+    used = {l["gameId"] for l in top}
+    cands = [l for l in legs if l["gameId"] not in used and MID_LO <= l["est"] <= MID_HI]
+    if not cands:
+        return None
+    mid = max(cands, key=mid_score)
+    c = _card(top + [mid])
+    c["mid"] = mid["team"]
+    if len(favs) >= k and {l["team"] for l in favs[:k]} != {l["team"] for l in c["legs"]}:
+        a = _card(favs[:k])
+        c["allFav"] = {"hit": a["hit"], "cost": a["cost"], "teams": [l["team"] for l in a["legs"]]}
+    return c
+
+
 def build(board):
     """-> {"thisWeek": {"cheap": [...], "value": [...]}, "nextWeek": {...}, "record": {...}}"""
     res = {}
     for key, gl in (("thisWeek", board.get("games")), ("nextWeek", board.get("nextWeek"))):
         legs = legs_for(gl)
-        res[key] = {"cheap": pick(legs, "cheap"), "value": pick(legs, "value"), "legs": len(legs)}
+        res[key] = {"cheap": pick(legs, "cheap"), "value": pick(legs, "value"), "legs": len(legs),
+                    "midTier": [c for c in (mid_tier(legs, k) for k in (4, 5)) if c]}
     res["record"] = track(board, res["thisWeek"])
     res["cheapMax"] = CHEAP
     return res
@@ -145,7 +180,7 @@ def track(board, this_week):
     rows = lg.setdefault("rows", {})
     games = {g["id"]: g for g in board.get("games", [])}
     wk = f"{board.get('season')}-w{board.get('week')}"
-    for kind in ("cheap", "value"):
+    for kind in ("cheap", "value", "midTier"):
         for i, c in enumerate(this_week.get(kind) or []):
             k = f"{wk}|{kind}|{i + 1}"
             r = rows.get(k)
@@ -162,7 +197,7 @@ def track(board, this_week):
     lg["at"] = iso()
     save_json(LOG, lg, compact=True)
     out = {}
-    for kind in ("cheap", "value"):
+    for kind in ("cheap", "value", "midTier"):
         xs = [r for r in rows.values() if r["kind"] == kind and r.get("won") is not None]
         out[kind] = {"n": len(xs), "won": sum(1 for r in xs if r["won"]),
                      "expected": round(sum(r["hit"] for r in xs) / 100, 1),

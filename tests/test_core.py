@@ -694,3 +694,15 @@ def test_eqwd_boost_rule():
     assert WT.eqwd_team(2026, 12, "AAA", "BBB") is None
     assert WT.EQWD_BOOST == 3
     WT._EQ.clear()
+
+
+def test_mid_tier_combo():
+    from engine import topcombos as T
+    mk = lambda gid, team, est, price, call="Pass": {"gameId": gid, "team": team, "opp": "X", "price": price, "fair": est,
+                                                    "est": est, "call": call, "why": [], "dog": price < 50}
+    legs = [mk("g1", "A", 88, 90), mk("g2", "B", 82, 84), mk("g3", "C", 79, 80), mk("g4", "D", 76, 78),
+            mk("g5", "E", 68, 64, "Value"), mk("g6", "F", 55, 56), mk("g6", "G", 45, 46), mk("g7", "H", 72, 73)]
+    c = T.mid_tier(legs, 4)
+    assert [l["team"] for l in c["legs"]] == ["A", "B", "C", "E"] and c["mid"] == "E"
+    assert c["allFav"]["teams"] == ["A", "B", "C", "D"]
+    assert T.mid_tier(legs[:2], 4) is None

@@ -1217,6 +1217,19 @@ function big3(hit, cost) {
 }
 const legHead = `<div class="leghead"><span>Team</span><span class="sp"></span><span>Our chance</span><span>Price</span></div>`;
 const comboWarn = () => `<details class="quiet small warnfold"><summary><b>Check Robinhood's real price first</b></summary><div class="muted" style="margin-top:6px">Cheap combos there cost more than the teams' prices multiplied (we add about ${Math.round((markup(2, 8) - 1) * 100)}% at 8¢); pricey favourite combos are close to the product (your 60.1¢ JAX+CIN+DAL quote). Skip a combo if Robinhood's price is 10%+ above our cost.</div></details>${comboKey()}`;
+// Rick 2026-11-26: one short line naming the combo's weakest leg, and what dropping or swapping it does
+function weakLine(legs, pool) {
+  if (!legs || legs.length < 2) return "";
+  const k = legs.length, ch = l => l.est ?? l.fair, w = legs.slice().sort((a, b) => ch(a) - ch(b))[0];
+  const tot = ls => { const lc = ls.reduce((a, l) => a * l.price / 100, 1) * 100; return [ls.reduce((a, l) => a * ch(l) / 100, 1) * 100, lc * markup(ls.length, lc)]; };
+  const rest = legs.filter(l => l !== w), r1 = x => Math.round(x * 10) / 10;
+  let t = `Weakest leg: <b>${esc(w.team)}</b> ${Math.round(ch(w))}%`;
+  if (rest.length >= 2) { const [h, c] = tot(rest); t += ` · drop it: ${r1(h)}% for ${r1(c)}¢`; }
+  const used = new Set(legs.map(l => l.gameId));
+  const alt = (pool || []).filter(x => !used.has(x.gameId) && ch(x) > ch(w)).sort((a, b) => (ch(b) - ch(a)) || (a.price - b.price))[0];
+  if (alt) { const [h, c] = tot([...rest, alt]); t += ` · swap for ${esc(alt.team)}: ${r1(h)}% for ${r1(c)}¢`; }
+  return `<div class="tiny muted" style="margin-top:4px">${t}</div>`;
+}
 function topCard(c, i, sk = "") {
   const id = `tc:${sk}:${i}`, o = foldOpen(id, i === 0);
   const strip = `<div class="lstrip">${c.legs.slice().sort(legRank).map(l => `<span>${badge(l.team, "sm")}${esc(l.team)}</span>`).join("")}</div>`;
@@ -1226,8 +1239,10 @@ function topCard(c, i, sk = "") {
     ${head}
     ${big3(c.hit, c.cost)}
     <div class="tiny muted">${c.hit >= c.cost + 2 ? `Our chance beats the cost by ${(c.hit - c.cost).toFixed(1)}¢` : c.hit >= c.cost ? "About a fair price" : `Costs ${(c.cost - c.hit).toFixed(1)}¢ more than our chance`}${c.cost > 10 ? " · over 10¢: not a bonus bet" : ""}${c.reused ? ` · shares ${c.reused} game${c.reused > 1 ? "s" : ""} with a pick above` : ""}</div>
+    ${c.allFav ? `<div class="tiny muted" style="margin-top:4px">All favourites instead: ${pct(c.allFav.hit)} for ${ct1(c.allFav.cost)}</div>` : ""}
+    ${weakLine(c.legs, buildLegs(sk.startsWith("nextWeek") ? S.B.nextWeek : S.B.games))}
     ${boughtBox({ kind: "combo", team: c.legs.map(l => l.team).join("+"), game: `${c.size}-team combo`, legs: c.legs.map(l => ({ team: l.team, gameId: l.gameId })), grade: gradeOf(c.hit, COMBO_CUTS), price: c.cost })}
-    <div style="margin-top:8px">${legHead}${c.legs.slice().sort(legRank).map(l => `<div class="leg">${badge(l.team, "sm")}<div style="min-width:0"><b>${esc(l.team)}</b> <span class="small muted">vs ${esc(l.opp)}</span>${l.dog ? ` <span class="tag look">underdog</span>` : ""}<br>${(l.why || []).map(x => `<span class="tag info">${esc(x)}</span>`).join("")}</div><span class="sp"></span><span class="small muted">${Math.round(l.est)}%</span>${grd(gradeOf(l.est), 1)}<span class="p">${ct(l.price)}</span></div>`).join("")}</div>
+    <div style="margin-top:8px">${legHead}${c.legs.slice().sort(legRank).map(l => `<div class="leg">${badge(l.team, "sm")}<div style="min-width:0"><b>${esc(l.team)}</b> <span class="small muted">vs ${esc(l.opp)}</span>${l.dog ? ` <span class="tag look">underdog</span>` : ""}${c.mid === l.team ? ` <span class="tag info">mid-tier</span>` : ""}<br>${(l.why || []).map(x => `<span class="tag info">${esc(x)}</span>`).join("")}</div><span class="sp"></span><span class="small muted">${Math.round(l.est)}%</span>${grd(gradeOf(l.est), 1)}<span class="p">${ct(l.price)}</span></div>`).join("")}</div>
   </div>`;
 }
 // ---------- build your own combo: Rick taps teams, we analyse it (all in the browser, from the board) ----------
@@ -1349,6 +1364,7 @@ function buildAnalysis(legs, pool) {
     ${big3(hit, cost)}
     <div class="tiny muted">${verdict} · teams' prices multiplied ${r1(legsCost)}¢ + about ${Math.round((markup(k, legsCost) - 1) * 100)}% Robinhood markup${cost > 10 ? " · over 10¢: not a bonus bet" : ""}</div>
     <div style="margin-top:8px">${legHead}${legs.map(l => `<div class="leg">${badge(l.team, "sm")}<div style="min-width:0"><b>${esc(l.team)}</b> <span class="small muted">vs ${esc(l.opp)}</span> <span class="small" style="color:var(--${{ Value: "good", Wait: "wait", Pass: "bad", Sell: "sell" }[l.call] || "muted"})">${esc(LBL(l.call) || "")}</span><br>${l.why.map(x => `<span class="tag info">${esc(x)}</span>`).join("")}</div><span class="sp"></span><span class="small muted">${Math.round(l.est)}%</span>${grd(gradeOf(l.est), 1)}<span class="p">${ct(l.price)}</span><button class="x" onclick="buildTap('${esc(l.gameId)}','${esc(l.team)}')" aria-label="Remove">✕</button></div>`).join("")}</div>
+    ${weakLine(legs, pool)}
     ${flags.length ? `<div class="small" style="margin-top:8px"><b>Watch out</b>${flags.map(f => `<div class="tiny" style="margin-top:3px">⚠ ${f}</div>`).join("")}</div>` : `<div class="small" style="margin-top:8px;color:var(--good)">No weak legs: every leg is 45%+ and priced at or under its chance.</div>`}${early ? `<div class="tiny muted" style="margin-top:4px">Next week's prices are early: news can still move them.</div>` : ""}
     ${swaps.length ? `<div class="small" style="margin-top:8px"><b>Better swaps</b>${swaps.map(s => `<div class="tiny" style="margin-top:3px">${s.txt} <button class="btn sm" onclick="buildSwap('${esc(s.l.gameId)}','${esc(s.alt.gameId)}','${esc(s.alt.team)}')">Swap</button></div>`).join("")}</div>` : ""}
     <div class="small" style="margin-top:10px"><b>Robinhood's real price?</b> <span class="muted">Type the combo quote you see and we learn the true markup.</span>
@@ -1371,6 +1387,8 @@ function topCombosView() {
     h += (x.cheap || []).length ? x.cheap.slice().sort(comboRank).map((c, i) => topCard(c, i, w + "c")).join("") : NOREC(`${x.legs || 0} teams with prices`);
     h += `<h2${early ? ' data-fold="closed"' : ""}>${title} · best value + chance${early ? ` <span class="cnt">${(x.value || []).length}</span>` : ""}</h2><div class="small muted" style="margin:-4px 0 8px">Any price: the best mix of our win chance and what it costs.</div>`;
     h += (x.value || []).length ? x.value.slice().sort(comboRank).map((c, i) => topCard(c, i, w + "v")).join("") : NOREC();
+    h += `<h2${early ? ' data-fold="closed"' : ""}>${title} · 4 and 5 teams: favourites + best mid-tier${early ? ` <span class="cnt">${(x.midTier || []).length}</span>` : ""}</h2><div class="small muted" style="margin:-4px 0 8px">The most likely winners plus the strongest 50–70% team. Cheaper than all favourites, but hits less often.</div>`;
+    h += (x.midTier || []).length ? x.midTier.slice().sort(comboRank).map((c, i) => topCard(c, i, w + "m")).join("") : NOREC("Not enough teams for 4 legs with one 50–70% team");
   };
   sec("thisWeek", "This week");
   sec("nextWeek", "Next week (early)", true);
