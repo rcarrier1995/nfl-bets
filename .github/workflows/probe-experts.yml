@@ -1,0 +1,24 @@
+name: probe-experts
+# One-off research job: archived CBS expert picks 2023-24 (Internet Archive). Not part of the app.
+on:
+  push:
+    branches: ["claude/**"]
+    paths: ["research/experts_archive/fetch.py", ".github/workflows/probe-experts.yml"]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - run: python research/experts_archive/fetch.py 20230801 20250215
+      - run: curl -sL -o research/experts_archive/games.csv https://github.com/nflverse/nfldata/raw/master/data/games.csv
+      - run: |
+          git config user.name "nfl-bets-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add research/experts_archive
+          git commit -q -m "research: archived CBS expert pages 2023-24"
+          for i in 1 2 3 4; do git pull -q --rebase && git push -q && exit 0; sleep $((i*5)); done
+          exit 1
