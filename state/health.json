@@ -1,13 +1,13 @@
 {
  "espn": {
   "ok": true,
-  "lastOk": "2026-11-26T02:37:18Z",
+  "lastOk": "2026-11-26T02:44:00Z",
   "note": "",
   "fails": 0
  },
  "kalshi": {
   "ok": true,
-  "lastOk": "2026-11-26T02:37:06Z",
+  "lastOk": "2026-11-26T02:43:49Z",
   "note": "",
   "fails": 0,
   "lastFail": "2026-11-23T02:19:30Z",
@@ -15,7 +15,7 @@
  },
  "weather": {
   "ok": true,
-  "lastOk": "2026-11-26T02:37:06Z",
+  "lastOk": "2026-11-26T02:43:49Z",
   "note": "",
   "fails": 0,
   "lastFail": "2026-11-23T19:14:37Z",
@@ -41,13 +41,13 @@
  },
  "polymarket": {
   "ok": true,
-  "lastOk": "2026-11-26T02:37:11Z",
+  "lastOk": "2026-11-26T02:43:50Z",
   "note": "",
   "fails": 0
  },
  "espn-news": {
   "ok": true,
-  "lastOk": "2026-11-26T02:37:11Z",
+  "lastOk": "2026-11-26T02:43:50Z",
   "note": "",
   "fails": 0
  },
