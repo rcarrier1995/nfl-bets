@@ -27,6 +27,9 @@
 html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 "Inter",-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-text-size-adjust:100%;-webkit-font-smoothing:antialiased;font-feature-settings:"tnum" 1,"cv11" 1}
 body{padding-bottom:calc(52px + env(safe-area-inset-bottom) * .6);min-height:100vh;
   background:radial-gradient(1200px 500px at 50% -200px,color-mix(in srgb,var(--accent) 9%,transparent),transparent 70%) no-repeat,var(--bg)}
+/* never slide sideways on phones; inner scrollers still scroll */
+html{overflow-x:hidden;overscroll-behavior-x:none}
+body{max-width:100%;overflow-x:clip}
 button{font:inherit;color:inherit}
 a{color:var(--accent)}
 ::selection{background:color-mix(in srgb,var(--accent) 35%,transparent)}
@@ -154,7 +157,7 @@ h3{font-size:11.5px;font-weight:700;margin:12px 0 8px;color:var(--muted);text-tr
 .chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 .searchw{position:relative;margin-top:10px}
 .searchw svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--faint)}
-.search{width:100%;padding:11px 14px 11px 36px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:15px;outline:none}
+.search{width:100%;padding:11px 14px 11px 36px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:16px;outline:none}
 .search:focus{border-color:color-mix(in srgb,var(--accent) 55%,var(--line))}
 
 /* game rows (sportsbook list) */
@@ -260,7 +263,8 @@ main .banner{margin:10px 0}
 .hb .trk i.alt{background:var(--wait)} .hb .val{min-width:58px;text-align:right}
 .chipf{display:inline-block;font-size:11px;font-weight:600;padding:3px 8px;border-radius:999px;background:var(--soft);margin:3px 4px 0 0;color:var(--muted)}
 svg text{fill:var(--muted);font-size:9px}
-input,select{font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 10px;max-width:100%;outline:none}
+input,select,textarea{font:inherit;font-size:16px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 10px;max-width:100%;outline:none}
+/* 16px+ stops iPhone zooming in (and sliding sideways) when a box is tapped */
 input:focus,select:focus{border-color:color-mix(in srgb,var(--accent) 55%,var(--line))}
 .form{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
 .form>*{width:100%;min-width:0}
