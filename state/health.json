@@ -1,25 +1,25 @@
 {
  "espn": {
   "ok": true,
-  "lastOk": "2026-11-26T07:36:22Z",
+  "lastOk": "2026-11-26T07:49:11Z",
   "note": "",
   "fails": 0
  },
  "kalshi": {
   "ok": true,
-  "lastOk": "2026-11-26T07:36:17Z",
+  "lastOk": "2026-11-26T07:46:53Z",
   "note": "",
   "fails": 0,
   "lastFail": "2026-11-23T02:19:30Z",
   "error": "HTTP Error 429: Too Many Requests"
  },
  "weather": {
-  "ok": true,
+  "ok": false,
   "lastOk": "2026-11-26T07:36:17Z",
   "note": "",
-  "fails": 0,
-  "lastFail": "2026-11-23T19:14:37Z",
-  "error": "HTTP Error 503: Service Unavailable"
+  "fails": 1,
+  "lastFail": "2026-11-26T07:49:03Z",
+  "error": "<urlopen error _ssl.c:994: The handshake operation timed out>"
  },
  "nflverse": {
   "ok": true,
@@ -41,13 +41,13 @@
  },
  "polymarket": {
   "ok": true,
-  "lastOk": "2026-11-26T07:36:17Z",
+  "lastOk": "2026-11-26T07:49:04Z",
   "note": "",
   "fails": 0
  },
  "espn-news": {
   "ok": true,
-  "lastOk": "2026-11-26T07:36:18Z",
+  "lastOk": "2026-11-26T07:49:05Z",
   "note": "",
   "fails": 0
  },
