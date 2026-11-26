@@ -1,13 +1,13 @@
 {
  "espn": {
   "ok": true,
-  "lastOk": "2026-11-26T23:33:48Z",
+  "lastOk": "2026-11-26T23:41:16Z",
   "note": "",
   "fails": 0
  },
  "kalshi": {
   "ok": true,
-  "lastOk": "2026-11-26T23:33:42Z",
+  "lastOk": "2026-11-26T23:40:24Z",
   "note": "",
   "fails": 0,
   "lastFail": "2026-11-26T08:21:58Z",
@@ -15,7 +15,7 @@
  },
  "weather": {
   "ok": true,
-  "lastOk": "2026-11-26T23:33:42Z",
+  "lastOk": "2026-11-26T23:41:06Z",
   "note": "",
   "fails": 0,
   "lastFail": "2026-11-26T08:01:25Z",
@@ -41,13 +41,13 @@
  },
  "polymarket": {
   "ok": true,
-  "lastOk": "2026-11-26T23:33:43Z",
+  "lastOk": "2026-11-26T23:41:11Z",
   "note": "",
   "fails": 0
  },
  "espn-news": {
   "ok": true,
-  "lastOk": "2026-11-26T23:33:43Z",
+  "lastOk": "2026-11-26T23:41:11Z",
   "note": "",
   "fails": 0
  },
@@ -65,7 +65,7 @@
  },
  "rundown": {
   "ok": true,
-  "lastOk": "2026-11-26T23:27:32Z",
+  "lastOk": "2026-11-26T23:41:10Z",
   "note": "13 games",
   "fails": 0
  }
