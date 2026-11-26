@@ -37,7 +37,7 @@ def run(season, last_week, local_games=None, local_team=None):
             tbl_cache[wk] = team_tables(t, wk)
         teams = tbl_cache[wk]
         home, away = C.espn_abbr(r.home_team), C.espn_abbr(r.away_team)
-        margin_home = float(r.spread_line)            # nflverse: positive = home favoured
+        margin_home = float(r.spread_line)            # nflverse: positive = home favored
         neutral = str(r.location) == "Neutral"
         adj, _ = M.epa_adjustment(home, away, True, neutral, margin_home, teams)
         indoor = str(r.roof) in ("dome", "closed")
