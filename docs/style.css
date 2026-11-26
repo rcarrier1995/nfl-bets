@@ -540,3 +540,42 @@ details.bought>summary{min-height:40px;display:flex;align-items:center}
 .bestpicks{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:8px 0 10px}
 .bestpicks .bp-h{font-size:13px;font-weight:700;color:var(--muted);margin-right:2px}
 .bestpicks .bp{display:inline-flex;align-items:center;gap:5px;min-height:40px;padding:4px 10px;border:1px solid var(--line);border-radius:20px;background:var(--card);color:inherit;font:inherit;font-size:14px;cursor:pointer}
+/* ===== review fixes 2026-11-26 ===== */
+/* (3) nothing under 12px; clearer grey */
+.tiny{font-size:12.5px}
+h3{font-size:12.5px}
+.grd.sm{font-size:12px;min-width:19px;height:19px}
+.leghead{font-size:12px}
+.pbar .stl,.pbar .rb{font-size:12px}
+.ttl span{font-size:12.5px}
+:root{--faint:#77818e}
+/* (7) every tap target 40px+ */
+.iconbtn,.gear,.top .gear{width:40px;height:40px}
+.mode button{min-height:36px;font-size:12.5px;padding:0 11px}
+.mode{padding:2px}
+.sysbtn{min-height:40px;padding:0 18px;font-size:13px}
+.chip{min-height:40px}
+.wban{min-height:40px}
+#weeklyBanner .banner .u,main .banner>.u{display:block;min-height:24px;padding:8px 0;margin:-8px 0}
+@media (max-width:480px){.mode button{padding:0 8px;font-size:12px}.top .gear{width:40px;height:40px}}
+@media (max-width:370px){.mode button{padding:0 6px;font-size:11.5px}}
+/* (6) desktop: two columns and words on the tab bar from 900px wide */
+.ttl b{white-space:nowrap}
+@media(min-width:900px){
+  main{max-width:1240px}
+  #weeklyBanner .banner{max-width:1208px}
+  .cols{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:24px;align-items:start}
+  .cols .colL{grid-column:1;grid-row:1}
+  .cols .colR{grid-column:2;grid-row:1;position:sticky;top:70px}
+  .glist.wide{display:grid;grid-template-columns:1fr 1fr;background:transparent;border:0;box-shadow:none;gap:10px}
+  .glist.wide>.gitem{background:var(--card);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+  .glist.wide>.gitem.open{grid-column:1/-1}
+  .tabs button{font-size:13px;display:flex;align-items:center;justify-content:center;gap:4px;height:44px}
+  .tabs .lb{display:inline;font-weight:650}
+}
+.btn{min-height:40px}.mode button{min-height:38px}#weeklyBanner .banner .u,main .banner>.u{padding:9px 0;margin:-9px 0}
+.ttl span{white-space:nowrap}
+@media (max-width:480px){.ttl .uw{display:none}}
+@media(min-width:781px){#weeklyBanner .banner{margin:10px auto 0;width:calc(100% - 32px)}}
+.ttl b .nb{display:inline;font-size:inherit;color:inherit}
+@media (max-width:480px){.ttl b .nb{display:none}}
