@@ -7,15 +7,11 @@
  },
  "rundown": {
   "on": true,
-  "at": "2026-11-26T22:37:16Z",
+  "at": "2026-11-26T22:50:06Z",
   "ok": true,
   "games": 13,
   "data": {
    "BUF|KC": {
-    "DraftKings": {
-     "KC": 41.8,
-     "BUF": 58.2
-    },
     "BetMGM": {
      "KC": 40.9,
      "BUF": 59.1
@@ -110,6 +106,10 @@
     }
    },
    "MIA|NYJ": {
+    "DraftKings": {
+     "NYJ": 68.0,
+     "MIA": 32.0
+    },
     "BetMGM": {
      "NYJ": 67.8,
      "MIA": 32.2
@@ -134,10 +134,6 @@
     }
    },
    "ARI|WSH": {
-    "FanDuel": {
-     "WSH": 74.7,
-     "ARI": 25.3
-    },
     "DraftKings": {
      "WSH": 74.8,
      "ARI": 25.2
@@ -145,12 +141,16 @@
     "BetMGM": {
      "WSH": 73.9,
      "ARI": 26.1
+    },
+    "FanDuel": {
+     "WSH": 74.7,
+     "ARI": 25.3
     }
    },
    "SEA|SF": {
     "DraftKings": {
-     "SEA": 42.1,
-     "SF": 57.9
+     "SEA": 42.0,
+     "SF": 58.0
     },
     "BetMGM": {
      "SEA": 42.6,
