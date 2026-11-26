@@ -7,32 +7,24 @@
  },
  "rundown": {
   "on": true,
-  "at": "2026-11-26T16:06:40Z",
+  "at": "2026-11-26T16:16:59Z",
   "ok": true,
   "games": 15,
   "data": {
    "CHI|DET": {
-    "DraftKings": {
-     "CHI": 52.2,
-     "DET": 47.8
-    },
-    "BetMGM": {
-     "CHI": 52.2,
-     "DET": 47.8
-    },
     "FanDuel": {
-     "CHI": 53.3,
-     "DET": 46.7
+     "CHI": 52.4,
+     "DET": 47.6
     }
    },
    "DAL|PHI": {
-    "DraftKings": {
-     "PHI": 20.5,
-     "DAL": 79.5
-    },
     "BetMGM": {
      "PHI": 20.8,
      "DAL": 79.2
+    },
+    "FanDuel": {
+     "PHI": 20.1,
+     "DAL": 79.9
     }
    },
    "BUF|KC": {
@@ -64,6 +56,10 @@
     }
    },
    "BAL|HOU": {
+    "FanDuel": {
+     "BAL": 28.3,
+     "HOU": 71.7
+    },
     "DraftKings": {
      "BAL": 26.2,
      "HOU": 73.8
@@ -71,13 +67,13 @@
     "BetMGM": {
      "BAL": 27.6,
      "HOU": 72.4
-    },
-    "FanDuel": {
-     "BAL": 28.3,
-     "HOU": 71.7
     }
    },
    "IND|NYG": {
+    "DraftKings": {
+     "NYG": 71.4,
+     "IND": 28.6
+    },
     "BetMGM": {
      "NYG": 71.0,
      "IND": 29.0
@@ -85,10 +81,6 @@
     "FanDuel": {
      "NYG": 71.7,
      "IND": 28.3
-    },
-    "DraftKings": {
-     "NYG": 71.4,
-     "IND": 28.6
     }
    },
    "ATL|MIN": {
@@ -148,6 +140,10 @@
     }
    },
    "LAC|NE": {
+    "FanDuel": {
+     "NE": 51.5,
+     "LAC": 48.5
+    },
     "DraftKings": {
      "NE": 51.8,
      "LAC": 48.2
@@ -155,10 +151,6 @@
     "BetMGM": {
      "NE": 51.7,
      "LAC": 48.3
-    },
-    "FanDuel": {
-     "NE": 51.5,
-     "LAC": 48.5
     }
    },
    "ARI|WSH": {
@@ -177,15 +169,11 @@
    },
    "SEA|SF": {
     "FanDuel": {
-     "SEA": 41.8,
-     "SF": 58.2
+     "SEA": 42.9,
+     "SF": 57.1
     }
    },
    "CLE|LV": {
-    "FanDuel": {
-     "LV": 33.4,
-     "CLE": 66.6
-    },
     "DraftKings": {
      "LV": 31.9,
      "CLE": 68.1
@@ -193,6 +181,10 @@
     "BetMGM": {
      "LV": 33.0,
      "CLE": 67.0
+    },
+    "FanDuel": {
+     "LV": 33.4,
+     "CLE": 66.6
     }
    },
    "CAR|TB": {
