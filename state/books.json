@@ -7,11 +7,15 @@
  },
  "rundown": {
   "on": true,
-  "at": "2026-11-26T23:15:00Z",
+  "at": "2026-11-26T23:27:26Z",
   "ok": true,
   "games": 13,
   "data": {
    "BUF|KC": {
+    "DraftKings": {
+     "KC": 41.6,
+     "BUF": 58.4
+    },
     "BetMGM": {
      "KC": 40.9,
      "BUF": 59.1
@@ -22,6 +26,10 @@
     }
    },
    "DEN|PIT": {
+    "DraftKings": {
+     "DEN": 69.2,
+     "PIT": 30.8
+    },
     "BetMGM": {
      "DEN": 67.4,
      "PIT": 32.6
@@ -32,6 +40,10 @@
     }
    },
    "BAL|HOU": {
+    "FanDuel": {
+     "BAL": 28.3,
+     "HOU": 71.7
+    },
     "DraftKings": {
      "BAL": 26.2,
      "HOU": 73.8
@@ -39,10 +51,6 @@
     "BetMGM": {
      "BAL": 27.6,
      "HOU": 72.4
-    },
-    "FanDuel": {
-     "BAL": 28.3,
-     "HOU": 71.7
     }
    },
    "IND|NYG": {
@@ -74,10 +82,6 @@
     }
    },
    "JAX|TEN": {
-    "FanDuel": {
-     "TEN": 11.6,
-     "JAX": 88.4
-    },
     "DraftKings": {
      "TEN": 10.9,
      "JAX": 89.1
@@ -85,6 +89,10 @@
     "BetMGM": {
      "TEN": 11.4,
      "JAX": 88.6
+    },
+    "FanDuel": {
+     "TEN": 11.6,
+     "JAX": 88.4
     }
    },
    "CIN|NO": {
@@ -102,17 +110,13 @@
     }
    },
    "MIA|NYJ": {
-    "DraftKings": {
-     "NYJ": 68.0,
-     "MIA": 32.0
+    "FanDuel": {
+     "NYJ": 69.0,
+     "MIA": 31.0
     },
     "BetMGM": {
      "NYJ": 67.8,
      "MIA": 32.2
-    },
-    "FanDuel": {
-     "NYJ": 69.0,
-     "MIA": 31.0
     }
    },
    "LAC|NE": {
@@ -137,13 +141,13 @@
     "FanDuel": {
      "WSH": 74.7,
      "ARI": 25.3
+    },
+    "DraftKings": {
+     "WSH": 74.8,
+     "ARI": 25.2
     }
    },
    "SEA|SF": {
-    "DraftKings": {
-     "SEA": 42.0,
-     "SF": 58.0
-    },
     "BetMGM": {
      "SEA": 42.6,
      "SF": 57.4
@@ -151,13 +155,13 @@
     "FanDuel": {
      "SEA": 42.9,
      "SF": 57.1
+    },
+    "DraftKings": {
+     "SEA": 42.0,
+     "SF": 58.0
     }
    },
    "CLE|LV": {
-    "DraftKings": {
-     "LV": 31.9,
-     "CLE": 68.1
-    },
     "BetMGM": {
      "LV": 33.0,
      "CLE": 67.0
@@ -165,13 +169,13 @@
     "FanDuel": {
      "LV": 33.4,
      "CLE": 66.6
+    },
+    "DraftKings": {
+     "LV": 31.9,
+     "CLE": 68.1
     }
    },
    "CAR|TB": {
-    "BetMGM": {
-     "CAR": 40.6,
-     "TB": 59.4
-    },
     "FanDuel": {
      "CAR": 40.7,
      "TB": 59.3
@@ -179,6 +183,10 @@
     "DraftKings": {
      "CAR": 41.4,
      "TB": 58.6
+    },
+    "BetMGM": {
+     "CAR": 40.6,
+     "TB": 59.4
     }
    }
   }
