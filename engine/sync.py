@@ -8,6 +8,7 @@ Messages (JSON in the ntfy message body, each well under ntfy's 4 KB limit):
   {"v": 1, "code": "AB12CD34", "op": "put",   "bet": {... "id": "...", "upd": "<iso>"}}
   {"v": 1, "code": "AB12CD34", "op": "del",   "id": "...", "upd": "<iso>"}
   {"v": 1, "code": "AB12CD34", "op": "quote", "quote": {"legs": 61.2, "quote": 60.1, "n": 3, "at": "<iso>", "teams": [...]}}
+  {"v": 1, "op": "idea", "idea": {"id": "...", "name": "Sam", "text": "..."}}   (no code: app suggestions box)
 Newest "upd" wins per bet. ntfy keeps messages ~12 h, the loop reads them every few minutes, and the app
 re-sends anything the saved file is missing, so a missed message heals itself.
 Real combo quotes also go into config.json comboQuotes (that is what tunes the combo price estimate).
@@ -17,6 +18,7 @@ import json
 import os
 import re
 import urllib.request
+from datetime import datetime, timezone
 
 from . import config as C
 from .fetch import load_json, save_json, iso
@@ -27,6 +29,8 @@ CODE = re.compile(r"^[A-Z0-9]{8}$")
 BET_KEYS = {"id", "upd", "kind", "team", "game", "gameId", "legs", "grade", "call", "price", "qty", "date", "result",
             "week", "season", "auto"}
 MAX_BETS = 2000
+IDEAS_FILE = os.path.join(C.ROOT, "docs", "data", "suggestions.json")
+MAX_IDEAS = 300
 
 
 def topic(cfg=None):
@@ -76,13 +80,34 @@ def _clean_quote(q):
             "legs": round(legs, 2), "quote": round(quote, 2), "n": int(q.get("n") or 0), "note": "Rick, Robinhood (app)"}
 
 
-def apply(msgs, store_for, quotes):
-    """Fold messages into per-code stores. store_for(code) -> dict. Returns the codes changed."""
+def _clean_idea(x, at):
+    """Suggestion from someone using the shared app. Saved for Rick to review; never applied by itself."""
+    if not isinstance(x, dict):
+        return None
+    iid = str(x.get("id") or "")[:40]
+    text = " ".join(str(x.get("text") or "").split())[:600]
+    if not iid or len(text) < 3:
+        return None
+    name = " ".join(str(x.get("name") or "").split())[:30] or "Someone"
+    return {"id": iid, "name": name, "text": text, "at": at}
+
+
+def apply(msgs, store_for, quotes, ideas=None):
+    """Fold messages into per-code stores. store_for(code) -> dict. Returns the codes changed.
+    App suggestions ("idea") are appended to the ideas list when one is passed."""
     changed = set()
     for m in msgs:
         try:
             d = json.loads(m.get("message") or "")
         except Exception:
+            continue
+        if isinstance(d, dict) and d.get("v") == 1 and d.get("op") == "idea":
+            if ideas is not None:
+                t = m.get("time")
+                at = iso(datetime.fromtimestamp(t, timezone.utc)) if isinstance(t, (int, float)) else iso()
+                x = _clean_idea(d.get("idea"), at)
+                if x and not any(i.get("id") == x["id"] for i in ideas):
+                    ideas.append(x)
             continue
         code = str(d.get("code") or "")
         if d.get("v") != 1 or not CODE.match(code):
@@ -145,7 +170,19 @@ def run(rs, now):
 
     quotes = list(cfg.get("comboQuotes") or [])
     n_q = len(quotes)
-    changed = apply(msgs, store_for, quotes)
+    ideas = list((load_json(IDEAS_FILE, {}) or {}).get("ideas") or [])
+    n_i = len(ideas)
+    changed = apply(msgs, store_for, quotes, ideas)
+    if len(ideas) != n_i:
+        new = ideas[n_i:]
+        save_json(IDEAS_FILE, {"at": iso(now), "ideas": ideas[-MAX_IDEAS:]}, compact=True)
+        try:   # tell Rick; he decides what (if anything) changes for everyone
+            from .push import send
+            x = new[-1]
+            send("New app suggestion" + (f"s ({len(new)})" if len(new) > 1 else ""),
+                 f"{x['name']}: {x['text'][:200]}\nOpen Setup > Suggestions to see it.", tags="bulb")
+        except Exception as e:
+            print("suggestion push failed:", e)
     os.makedirs(SYNC_DIR, exist_ok=True)
     for code in changed:
         s = stores[code]

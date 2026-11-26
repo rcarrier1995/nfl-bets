@@ -1860,6 +1860,57 @@ window.shareApp = async () => {
    <div class="row" style="margin-top:12px"><span class="sp"></span><button class="btn pri" onclick="closeModal()">Done</button></div>`);
 };
 
+// ---------- suggestions box (Rick 2026-11-26): anyone using the shared app can leave an idea. Sent through the same
+// free ntfy mailbox as cloud save; the cloud loop saves them to data/suggestions.json for everyone to see.
+// Nothing changes in the app by itself: Rick reviews each one and decides.
+function ideasMine() { try { return JSON.parse(localGet("ideas") || "[]"); } catch (e) { return []; } }
+async function ideasPull() {
+  try { S.ideas = (await fetch("data/suggestions.json?t=" + Date.now()).then(r => r.ok ? r.json() : null))?.ideas || []; }
+  catch (e) { S.ideas = S.ideas || []; }
+  if (S.tab === "setup") { const el = $("#ideasList"); if (el) el.innerHTML = ideasList(); }
+}
+function ideasList() {
+  const saved = (S.ideas || []).slice().reverse();
+  const have = new Set(saved.map(x => x.id));
+  const wait = ideasMine().filter(x => !have.has(x.id) && Date.now() - Date.parse(x.at) < 864e5);
+  const row = (x, pend) => `<div class="idea"><div class="small"><b>${esc(x.name)}</b> <span class="muted">· ${pend ? "sending, shows for everyone in about 10 min" : ago(x.at)}</span></div>
+    <div class="small">${esc(x.text)}</div>${pend ? "" : `${x.feature ? featBtn(x.feature) : ""}<button class="btn sm" onclick="ideaCopy('${esc(x.id)}',this)">Copy</button>`}</div>`;
+  const all = [...wait.reverse().map(x => row(x, true)), ...saved.slice(0, S.ideasAll ? 300 : 5).map(x => row(x, false))];
+  if (!all.length) return `<div class="small muted" style="margin-top:8px">No suggestions yet.</div>`;
+  return all.join("") + (saved.length > 5 && !S.ideasAll ? `<button class="btn sm" style="margin-top:6px" onclick="S.ideasAll=1;$('#ideasList').innerHTML=ideasList()">Show all ${saved.length}</button>` : "");
+}
+// A built suggestion gets "feature": "<key>" in suggestions.json. It stays off until each person turns it on
+// for their own app (this device only). Code checks featOn("<key>").
+const featOn = k => localGet("feat." + k) === "1";
+const featBtn = k => `<button class="btn sm ${featOn(k) ? "" : "pri"}" onclick="featToggle('${esc(k)}')">${featOn(k) ? "✓ On in my app · Turn off" : "Add to my app"}</button>`;
+window.featToggle = k => { localSet("feat." + k, featOn(k) ? "" : "1"); render(); };
+function ideasCard() {
+  if (!S.ideas) ideasPull();
+  return `<div class="card"><h3>Suggestions</h3>
+   <div class="small">Have an idea for the app? Leave it here. Everyone using the app can see it. Rick picks which ideas get built. A built idea gets an <b>Add to my app</b> button, and it only changes your app if you tap it.</div>
+   <input id="ideaName" placeholder="Your name" maxlength="30" value="${esc(localGet("ideaName") || "")}" style="width:100%;margin-top:8px">
+   <textarea id="ideaText" placeholder="Your suggestion" maxlength="600" rows="3" style="width:100%;margin-top:8px;resize:vertical"></textarea>
+   <button class="btn pri" style="margin-top:8px;width:100%" onclick="ideaSend()">Send suggestion</button>
+   <div id="ideaMsg" class="small"></div>
+   <div id="ideasList">${ideasList()}</div></div>`;
+}
+window.ideaSend = () => {
+  const name = ($("#ideaName")?.value || "").trim().slice(0, 30), text = ($("#ideaText")?.value || "").trim().slice(0, 600);
+  if (text.length < 3) { $("#ideaMsg").textContent = "Type a suggestion first."; return; }
+  localSet("ideaName", name);
+  const x = { id: newId(), name: name || "Someone", text, at: nowIso() };
+  try { fetch(`${SYNC_SERVER}/${SYNC_TOPIC}`, { method: "POST", body: JSON.stringify({ v: 1, op: "idea", idea: { id: x.id, name: x.name, text } }) }).catch(() => {}); } catch (e) {}
+  localSet("ideas", JSON.stringify([...ideasMine(), x].slice(-20)));
+  $("#ideaText").value = "";
+  $("#ideaMsg").innerHTML = `<span class="ok">Thanks! Sent.</span>`;
+  $("#ideasList").innerHTML = ideasList();
+};
+window.ideaCopy = async (id, btn) => {
+  const x = (S.ideas || []).find(i => i.id === id); if (!x) return;
+  const t = `Suggestion for the NFL Bets app from ${x.name}: ${x.text}`;
+  try { await navigator.clipboard.writeText(t); btn.textContent = "Copied"; } catch (e) { openModal(`<h2>Copy</h2><textarea readonly rows="4" style="width:100%">${esc(t)}</textarea><div class="row" style="margin-top:12px"><span class="sp"></span><button class="btn pri" onclick="closeModal()">Done</button></div>`); }
+};
+
 // ---------- add to home screen ----------
 let _bip = null;
 window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); _bip = e; });
@@ -1916,6 +1967,7 @@ function setup() {
   return `<div class="ptitle">Setup</div><h2>Setup & Edge</h2>
   ${syncCard()}
   ${shareCard()}
+  ${ideasCard()}
   ${installCard()}
   <div class="card"><h3>Phone alerts</h3>
    <div class="small">Status: ${(p.hasTopic || p.topic) ? `<span class="ok">on — server alerts go only to the app owner's phone</span>` : `<span class="bad">no topic on server</span>`}${p.lastNote ? `<br>${esc(String(p.lastNote).replace(/^(\d{4}-\d\d-\d\dT[\d:]+Z)/, m => "Last: " + ago(m)))}` : ""}</div>
