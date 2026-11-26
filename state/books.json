@@ -7,32 +7,28 @@
  },
  "rundown": {
   "on": true,
-  "at": "2026-11-26T18:47:34Z",
+  "at": "2026-11-26T19:00:30Z",
   "ok": true,
   "games": 14,
   "data": {
    "DAL|PHI": {
-    "BetMGM": {
-     "PHI": 20.0,
-     "DAL": 80.0
-    },
     "FanDuel": {
      "PHI": 19.8,
      "DAL": 80.2
+    },
+    "BetMGM": {
+     "PHI": 20.0,
+     "DAL": 80.0
     }
    },
    "BUF|KC": {
-    "FanDuel": {
-     "KC": 40.7,
-     "BUF": 59.3
-    },
-    "DraftKings": {
-     "KC": 41.8,
-     "BUF": 58.2
-    },
     "BetMGM": {
      "KC": 40.9,
      "BUF": 59.1
+    },
+    "FanDuel": {
+     "KC": 40.7,
+     "BUF": 59.3
     }
    },
    "DEN|PIT": {
@@ -50,10 +46,6 @@
     }
    },
    "BAL|HOU": {
-    "DraftKings": {
-     "BAL": 26.2,
-     "HOU": 73.8
-    },
     "BetMGM": {
      "BAL": 27.6,
      "HOU": 72.4
@@ -106,10 +98,6 @@
     }
    },
    "CIN|NO": {
-    "FanDuel": {
-     "NO": 18.5,
-     "CIN": 81.5
-    },
     "DraftKings": {
      "NO": 18.3,
      "CIN": 81.7
@@ -117,6 +105,10 @@
     "BetMGM": {
      "NO": 18.4,
      "CIN": 81.6
+    },
+    "FanDuel": {
+     "NO": 18.5,
+     "CIN": 81.5
     }
    },
    "MIA|NYJ": {
@@ -134,6 +126,10 @@
     }
    },
    "LAC|NE": {
+    "BetMGM": {
+     "NE": 51.7,
+     "LAC": 48.3
+    },
     "FanDuel": {
      "NE": 51.5,
      "LAC": 48.5
@@ -141,13 +137,13 @@
     "DraftKings": {
      "NE": 51.8,
      "LAC": 48.2
-    },
-    "BetMGM": {
-     "NE": 51.7,
-     "LAC": 48.3
     }
    },
    "ARI|WSH": {
+    "DraftKings": {
+     "WSH": 74.8,
+     "ARI": 25.2
+    },
     "BetMGM": {
      "WSH": 73.9,
      "ARI": 26.1
@@ -155,17 +151,9 @@
     "FanDuel": {
      "WSH": 74.7,
      "ARI": 25.3
-    },
-    "DraftKings": {
-     "WSH": 74.8,
-     "ARI": 25.2
     }
    },
    "SEA|SF": {
-    "DraftKings": {
-     "SEA": 42.0,
-     "SF": 58.0
-    },
     "BetMGM": {
      "SEA": 42.6,
      "SF": 57.4
@@ -173,6 +161,10 @@
     "FanDuel": {
      "SEA": 42.9,
      "SF": 57.1
+    },
+    "DraftKings": {
+     "SEA": 42.0,
+     "SF": 58.0
     }
    },
    "CLE|LV": {
