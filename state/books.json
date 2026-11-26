@@ -7,22 +7,18 @@
  },
  "rundown": {
   "on": true,
-  "at": "2026-11-26T20:53:18Z",
+  "at": "2026-11-26T21:05:53Z",
   "ok": true,
   "games": 14,
   "data": {
    "DAL|PHI": {
-    "DraftKings": {
-     "PHI": 20.8,
-     "DAL": 79.2
-    },
     "BetMGM": {
      "PHI": 20.3,
      "DAL": 79.7
     },
     "FanDuel": {
-     "PHI": 20.5,
-     "DAL": 79.5
+     "PHI": 20.1,
+     "DAL": 79.9
     }
    },
    "BUF|KC": {
@@ -33,6 +29,10 @@
     "BetMGM": {
      "KC": 40.9,
      "BUF": 59.1
+    },
+    "FanDuel": {
+     "KC": 41.1,
+     "BUF": 58.9
     }
    },
    "DEN|PIT": {
@@ -64,10 +64,6 @@
     }
    },
    "IND|NYG": {
-    "FanDuel": {
-     "NYG": 71.7,
-     "IND": 28.3
-    },
     "DraftKings": {
      "NYG": 71.4,
      "IND": 28.6
@@ -75,13 +71,13 @@
     "BetMGM": {
      "NYG": 71.0,
      "IND": 29.0
+    },
+    "FanDuel": {
+     "NYG": 71.7,
+     "IND": 28.3
     }
    },
    "ATL|MIN": {
-    "DraftKings": {
-     "ATL": 27.3,
-     "MIN": 72.7
-    },
     "BetMGM": {
      "ATL": 26.6,
      "MIN": 73.4
@@ -89,13 +85,13 @@
     "FanDuel": {
      "ATL": 26.3,
      "MIN": 73.7
+    },
+    "DraftKings": {
+     "ATL": 27.3,
+     "MIN": 72.7
     }
    },
    "JAX|TEN": {
-    "DraftKings": {
-     "TEN": 11.0,
-     "JAX": 89.0
-    },
     "BetMGM": {
      "TEN": 11.4,
      "JAX": 88.6
@@ -103,6 +99,10 @@
     "FanDuel": {
      "TEN": 11.6,
      "JAX": 88.4
+    },
+    "DraftKings": {
+     "TEN": 11.0,
+     "JAX": 89.0
     }
    },
    "CIN|NO": {
@@ -120,10 +120,6 @@
     }
    },
    "MIA|NYJ": {
-    "DraftKings": {
-     "NYJ": 68.0,
-     "MIA": 32.0
-    },
     "BetMGM": {
      "NYJ": 67.8,
      "MIA": 32.2
@@ -131,6 +127,10 @@
     "FanDuel": {
      "NYJ": 69.0,
      "MIA": 31.0
+    },
+    "DraftKings": {
+     "NYJ": 68.0,
+     "MIA": 32.0
     }
    },
    "LAC|NE": {
@@ -148,6 +148,10 @@
     }
    },
    "ARI|WSH": {
+    "DraftKings": {
+     "WSH": 74.8,
+     "ARI": 25.2
+    },
     "BetMGM": {
      "WSH": 73.9,
      "ARI": 26.1
@@ -155,10 +159,6 @@
     "FanDuel": {
      "WSH": 74.7,
      "ARI": 25.3
-    },
-    "DraftKings": {
-     "WSH": 74.8,
-     "ARI": 25.2
     }
    },
    "SEA|SF": {
