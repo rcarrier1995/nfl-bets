@@ -413,6 +413,11 @@ def tick(force=()):
     backtest = load_json(BT_FILE)
     calib = LR.calib_reliability(L, backtest)
     prev = load_json(TOP_FILE, {}) or {}
+    try:   # cloud save: bets + Robinhood combo quotes posted by the app (free ntfy mailbox)
+        from .sync import run as sync_run
+        sync_run(rs, now)
+    except Exception as e:
+        print("sync failed:", e)
     board = B.build(now, extra_shrink=L["shrink"].get("factor", 1.0), calib=calib, sb_override=sb)
     if board is None:
         return
@@ -460,6 +465,11 @@ def tick(force=()):
                     retest_rules(season, wkn)
                     rs["retest14"] = iso(now)
                 break
+        try:   # Kalshi slow-price test on our own saved prices: runs weekly once 3+ weeks are saved (mid-Dec)
+            from .lag_study import run_weekly as lag_weekly
+            lag_weekly(rs, now)
+        except Exception as e:  # research never blocks the board
+            print("lag study failed:", e)
     # common-sense checks: hold calls (and every Buy/Sell/Dip push) if the data looks wrong
     from . import alarm as AL
     from . import sanity as SN
@@ -610,6 +620,9 @@ def tick(force=()):
         pub["h2hStudy"] = hs
     if board.get("clv"):
         pub["clv"] = board["clv"]
+    ls = load_json(os.path.join(C.STATE, "lag_study.json"))
+    if ls:
+        pub["lagStudy"] = {k: ls.get(k) for k in ("at", "weeks", "summary", "held", "baseline", "signals")}
     rw = load_json(os.path.join(C.STATE, "retest_log.json"))
     if rw:
         pub["retest"] = rw
