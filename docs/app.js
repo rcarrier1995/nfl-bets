@@ -966,6 +966,12 @@ function winChart(g, D) {
   return `<div class="wch"><div class="row tiny muted" style="margin:6px 0 2px;gap:6px"><span><b style="color:var(--ink)">${esc(g.home)} win chance</b> · <span style="color:var(--fair)">━</span> ESPN · <span class="kd">●</span> Kalshi price · <span class="sd">○</span> big play</span><span class="sp"></span><button class="zbtn" onclick="S.wz=S.wz||{};S.wz['${g.id}']=!S.wz['${g.id}'];render()">${zoom ? "Whole game" : "This quarter"}</button></div>
     <svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="ESPN win chance per play and Kalshi price">${grid}${qs}<path d="${line}" fill="none" stroke="var(--fair)" stroke-width="1.8" stroke-linejoin="round"/>${kd}${big}${now}</svg></div>`;
 }
+// slow, readable scroll (~25 px a second, set by text length); the start point follows the clock,
+// so the 15-second refresh doesn't snap the ticker back to the beginning
+function tickStyle(t) {
+  const d = Math.max(40, Math.round(t.replace(/<[^>]*>/g, "").length * 0.32));
+  return `animation-duration:${d}s;animation-delay:-${((Date.now() / 1000) % d).toFixed(1)}s`;
+}
 function clockSecs(c) { const m = /^(\d+):(\d+)$/.exec(c || ""); return m ? +m[1] * 60 + +m[2] : null; }
 function toDots(n) { return n == null ? "" : `<span class="tos" title="${n} timeouts left">${[0, 1, 2].map(i => `<i class="${i < n ? "on" : ""}"></i>`).join("")}</span>`; }
 function driveBox(g) {
@@ -1007,7 +1013,7 @@ function driveBox(g) {
   const list = S.open.has(id) ? `<div class="drvl">${(dr?.plays || []).filter(p => shortPlay(p)).slice().reverse().map(p => `<div class="pp"><span class="dotk k-${p.kind}"></span><span class="tiny muted">Q${p.q} ${esc(p.clock)} · ${esc(p.dd || "")}${p.spot ? " at " + esc(p.spot) : ""}</span> ${flagChips(p)}<br><span class="small">${esc(shortPlay(p))}</span>${wpTag(g, p)}</div>`).join("")}</div>` : "";
   return `<div class="drv" id="drv-${g.id}">${head}${ban}${fieldSvg(g, D, dr, sit)}
     <div class="legend tiny muted">${[["k-run", "Run"], ["k-pass", "Pass"], ["k-inc", "Incomplete"], ["k-sack", "Sack"], ["k-pen", "Penalty"], ["k-to", "Turnover"], ["fd", "1st down"], ["los", "Ball spot"]].map(([k, t]) => `<span><i class="lg ${k}"></i>${t}</span>`).join("")}</div>
-    ${recent.length ? `<div class="ticker" onclick="toggle('${id}')"><div class="tkin">${tick}${tick}</div></div>` : ""}
+    ${recent.length ? `<div class="ticker" onclick="toggle('${id}')"><div class="tkin" style="${tickStyle(tick)}">${tick}${tick}</div></div>` : ""}
     ${winChart(g, D)}
     <div class="line u tiny" onclick="toggle('${id}')">${S.open.has(id) ? "Hide" : "Show"} every play this drive · win % from ESPN</div>${list}</div>`;
 }
