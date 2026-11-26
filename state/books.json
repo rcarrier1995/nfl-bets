@@ -7,22 +7,14 @@
  },
  "rundown": {
   "on": true,
-  "at": "2026-11-26T20:03:10Z",
+  "at": "2026-11-26T20:15:37Z",
   "ok": true,
   "games": 14,
   "data": {
    "DAL|PHI": {
-    "DraftKings": {
-     "PHI": 21.1,
-     "DAL": 78.9
-    },
     "BetMGM": {
      "PHI": 20.0,
      "DAL": 80.0
-    },
-    "FanDuel": {
-     "PHI": 19.8,
-     "DAL": 80.2
     }
    },
    "BUF|KC": {
@@ -42,10 +34,6 @@
     }
    },
    "BAL|HOU": {
-    "DraftKings": {
-     "BAL": 26.2,
-     "HOU": 73.8
-    },
     "BetMGM": {
      "BAL": 27.6,
      "HOU": 72.4
@@ -53,6 +41,10 @@
     "FanDuel": {
      "BAL": 28.3,
      "HOU": 71.7
+    },
+    "DraftKings": {
+     "BAL": 26.2,
+     "HOU": 73.8
     }
    },
    "IND|NYG": {
@@ -70,10 +62,6 @@
     }
    },
    "ATL|MIN": {
-    "FanDuel": {
-     "ATL": 26.3,
-     "MIN": 73.7
-    },
     "DraftKings": {
      "ATL": 27.3,
      "MIN": 72.7
@@ -81,9 +69,17 @@
     "BetMGM": {
      "ATL": 26.6,
      "MIN": 73.4
+    },
+    "FanDuel": {
+     "ATL": 26.3,
+     "MIN": 73.7
     }
    },
    "JAX|TEN": {
+    "DraftKings": {
+     "TEN": 11.4,
+     "JAX": 88.6
+    },
     "BetMGM": {
      "TEN": 11.1,
      "JAX": 88.9
@@ -91,10 +87,6 @@
     "FanDuel": {
      "TEN": 11.6,
      "JAX": 88.4
-    },
-    "DraftKings": {
-     "TEN": 11.4,
-     "JAX": 88.6
     }
    },
    "CIN|NO": {
@@ -112,6 +104,10 @@
     }
    },
    "MIA|NYJ": {
+    "DraftKings": {
+     "NYJ": 68.0,
+     "MIA": 32.0
+    },
     "BetMGM": {
      "NYJ": 67.8,
      "MIA": 32.2
@@ -119,10 +115,6 @@
     "FanDuel": {
      "NYJ": 69.0,
      "MIA": 31.0
-    },
-    "DraftKings": {
-     "NYJ": 68.0,
-     "MIA": 32.0
     }
    },
    "LAC|NE": {
@@ -140,10 +132,6 @@
     }
    },
    "ARI|WSH": {
-    "DraftKings": {
-     "WSH": 74.8,
-     "ARI": 25.2
-    },
     "BetMGM": {
      "WSH": 73.9,
      "ARI": 26.1
@@ -151,13 +139,13 @@
     "FanDuel": {
      "WSH": 74.7,
      "ARI": 25.3
+    },
+    "DraftKings": {
+     "WSH": 74.8,
+     "ARI": 25.2
     }
    },
    "SEA|SF": {
-    "FanDuel": {
-     "SEA": 42.9,
-     "SF": 57.1
-    },
     "DraftKings": {
      "SEA": 41.8,
      "SF": 58.2
@@ -165,6 +153,10 @@
     "BetMGM": {
      "SEA": 42.6,
      "SF": 57.4
+    },
+    "FanDuel": {
+     "SEA": 42.9,
+     "SF": 57.1
     }
    },
    "CLE|LV": {
