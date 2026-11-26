@@ -525,13 +525,27 @@ def build_game(ev, tables, kidx, wx_all, pt_idx, live_state, snaps, prev_calls, 
         g_h, g_why = PF.adjust_pts(away, home)    # only grades that beat the line in the weekly study
         pts_home = margin_home + adj_h + (w_h - w_a) + (i_h - i_a) + g_h
         f_h, f_a, shrink = M.fair_pair(pts_home, extra_shrink)
+        eq, boost = None, 0
+        if state == "pre":
+            try:   # Elite QB weak D (Rick 2026-11-26): small fair boost, see watch.EQWD_BOOST
+                from . import watch as WT
+                eq = WT.eqwd_team(g_season(ev), g_week(ev), away, home, inj[away] + inj[home])
+                boost = WT.EQWD_BOOST if eq else 0
+            except Exception as e:
+                print("eqwd boost failed:", e)
+        if eq == home:
+            f_h, f_a = round(min(99.0, f_h + boost), 1), round(max(1.0, f_a - boost), 1)
+        elif eq == away:
+            f_h, f_a = round(max(1.0, f_h - boost), 1), round(min(99.0, f_a + boost), 1)
         pre_fair = {home: f_h, away: f_a}
         parts = {home: {"spread": margin_home, "epa": adj_h, "epaDetail": adj_detail, "weather": w_h - w_a,
                         "weatherWhy": w_why_h or w_why_a, "inj": i_h - i_a, "injNotes": n_h, "oppInjNotes": n_a,
-                        "grades": g_h, "gradesWhy": g_why, "pts": round(pts_home, 2), "shrink": shrink},
+                        "grades": g_h, "gradesWhy": g_why, "pts": round(pts_home, 2), "shrink": shrink,
+                        "eqwd": boost if eq == home else -boost if eq else 0},
                  away: {"spread": -margin_home, "epa": -adj_h, "epaDetail": adj_detail, "weather": w_a - w_h,
                         "weatherWhy": w_why_a or w_why_h, "inj": i_a - i_h, "injNotes": n_a, "oppInjNotes": n_h,
-                        "grades": -g_h, "gradesWhy": g_why, "pts": round(-pts_home, 2), "shrink": shrink}}
+                        "grades": -g_h, "gradesWhy": g_why, "pts": round(-pts_home, 2), "shrink": shrink,
+                        "eqwd": boost if eq == away else -boost if eq else 0}}
     else:
         parts = {}
     for side in ("away", "home"):

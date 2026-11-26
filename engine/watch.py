@@ -206,6 +206,53 @@ FADE_EDGE = 3      # the other side of a hot streak: +1 to +5c, small
 GAP = 5            # a leg counts for the watch-tag combo when the tested win % beats its price by 5c+
 
 
+# Rick 2026-11-26: Elite QB weak D now moves picks. Fresh re-test (2006-26 incl playoffs, 717 bets, exact rule):
+# won 65% at 60c, +3.6c a bet after fee (z 2.1, 15/21 seasons up). Found by searching, so the boost is kept small.
+EQWD_BOOST = 3     # cents added to the tagged team's fair (taken off the other side)
+_EQ = {}
+
+
+def eqwd_team(season, week, away, home, injuries=()):
+    """The team in this game that gets the Elite QB weak D fair boost, or None. Same rule as the tag:
+    starting QB career EPA top 20% and own D success allowed worst 20%, opponent not both. If the listed
+    starter is Out/Doubtful the boost is skipped (the tag itself re-checks the backup later)."""
+    if not season or not week:
+        return None
+    import time
+    key = (season, week)
+    if key not in _EQ or time.time() - _EQ.get("at", 0) > 3600:
+        st = load_json(FILE, {}) or {}
+        starter = {}
+        if st.get("qb"):
+            try:
+                T = games()
+                T = T[(T.season == season) & (T.week == week)]
+                starter = {r.team: (r.qb, r.qbn) for r in T.itertuples()}
+            except Exception as e:
+                print("eqwd starters failed:", e)
+        if not starter:         # files not there yet: try again next run
+            return None
+        _EQ.clear()
+        _EQ[key] = (st, starter)
+        _EQ["at"] = time.time()
+    st, starter = _EQ[key]
+    out = {_short(i.get("player")) for i in injuries or [] if i.get("status") in ("Out", "Doubtful")}
+
+    def ok(t):
+        qid, qn = starter.get(t, (None, None))
+        if not isinstance(qid, str) or (qn and _short(qn) in out):
+            return False
+        q = st["qb"].get(qid)
+        d = st["dsr"].get(t)
+        return bool(q and q[0] >= QB_CUT and d is not None and d >= DSR_CUT)
+    fa, fh = ok(away), ok(home)
+    if fa and not fh:
+        return away
+    if fh and not fa:
+        return home
+    return None
+
+
 def _pct_rank(vals, higher_better=True):
     """{team: value} -> {team: 0-32 percentile rank, 32 = best} (as in the study: rank within the week)."""
     xs = {t: v for t, v in vals.items() if v is not None}
@@ -467,8 +514,8 @@ def track(board):
 
 
 STUDY = {
-    TAGS["eqwd"]: "Our rebuild of the rule (career QB EPA top 20%, own D success allowed worst 20%): 2006–20 397 games won 68.5% at 61¢; "
-                  "2021–26 162 games won 68.5% at 58.5¢. The research write-up's version (150 games, 71% at 59¢) used a slightly different cut. Edge used: +6¢ (shrunk).",
+    TAGS["eqwd"]: "Re-tested 2026-11-26 with playoffs (2006–26): 717 games won 65% at 60¢, about +3.6¢ a bet after fees, "
+                  "up in 15 of 21 seasons. Now adds +3¢ to this team's fair price. Found by searching, so kept small.",
     TAGS["dbu"]: "2013–20: 172 games won 59% at 52¢. 2021–24: 113 games 60% at 55¢. 2025–26: 43 games 67% at 56¢.",
     TAGS["qbwr"]: "Priced 65–80¢: 2013–20 247 games won 82% at 73¢. 2021–24 114 games 80%. 2025–26 53 games 83% (about +4 to +8¢).",
     TAGS["wrout"]: "Team missing a key WR (70%+ snaps): priced about 4¢ too high in 2013–20 and 2021–26 (309 / 248 games). Tracked on the other side.",
