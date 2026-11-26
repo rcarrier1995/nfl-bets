@@ -592,6 +592,22 @@ def test_sync_newest_wins_and_quotes_checked():
     assert "b3" not in st["bets"]                                       # deleted later than this edit
 
 
+def test_sync_ideas_saved_cleaned_once():
+    import json as J
+    from engine import sync as S
+    ideas = []
+    m = lambda d, t=1764193200: {"message": J.dumps({"v": 1, "op": "idea", **d}), "time": t}
+    msgs = [m({"idea": {"id": "i1", "name": "  Sam  ", "text": "Add  a dark\nmode " + "x" * 700}}),
+            m({"idea": {"id": "i1", "name": "Sam", "text": "dup"}}),        # same id: ignored
+            m({"idea": {"id": "i2", "text": "hi"}}),                        # too short
+            m({"idea": {"id": "i3", "text": "More combos"}})]
+    assert S.apply(msgs, lambda c: None, [], ideas) == set()
+    assert [i["id"] for i in ideas] == ["i1", "i3"]
+    assert ideas[0]["name"] == "Sam" and ideas[0]["text"].startswith("Add a dark mode") and len(ideas[0]["text"]) == 600
+    assert ideas[1]["name"] == "Someone" and ideas[1]["at"] == "2025-11-26T21:40:00Z"
+    assert S.apply(msgs, lambda c: None, []) == set()                   # no ideas list: still safe
+
+
 def test_extra_books_parse_and_sharp_line():
     """PinnWire / OddsPapi / TheRundown replies (documented shapes) -> de-vigged win % per team, Pinnacle line on card."""
     from unittest import mock
