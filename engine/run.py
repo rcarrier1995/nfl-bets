@@ -447,6 +447,12 @@ def tick(force=()):
     LR.grade_finals(board, snaps, L)
     forced = [j.split("-", 1)[1] for j in jobs if j.startswith("window-")]
     LR.window_lessons(board, L, force_windows=forced)
+    if L["weekly"] and not L["weekly"][-1].get("review"):   # fill in a week reviewed before this existed (no push)
+        try:
+            from . import weekreview as WR
+            WR.attach(L, L["weekly"][-1]["season"], L["weekly"][-1]["week"], snaps)
+        except Exception as e:
+            print("weekly review backfill failed:", e)
     for j in jobs:
         if j.startswith("window-"):
             rs[j] = ct(now).strftime("%Y-%m-%d")
@@ -459,6 +465,11 @@ def tick(force=()):
             item = LR.weekly_review(board, L, season, wkn)
             if item:
                 rs["weekly"] = f"{season}-w{wkn}"
+                try:   # weekly pick review + re-run through today's engine (Rick 2026-11-27), before the recap
+                    from . import weekreview as WR
+                    WR.attach(L, season, wkn, snaps)
+                except Exception as e:
+                    print("weekly review failed:", e)
                 try:   # Monday night recap push (Rick 2026-11-26): once per week, when the week's last game is final
                     from . import recaps as RC
                     RC.recap(L, season, wkn, rs, P.send)

@@ -237,8 +237,16 @@ def update_shrink(L):
     se = 100 * ((pred / 100) * (1 - pred / 100) / len(recs)) ** 0.5
     if gap > 3 and gap > 2 * se:   # only a real, statistically clear miss (n=12 noise fooled the old rule)
         f = max(0.85, round(1 - gap / 100 * 1.5, 3))
-        L["shrink"] = {"factor": f, "note": f"Favorites 65¢+ hit {act:.0f}% vs {pred:.0f}% predicted — fairs shrunk ×{f}",
-                       "n": len(recs), "at": iso()}
+        # Rick 2026-11-27: any fair change must pass a backtest first (2021-now, this season weighted more)
+        from .weekreview import backtest_shrink
+        gate = backtest_shrink(f)
+        if gate and gate["passed"]:
+            L["shrink"] = {"factor": f, "note": f"Favorites 65¢+ hit {act:.0f}% vs {pred:.0f}% predicted — fairs shrunk ×{f} (passed backtest)",
+                           "n": len(recs), "gate": gate, "at": iso()}
+        else:
+            L["shrink"] = {"factor": 1.0, "note": f"Favorites 65¢+ hit {act:.0f}% vs {pred:.0f}% predicted, but a ×{f} trim "
+                           + ("failed the backtest" if gate else "couldn't be backtested") + " — no change",
+                           "n": len(recs), "gate": gate or {"passed": False}, "at": iso()}
     else:
         L["shrink"] = {"factor": 1.0, "note": f"Favorites {act:.0f}% vs {pred:.0f}% predicted (n={len(recs)}) — within noise, no extra shrink",
                        "n": len(recs), "at": iso()}
