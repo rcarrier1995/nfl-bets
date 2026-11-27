@@ -82,5 +82,17 @@
   "to": 100,
   "kalshi": 100.0,
   "won": 1
+ },
+ {
+  "t": "2026-11-27T01:13:08Z",
+  "gameId": "401873080",
+  "game": "PHI @ DAL",
+  "q": 4,
+  "clock": "2:10",
+  "team": "PHI",
+  "from": 2,
+  "to": 27,
+  "kalshi": 19.0,
+  "won": null
  }
 ]
