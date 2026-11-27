@@ -4,7 +4,7 @@
  "pregameAt": "2026-11-25T01:48:24Z",
  "window-early": "2026-11-22",
  "alertsSent": [],
- "light": "2026-11-27T19:36:28Z",
+ "light": "2026-11-27T19:42:41Z",
  "window-late": "2026-11-22",
  "inactives": "2026-11-27",
  "valueSent": {},
@@ -49,7 +49,8 @@
   "401873084|ATL|Zachariah Branch|Out": "2026-11-27T18:42:45Z",
   "401873083|PIT|Kaden Wetjen|Out": "2026-11-27T18:53:27Z",
   "401873088|IND|Seth McGowan|Out": "2026-11-27T18:53:27Z",
-  "401873092|WSH|Amik Robertson|Out": "2026-11-27T19:30:19Z"
+  "401873092|WSH|Amik Robertson|Out": "2026-11-27T19:30:19Z",
+  "401873087|CIN|Dalton Risner|Out": "2026-11-27T19:42:41Z"
  },
  "newsSeeded": true,
  "window-snf": "2026-11-22",
