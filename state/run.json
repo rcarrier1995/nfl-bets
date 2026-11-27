@@ -4,7 +4,7 @@
  "pregameAt": "2026-11-25T01:48:24Z",
  "window-early": "2026-11-22",
  "alertsSent": [],
- "light": "2026-11-26T23:59:44Z",
+ "light": "2026-11-27T00:06:07Z",
  "window-late": "2026-11-22",
  "inactives": "2026-11-26",
  "valueSent": {},
@@ -34,7 +34,8 @@
   "401873081|DET|Chuck Clark|Out": "2026-11-26T16:47:57Z",
   "401873083|PIT|Alex Highsmith|Out": "2026-11-26T19:50:41Z",
   "401873080|DAL|Tyler Booker|Out": "2026-11-26T20:28:04Z",
-  "401873080|PHI|CB C.DeJean out \u2014 impact -1.0 pt": "2026-11-26T23:53:30Z"
+  "401873080|PHI|CB C.DeJean out \u2014 impact -1.0 pt": "2026-11-26T23:53:30Z",
+  "401873082|BUF|Christian Benford|Out": "2026-11-27T00:06:07Z"
  },
  "newsSeeded": true,
  "window-snf": "2026-11-22",
@@ -45,7 +46,7 @@
  "weekly": "2026-w11",
  "gapSent": {},
  "wpLast": {
-  "401873080": 98.0
+  "401873080": 98.8
  },
  "feedSent": {
   "news|50589757|PIT": "2026-11-25T16:07:20Z",
