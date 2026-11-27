@@ -1533,6 +1533,11 @@ function learning() {
     const bu = w.buys?.n ? `Buy calls ${money(w.buys.net)} on ${w.buys.n} (per contract, after fees)` : "No Buy calls graded";
     return `<div class="banner"><span class="u" onclick="toggle('${id}')">${esc(w.label ? w.label.split(":")[0] : "Week " + w.week)} — ${bu}</span>${S.open.has(id) ? `<div class="small" style="margin-top:6px">${w.review ? `<b>${esc(US(w.review.learned))}</b><br>By grade: ${["A+", "A", "B", "C"].filter(g => w.review.byGrade?.[g]).map(g => { const o = w.review.byGrade[g]; return `${g} ${o.won}-${o.lost} (${money(o.net)} a contract)`; }).join(" · ")}<br>` : ""}${esc(w.lesson)}<br>${esc(w.shrink || "")}<br>Picks ${w.w}/${w.n} right · Brier ${w.brier}<br>${calibChart(w.calibration, "By fair value")}${Object.entries(w.combos || {}).map(([k, v]) => `${k} combos hit ${v.hit}/${v.n}${v.net != null ? ` (${money(v.net)} a contract)` : ""}`).join(" · ")}</div>` : ""}</div>`;
   }).join("") : NOREC(S.B.nextCheck);
+  // team tracker (info only): every team vs our picks, this year counted most
+  if (L.teams?.rows?.length) {
+    const id = "teams";
+    h += `<div class="banner"><span class="u" onclick="toggle('${id}')">Teams vs our picks — ${esc(L.teams.status || "")}</span>${S.open.has(id) ? `<div class="small" style="margin-top:6px">${L.teams.rows.map(r => esc(US(r.line))).join("<br>")}</div>` : ""}</div>`;
+  }
   // experts
   const E = S.B.experts;
   if (E?.table?.length) {

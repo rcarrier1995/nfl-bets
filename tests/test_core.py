@@ -812,3 +812,16 @@ def test_shrink_needs_backtest(monkeypatch):
     assert LR.update_shrink(L)["factor"] == 1.0 and "failed the backtest" in L["shrink"]["note"]
     monkeypatch.setattr("engine.weekreview.backtest_shrink", lambda f, **k: {"factor": f, "passed": True})
     assert LR.update_shrink(L)["factor"] < 1.0
+
+
+def test_team_line_and_week_note():
+    from engine import teamtrack as TT
+    r = {"team": "DAL", "record": "5-7", "appRight": 4, "appPicked": 9, "upsets": 1, "comebacks": 1, "blown": 2,
+         "vsAppWeighted": -10.0, "home": "2-5", "away": "3-2"}
+    line = TT.team_line(r)
+    assert line.startswith("DAL: 5-7") and "2 blown 4th-quarter leads" in line and "10% less" in line
+    L = {"graded": {"k": {"season": 2026, "week": 12, "right": False, "tie": False, "pick": "DAL", "home": "DAL",
+                          "away": "PHI", "winner": "PHI", "pickFair": 78.8,
+                          "quarters": [{"q": 3, "cumAway": 17, "cumHome": 31}]}}}
+    n = TT.week_notes(L, 2026, 12, {"DAL": r})
+    assert n.startswith("Team note: PHI beat DAL (79%, A); DAL led by 14 into the 4th")

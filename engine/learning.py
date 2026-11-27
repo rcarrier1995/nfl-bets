@@ -359,4 +359,13 @@ def public(L, backtest):
     return {"totals": totals(L), "windows": L["windows"][-40:], "weekly": L["weekly"][-20:],
             "calibration": calibration(recs), "calibConf": calibration_conf(recs), "byCall": by_call(recs),
             "shrink": L["shrink"], "audit": L["audit"][-400:], "graded": recs[-120:],
-            "backtest": backtest, "generatedAt": iso()}
+            "backtest": backtest, "teams": _teams(), "generatedAt": iso()}
+
+
+def _teams():
+    """Team tracker for the Learning tab (info only). None until it has been built."""
+    t = load_json(os.path.join(C.STATE, "team_track.json"), None)
+    if not t:
+        return None
+    return {"at": t.get("at"), "status": t.get("status"),
+            "rows": sorted(t.get("teams", {}).values(), key=lambda r: -(r.get("vsAppWeighted") or 0))}
