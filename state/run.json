@@ -4,7 +4,7 @@
  "pregameAt": "2026-11-25T01:48:24Z",
  "window-early": "2026-11-22",
  "alertsSent": [],
- "light": "2026-11-27T18:11:54Z",
+ "light": "2026-11-27T18:22:06Z",
  "window-late": "2026-11-22",
  "inactives": "2026-11-26",
  "valueSent": {},
@@ -39,7 +39,8 @@
   "401873089|MIA|JuJu Brents|Out": "2026-11-27T15:46:27Z",
   "401873090|JAX|Parker Washington|Out": "2026-11-27T15:56:35Z",
   "401873090|TEN|Cor'Dale Flott|Out": "2026-11-27T17:41:00Z",
-  "401873092|ARI|Carson Beck|Out": "2026-11-27T17:51:32Z"
+  "401873092|ARI|Carson Beck|Out": "2026-11-27T17:51:32Z",
+  "401873093|NE|A.J. Brown|Out": "2026-11-27T18:22:06Z"
  },
  "newsSeeded": true,
  "window-snf": "2026-11-22",
@@ -60,7 +61,8 @@
   "prac|401873091|Brock Purdy|DNP Thu": "2026-11-26T19:50:41Z",
   "prac|401873093|Justin Herbert|DNP Thu, DNP Fri": "2026-11-27T08:13:54Z",
   "prac|401873092|Carson Beck|DNP Thu, DNP Fri": "2026-11-27T08:13:54Z",
-  "prac|401873091|Brock Purdy|DNP Thu, DNP Fri": "2026-11-27T08:13:54Z"
+  "prac|401873091|Brock Purdy|DNP Thu, DNP Fri": "2026-11-27T08:13:54Z",
+  "news|50612845|ARI": "2026-11-27T18:22:06Z"
  },
  "feedSeeded": true,
  "buySeen": {},
