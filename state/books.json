@@ -7,36 +7,18 @@
  },
  "rundown": {
   "on": true,
-  "at": "2026-11-27T01:13:08Z",
+  "at": "2026-11-27T01:25:36Z",
   "ok": true,
-  "games": 13,
+  "games": 12,
   "data": {
-   "BUF|KC": {
-    "DraftKings": {
-     "KC": 41.6,
-     "BUF": 58.4
-    },
-    "BetMGM": {
-     "KC": 40.9,
-     "BUF": 59.1
-    },
-    "FanDuel": {
-     "KC": 39.9,
-     "BUF": 60.1
-    }
-   },
    "DEN|PIT": {
-    "DraftKings": {
-     "DEN": 68.9,
-     "PIT": 31.1
+    "FanDuel": {
+     "DEN": 67.3,
+     "PIT": 32.7
     },
     "BetMGM": {
      "DEN": 67.4,
      "PIT": 32.6
-    },
-    "FanDuel": {
-     "DEN": 67.3,
-     "PIT": 32.7
     }
    },
    "BAL|HOU": {
@@ -68,6 +50,10 @@
     }
    },
    "ATL|MIN": {
+    "FanDuel": {
+     "ATL": 26.3,
+     "MIN": 73.7
+    },
     "DraftKings": {
      "ATL": 27.3,
      "MIN": 72.7
@@ -75,10 +61,6 @@
     "BetMGM": {
      "ATL": 26.6,
      "MIN": 73.4
-    },
-    "FanDuel": {
-     "ATL": 26.3,
-     "MIN": 73.7
     }
    },
    "JAX|TEN": {
@@ -180,10 +162,6 @@
     }
    },
    "CAR|TB": {
-    "DraftKings": {
-     "CAR": 41.4,
-     "TB": 58.6
-    },
     "BetMGM": {
      "CAR": 40.6,
      "TB": 59.4
@@ -191,6 +169,10 @@
     "FanDuel": {
      "CAR": 40.7,
      "TB": 59.3
+    },
+    "DraftKings": {
+     "CAR": 41.4,
+     "TB": 58.6
     }
    }
   }
