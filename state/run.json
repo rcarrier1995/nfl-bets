@@ -4,7 +4,7 @@
  "pregameAt": "2026-11-25T01:48:24Z",
  "window-early": "2026-11-22",
  "alertsSent": [],
- "light": "2026-11-27T19:49:13Z",
+ "light": "2026-11-27T19:55:23Z",
  "window-late": "2026-11-22",
  "inactives": "2026-11-27",
  "valueSent": {},
@@ -50,7 +50,11 @@
   "401873083|PIT|Kaden Wetjen|Out": "2026-11-27T18:53:27Z",
   "401873088|IND|Seth McGowan|Out": "2026-11-27T18:53:27Z",
   "401873092|WSH|Amik Robertson|Out": "2026-11-27T19:30:19Z",
-  "401873087|CIN|Dalton Risner|Out": "2026-11-27T19:42:41Z"
+  "401873087|CIN|Dalton Risner|Out": "2026-11-27T19:42:41Z",
+  "401873087|NO|Juwan Johnson|Out": "2026-11-27T19:55:23Z",
+  "401873085|BAL|Nnamdi Madubuike|Out": "2026-11-27T19:55:23Z",
+  "401873085|BAL|Olaivavega Ioane|Out": "2026-11-27T19:55:23Z",
+  "401873085|BAL|Jaylinn Hawkins|Out": "2026-11-27T19:55:23Z"
  },
  "newsSeeded": true,
  "window-snf": "2026-11-22",
