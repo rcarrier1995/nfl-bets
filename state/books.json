@@ -7,22 +7,22 @@
  },
  "rundown": {
   "on": true,
-  "at": "2026-11-27T02:15:46Z",
+  "at": "2026-11-27T02:28:11Z",
   "ok": true,
   "games": 12,
   "data": {
    "DEN|PIT": {
-    "FanDuel": {
-     "DEN": 67.3,
-     "PIT": 32.7
-    },
     "DraftKings": {
-     "DEN": 68.9,
-     "PIT": 31.1
+     "DEN": 68.5,
+     "PIT": 31.5
     },
     "BetMGM": {
      "DEN": 67.4,
      "PIT": 32.6
+    },
+    "FanDuel": {
+     "DEN": 67.3,
+     "PIT": 32.7
     }
    },
    "BAL|HOU": {
@@ -40,10 +40,6 @@
     }
    },
    "IND|NYG": {
-    "BetMGM": {
-     "NYG": 71.0,
-     "IND": 29.0
-    },
     "FanDuel": {
      "NYG": 71.7,
      "IND": 28.3
@@ -51,20 +47,20 @@
     "DraftKings": {
      "NYG": 71.4,
      "IND": 28.6
+    },
+    "BetMGM": {
+     "NYG": 71.0,
+     "IND": 29.0
     }
    },
    "ATL|MIN": {
-    "FanDuel": {
-     "ATL": 26.3,
-     "MIN": 73.7
-    },
-    "DraftKings": {
-     "ATL": 27.3,
-     "MIN": 72.7
-    },
     "BetMGM": {
      "ATL": 26.6,
      "MIN": 73.4
+    },
+    "FanDuel": {
+     "ATL": 26.3,
+     "MIN": 73.7
     }
    },
    "JAX|TEN": {
@@ -96,6 +92,10 @@
     }
    },
    "MIA|NYJ": {
+    "DraftKings": {
+     "NYJ": 68.1,
+     "MIA": 31.9
+    },
     "BetMGM": {
      "NYJ": 67.8,
      "MIA": 32.2
@@ -103,10 +103,6 @@
     "FanDuel": {
      "NYJ": 69.0,
      "MIA": 31.0
-    },
-    "DraftKings": {
-     "NYJ": 68.1,
-     "MIA": 31.9
     }
    },
    "LAC|NE": {
@@ -124,6 +120,10 @@
     }
    },
    "ARI|WSH": {
+    "DraftKings": {
+     "WSH": 74.8,
+     "ARI": 25.2
+    },
     "BetMGM": {
      "WSH": 73.9,
      "ARI": 26.1
@@ -131,10 +131,6 @@
     "FanDuel": {
      "WSH": 74.7,
      "ARI": 25.3
-    },
-    "DraftKings": {
-     "WSH": 74.8,
-     "ARI": 25.2
     }
    },
    "SEA|SF": {
@@ -152,6 +148,10 @@
     }
    },
    "CLE|LV": {
+    "DraftKings": {
+     "LV": 31.9,
+     "CLE": 68.1
+    },
     "BetMGM": {
      "LV": 33.0,
      "CLE": 67.0
@@ -159,10 +159,6 @@
     "FanDuel": {
      "LV": 33.4,
      "CLE": 66.6
-    },
-    "DraftKings": {
-     "LV": 31.9,
-     "CLE": 68.1
     }
    },
    "CAR|TB": {
