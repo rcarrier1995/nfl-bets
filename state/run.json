@@ -4,9 +4,9 @@
  "pregameAt": "2026-11-25T01:48:24Z",
  "window-early": "2026-11-22",
  "alertsSent": [],
- "light": "2026-11-27T18:22:06Z",
+ "light": "2026-11-27T18:32:18Z",
  "window-late": "2026-11-22",
- "inactives": "2026-11-26",
+ "inactives": "2026-11-27",
  "valueSent": {},
  "newsSent": {
   "401873078|CIN|Dalton Risner|Out": "2026-11-23T02:15:04Z",
@@ -40,13 +40,16 @@
   "401873090|JAX|Parker Washington|Out": "2026-11-27T15:56:35Z",
   "401873090|TEN|Cor'Dale Flott|Out": "2026-11-27T17:41:00Z",
   "401873092|ARI|Carson Beck|Out": "2026-11-27T17:51:32Z",
-  "401873093|NE|A.J. Brown|Out": "2026-11-27T18:22:06Z"
+  "401873093|NE|A.J. Brown|Out": "2026-11-27T18:22:06Z",
+  "401873088|IND|Jalen Travis|Out": "2026-11-27T18:32:18Z",
+  "401873088|IND|Charvarius Ward|Out": "2026-11-27T18:32:18Z",
+  "401873093|NE|Carlton Davis III|Out": "2026-11-27T18:32:18Z"
  },
  "newsSeeded": true,
  "window-snf": "2026-11-22",
  "expertsAt": {
   "2026-w11": 1795565234.710964,
-  "2026-w12": 1795793138.864938
+  "2026-w12": 1795804338.682769
  },
  "weekly": "2026-w11",
  "gapSent": {},
