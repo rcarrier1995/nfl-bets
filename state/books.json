@@ -7,7 +7,7 @@
  },
  "rundown": {
   "on": true,
-  "at": "2026-11-27T20:36:22Z",
+  "at": "2026-11-27T20:49:00Z",
   "ok": true,
   "games": 11,
   "data": {
@@ -40,6 +40,10 @@
     }
    },
    "ATL|MIN": {
+    "DraftKings": {
+     "ATL": 26.8,
+     "MIN": 73.2
+    },
     "BetMGM": {
      "ATL": 26.6,
      "MIN": 73.4
@@ -50,6 +54,10 @@
     }
    },
    "JAX|TEN": {
+    "DraftKings": {
+     "TEN": 13.0,
+     "JAX": 87.0
+    },
     "BetMGM": {
      "TEN": 12.1,
      "JAX": 87.9
@@ -57,10 +65,6 @@
     "FanDuel": {
      "TEN": 12.0,
      "JAX": 88.0
-    },
-    "DraftKings": {
-     "TEN": 13.0,
-     "JAX": 87.0
     }
    },
    "CIN|NO": {
@@ -95,6 +99,10 @@
     "FanDuel": {
      "NE": 54.7,
      "LAC": 45.3
+    },
+    "DraftKings": {
+     "NE": 55.8,
+     "LAC": 44.2
     }
    },
    "ARI|WSH": {
