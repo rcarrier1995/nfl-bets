@@ -1,24 +1,24 @@
 {
  "espn": {
   "ok": true,
-  "lastOk": "2026-11-27T04:20:22Z",
+  "lastOk": "2026-11-27T04:29:11Z",
   "note": "",
   "fails": 0
  },
  "kalshi": {
   "ok": true,
-  "lastOk": "2026-11-27T04:20:13Z",
+  "lastOk": "2026-11-27T04:26:55Z",
   "note": "",
   "fails": 0,
   "lastFail": "2026-11-26T08:21:58Z",
   "error": "HTTP Error 500: Internal Server Error"
  },
  "weather": {
-  "ok": true,
+  "ok": false,
   "lastOk": "2026-11-27T04:20:13Z",
   "note": "",
-  "fails": 0,
-  "lastFail": "2026-11-27T00:48:14Z",
+  "fails": 1,
+  "lastFail": "2026-11-27T04:29:04Z",
   "error": "<urlopen error _ssl.c:994: The handshake operation timed out>"
  },
  "nflverse": {
@@ -41,13 +41,13 @@
  },
  "polymarket": {
   "ok": true,
-  "lastOk": "2026-11-27T04:20:18Z",
+  "lastOk": "2026-11-27T04:29:06Z",
   "note": "",
   "fails": 0
  },
  "espn-news": {
   "ok": true,
-  "lastOk": "2026-11-27T04:20:18Z",
+  "lastOk": "2026-11-27T04:29:06Z",
   "note": "",
   "fails": 0
  },
@@ -59,7 +59,7 @@
  },
  "odds": {
   "ok": true,
-  "lastOk": "2026-11-27T04:01:41Z",
+  "lastOk": "2026-11-27T04:29:04Z",
   "note": "",
   "fails": 0
  },
