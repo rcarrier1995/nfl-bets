@@ -7,11 +7,15 @@
  },
  "rundown": {
   "on": true,
-  "at": "2026-11-27T21:38:25Z",
+  "at": "2026-11-27T21:51:15Z",
   "ok": true,
   "games": 11,
   "data": {
    "BAL|HOU": {
+    "DraftKings": {
+     "BAL": 26.2,
+     "HOU": 73.8
+    },
     "BetMGM": {
      "BAL": 27.6,
      "HOU": 72.4
@@ -19,10 +23,6 @@
     "FanDuel": {
      "BAL": 28.3,
      "HOU": 71.7
-    },
-    "DraftKings": {
-     "BAL": 26.2,
-     "HOU": 73.8
     }
    },
    "IND|NYG": {
@@ -40,10 +40,6 @@
     }
    },
    "ATL|MIN": {
-    "FanDuel": {
-     "ATL": 26.3,
-     "MIN": 73.7
-    },
     "DraftKings": {
      "ATL": 26.8,
      "MIN": 73.2
@@ -51,6 +47,10 @@
     "BetMGM": {
      "ATL": 26.6,
      "MIN": 73.4
+    },
+    "FanDuel": {
+     "ATL": 26.3,
+     "MIN": 73.7
     }
    },
    "JAX|TEN": {
@@ -96,6 +96,10 @@
     }
    },
    "LAC|NE": {
+    "DraftKings": {
+     "NE": 57.0,
+     "LAC": 43.0
+    },
     "BetMGM": {
      "NE": 56.6,
      "LAC": 43.4
@@ -103,13 +107,13 @@
     "FanDuel": {
      "NE": 54.7,
      "LAC": 45.3
-    },
-    "DraftKings": {
-     "NE": 57.0,
-     "LAC": 43.0
     }
    },
    "ARI|WSH": {
+    "BetMGM": {
+     "WSH": 73.9,
+     "ARI": 26.1
+    },
     "FanDuel": {
      "WSH": 75.3,
      "ARI": 24.7
@@ -117,10 +121,6 @@
     "DraftKings": {
      "WSH": 74.7,
      "ARI": 25.3
-    },
-    "BetMGM": {
-     "WSH": 73.9,
-     "ARI": 26.1
     }
    },
    "SEA|SF": {
@@ -131,27 +131,19 @@
     "BetMGM": {
      "SEA": 44.4,
      "SF": 55.6
-    },
-    "FanDuel": {
-     "SEA": 42.6,
-     "SF": 57.4
     }
    },
    "CLE|LV": {
-    "FanDuel": {
-     "LV": 33.1,
-     "CLE": 66.9
-    },
     "BetMGM": {
      "LV": 33.0,
      "CLE": 67.0
+    },
+    "FanDuel": {
+     "LV": 33.1,
+     "CLE": 66.9
     }
    },
    "CAR|TB": {
-    "DraftKings": {
-     "CAR": 41.0,
-     "TB": 59.0
-    },
     "BetMGM": {
      "CAR": 40.6,
      "TB": 59.4
@@ -159,6 +151,10 @@
     "FanDuel": {
      "CAR": 41.1,
      "TB": 58.9
+    },
+    "DraftKings": {
+     "CAR": 41.0,
+     "TB": 59.0
     }
    }
   }
