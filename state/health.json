@@ -1,13 +1,13 @@
 {
  "espn": {
   "ok": true,
-  "lastOk": "2026-11-27T00:39:58Z",
+  "lastOk": "2026-11-27T00:48:24Z",
   "note": "",
   "fails": 0
  },
  "kalshi": {
   "ok": true,
-  "lastOk": "2026-11-27T00:37:43Z",
+  "lastOk": "2026-11-27T00:46:05Z",
   "note": "",
   "fails": 0,
   "lastFail": "2026-11-26T08:21:58Z",
@@ -17,8 +17,8 @@
   "ok": false,
   "lastOk": "2026-11-27T00:30:59Z",
   "note": "",
-  "fails": 1,
-  "lastFail": "2026-11-27T00:39:52Z",
+  "fails": 2,
+  "lastFail": "2026-11-27T00:48:14Z",
   "error": "<urlopen error _ssl.c:994: The handshake operation timed out>"
  },
  "nflverse": {
@@ -41,13 +41,13 @@
  },
  "polymarket": {
   "ok": true,
-  "lastOk": "2026-11-27T00:39:53Z",
+  "lastOk": "2026-11-27T00:48:19Z",
   "note": "",
   "fails": 0
  },
  "espn-news": {
   "ok": true,
-  "lastOk": "2026-11-27T00:39:53Z",
+  "lastOk": "2026-11-27T00:48:19Z",
   "note": "",
   "fails": 0
  },
@@ -59,13 +59,13 @@
  },
  "odds": {
   "ok": true,
-  "lastOk": "2026-11-27T00:24:48Z",
+  "lastOk": "2026-11-27T00:48:14Z",
   "note": "",
   "fails": 0
  },
  "rundown": {
   "ok": true,
-  "lastOk": "2026-11-27T00:31:03Z",
+  "lastOk": "2026-11-27T00:48:19Z",
   "note": "13 games",
   "fails": 0
  }
