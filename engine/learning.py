@@ -359,7 +359,7 @@ def public(L, backtest):
     return {"totals": totals(L), "windows": L["windows"][-40:], "weekly": L["weekly"][-20:],
             "calibration": calibration(recs), "calibConf": calibration_conf(recs), "byCall": by_call(recs),
             "shrink": L["shrink"], "audit": L["audit"][-400:], "graded": recs[-120:],
-            "backtest": backtest, "teams": _teams(), "generatedAt": iso()}
+            "backtest": backtest, "teams": _teams(), "qbs": _qbs(), "generatedAt": iso()}
 
 
 def _teams():
@@ -369,3 +369,16 @@ def _teams():
         return None
     return {"at": t.get("at"), "status": t.get("status"),
             "rows": sorted(t.get("teams", {}).values(), key=lambda r: -(r.get("vsAppWeighted") or 0))}
+
+
+def _qbs():
+    """QB split + team moves for the Learning tab (info only). None until built."""
+    q = load_json(os.path.join(C.STATE, "qb_split.json"), None)
+    if not q:
+        return None
+    rows = []
+    for t, x in sorted((q.get("teams") or {}).items()):
+        if len(x.get("starters") or []) > 1:
+            rows.append(f"{t}: " + ", ".join(f"{s['name']} {s['record']}" for s in x["starters"]))
+    mv = [f"{m['name']} ({m['pos']}) {m['from']} to {m['to']}, week {m['week']}" for m in q.get("moves") or []]
+    return {"at": q.get("at"), "study": q.get("study"), "rows": rows, "moves": mv}

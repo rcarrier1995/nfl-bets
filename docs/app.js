@@ -450,8 +450,29 @@ function teamInfo(c) {
   const ch = teamChips(g, t);
   if (ch) h += `<div class="small" style="margin:6px 0 2px"><b>Grades</b> <span class="muted">· last 17 games · #1 best, #32 worst</span></div>${ch}`;
   h += formInfo(g, t);
+  h += qbInfo(g, t);
   h += feedInfo(c);
   return h;
+}
+// team split by starting QB + players who changed teams (Rick 2026-11-27). Info only: shown when the team changed QBs or players
+function qbInfo(g, t) {
+  const q = g.qbs?.[t], mv = g.moves?.[t] || [];
+  if (!(q?.split) && !mv.length) return "";
+  const id = "qbs:" + g.id + t, nm = lastName(q?.qb);
+  let h = `<div class="small" style="margin:4px 0"><span class="u" onclick="toggle('${id}')"><b>QB${q?.new ? " change" : ""}:</b> `;
+  if (q?.split) {
+    h += `${esc(q.qb)}${q.new ? ` starts${q.lastQb ? ` for ${esc(lastName(q.lastQb))}` : ""}` : ""} · ${q.with ? `${esc(t)} ${esc(q.with)} with him` : "no starts for " + esc(t) + " yet"}${q.without ? `, ${esc(q.without)} with others` : ""}`;
+  } else h += `${esc(q?.qb || "")} · team moves`;
+  h += `</span>`;
+  if (S.open.has(id)) {
+    const r = [];
+    if (q?.split && q.others?.length) r.push(`Others this year: ${esc(q.others.join(", "))}`);
+    if (q?.withRank && q?.teamRank) r.push(`Offense with ${esc(nm)}: plays like #${q.withRank} (whole season #${q.teamRank})`);
+    if (q?.career) r.push(`${esc(nm)}'s own record: #${q.careerRank} of ${q.careerOf} starters this year (this year counted most) · ${esc(q.career.starts)} as a starter since 2006`);
+    for (const m of mv) r.push(`${m.dir === "in" ? "In" : "Out"}: ${esc(m.name)} (${esc(m.pos)}) ${m.dir === "in" ? "from " + esc(m.from) : "to " + esc(m.to)}, week ${m.week}`);
+    if (r.length) h += `<div class="tiny" style="margin-top:3px">${r.join("<br>")}</div><div class="tiny muted">Info only. In tests the price mostly handled QB changes and trades.</div>`;
+  }
+  return h + `</div>`;
 }
 // form, coach style and backup QB (context only: none beat the price in testing)
 function formInfo(g, t) {
@@ -699,6 +720,7 @@ function tagText(w, g) {
     case "Hot streak overpriced": return [o, `${t} on a hot streak, priced about ${fe}¢ too high`];
     case "Key WR out": return [o, `${t} missing key WR${w.players?.length ? " " + w.players.map(lastName).join(", ") : ""}, priced about ${fe}¢ too high`];
     case "Underdog experts pick": return [t, `underdog experts like ${t}`];
+    case "New QB track record": return [t, `QB change${qb ? " (" + qb + ")" : ""}: QB track records lean ${t} about ${Math.round(w.cents || 0)}¢`];
   }
   return [t, w.tag];
 }
@@ -1533,6 +1555,11 @@ function learning() {
     const bu = w.buys?.n ? `Buy calls ${money(w.buys.net)} on ${w.buys.n} (per contract, after fees)` : "No Buy calls graded";
     return `<div class="banner"><span class="u" onclick="toggle('${id}')">${esc(w.label ? w.label.split(":")[0] : "Week " + w.week)} — ${bu}</span>${S.open.has(id) ? `<div class="small" style="margin-top:6px">${w.review ? `<b>${esc(US(w.review.learned))}</b><br>By grade: ${["A+", "A", "B", "C"].filter(g => w.review.byGrade?.[g]).map(g => { const o = w.review.byGrade[g]; return `${g} ${o.won}-${o.lost} (${money(o.net)} a contract)`; }).join(" · ")}<br>` : ""}${esc(w.lesson)}<br>${esc(w.shrink || "")}<br>Picks ${w.w}/${w.n} right · Brier ${w.brier}<br>${calibChart(w.calibration, "By fair value")}${Object.entries(w.combos || {}).map(([k, v]) => `${k} combos hit ${v.hit}/${v.n}${v.net != null ? ` (${money(v.net)} a contract)` : ""}`).join(" · ")}</div>` : ""}</div>`;
   }).join("") : NOREC(S.B.nextCheck);
+  // QB split + team moves (info only, Rick 2026-11-27)
+  if (L.qbs?.rows?.length || L.qbs?.moves?.length) {
+    const id = "qbsplit";
+    h += `<div class="banner"><span class="u" onclick="toggle('${id}')">QB changes and trades — ${L.qbs.rows.length} teams changed QBs, ${L.qbs.moves.length} players moved</span>${S.open.has(id) ? `<div class="small" style="margin-top:6px">${esc(US(L.qbs.study || ""))}<br><br><b>Starters this year</b><br>${L.qbs.rows.map(esc).join("<br>")}${L.qbs.moves.length ? `<br><br><b>Moved mid-season</b><br>${L.qbs.moves.map(esc).join("<br>")}` : ""}</div>` : ""}</div>`;
+  }
   // team tracker (info only): every team vs our picks, this year counted most
   if (L.teams?.rows?.length) {
     const id = "teams";
