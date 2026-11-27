@@ -4,7 +4,7 @@
  "pregameAt": "2026-11-25T01:48:24Z",
  "window-early": "2026-11-22",
  "alertsSent": [],
- "light": "2026-11-27T08:03:40Z",
+ "light": "2026-11-27T08:13:54Z",
  "window-late": "2026-11-22",
  "inactives": "2026-11-26",
  "valueSent": {},
@@ -53,7 +53,10 @@
   "news|50596930|SF": "2026-11-26T00:22:32Z",
   "prac|401873092|Carson Beck|DNP Thu": "2026-11-26T07:26:05Z",
   "prac|401873093|Justin Herbert|DNP Thu": "2026-11-26T19:50:41Z",
-  "prac|401873091|Brock Purdy|DNP Thu": "2026-11-26T19:50:41Z"
+  "prac|401873091|Brock Purdy|DNP Thu": "2026-11-26T19:50:41Z",
+  "prac|401873093|Justin Herbert|DNP Thu, DNP Fri": "2026-11-27T08:13:54Z",
+  "prac|401873092|Carson Beck|DNP Thu, DNP Fri": "2026-11-27T08:13:54Z",
+  "prac|401873091|Brock Purdy|DNP Thu, DNP Fri": "2026-11-27T08:13:54Z"
  },
  "feedSeeded": true,
  "buySeen": {},
