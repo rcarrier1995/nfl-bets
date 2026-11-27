@@ -7,15 +7,11 @@
  },
  "rundown": {
   "on": true,
-  "at": "2026-11-27T22:15:48Z",
+  "at": "2026-11-27T22:28:07Z",
   "ok": true,
   "games": 10,
   "data": {
    "BAL|HOU": {
-    "FanDuel": {
-     "BAL": 28.3,
-     "HOU": 71.7
-    },
     "DraftKings": {
      "BAL": 26.2,
      "HOU": 73.8
@@ -23,9 +19,17 @@
     "BetMGM": {
      "BAL": 27.6,
      "HOU": 72.4
+    },
+    "FanDuel": {
+     "BAL": 28.3,
+     "HOU": 71.7
     }
    },
    "IND|NYG": {
+    "FanDuel": {
+     "NYG": 70.4,
+     "IND": 29.6
+    },
     "DraftKings": {
      "NYG": 70.4,
      "IND": 29.6
@@ -33,10 +37,6 @@
     "BetMGM": {
      "NYG": 70.1,
      "IND": 29.9
-    },
-    "FanDuel": {
-     "NYG": 70.4,
-     "IND": 29.6
     }
    },
    "ATL|MIN": {
@@ -45,8 +45,8 @@
      "MIN": 73.7
     },
     "DraftKings": {
-     "ATL": 26.8,
-     "MIN": 73.2
+     "ATL": 26.7,
+     "MIN": 73.3
     },
     "BetMGM": {
      "ATL": 26.6,
@@ -95,11 +95,17 @@
      "MIA": 31.0
     }
    },
-   "ARI|WSH": {
-    "DraftKings": {
-     "WSH": 74.7,
-     "ARI": 25.3
+   "LAC|NE": {
+    "BetMGM": {
+     "NE": 57.1,
+     "LAC": 42.9
     },
+    "FanDuel": {
+     "NE": 57.1,
+     "LAC": 42.9
+    }
+   },
+   "ARI|WSH": {
     "BetMGM": {
      "WSH": 73.9,
      "ARI": 26.1
@@ -107,27 +113,13 @@
     "FanDuel": {
      "WSH": 75.3,
      "ARI": 24.7
-    }
-   },
-   "SEA|SF": {
-    "FanDuel": {
-     "SEA": 44.7,
-     "SF": 55.3
     },
     "DraftKings": {
-     "SEA": 44.4,
-     "SF": 55.6
-    },
-    "BetMGM": {
-     "SEA": 44.4,
-     "SF": 55.6
+     "WSH": 74.7,
+     "ARI": 25.3
     }
    },
    "CLE|LV": {
-    "FanDuel": {
-     "LV": 33.1,
-     "CLE": 66.9
-    },
     "DraftKings": {
      "LV": 32.6,
      "CLE": 67.4
@@ -135,9 +127,17 @@
     "BetMGM": {
      "LV": 33.0,
      "CLE": 67.0
+    },
+    "FanDuel": {
+     "LV": 33.1,
+     "CLE": 66.9
     }
    },
    "CAR|TB": {
+    "FanDuel": {
+     "CAR": 41.1,
+     "TB": 58.9
+    },
     "DraftKings": {
      "CAR": 41.0,
      "TB": 59.0
@@ -145,10 +145,6 @@
     "BetMGM": {
      "CAR": 40.6,
      "TB": 59.4
-    },
-    "FanDuel": {
-     "CAR": 41.1,
-     "TB": 58.9
     }
    }
   }

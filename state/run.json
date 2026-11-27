@@ -4,7 +4,7 @@
  "pregameAt": "2026-11-25T01:48:24Z",
  "window-early": "2026-11-22",
  "alertsSent": [],
- "light": "2026-11-27T22:21:58Z",
+ "light": "2026-11-27T22:28:07Z",
  "window-late": "2026-11-22",
  "inactives": "2026-11-27",
  "valueSent": {},
@@ -62,7 +62,11 @@
   "401873090|JAX|Bhayshul Tuten|Out": "2026-11-27T21:13:41Z",
   "401873089|MIA|Bradley Pinion|Out": "2026-11-27T21:32:16Z",
   "401873088|NYG|Shelby Harris|Out": "2026-11-27T21:38:25Z",
-  "401873086|LV|Adam Butler|Out": "2026-11-27T22:03:31Z"
+  "401873086|LV|Adam Butler|Out": "2026-11-27T22:03:31Z",
+  "401873093|LAC|Keaton Mitchell|Out": "2026-11-27T22:28:07Z",
+  "401873093|LAC|Daiyan Henley|Out": "2026-11-27T22:28:07Z",
+  "401873093|LAC|Justin Herbert|Out": "2026-11-27T22:28:07Z",
+  "401873091|SEA|Jarran Reed|Out": "2026-11-27T22:28:07Z"
  },
  "newsSeeded": true,
  "window-snf": "2026-11-22",
@@ -73,7 +77,7 @@
  "weekly": "2026-w11",
  "gapSent": {},
  "wpLast": {
-  "401873083": 99.6
+  "401873083": 99.8
  },
  "feedSent": {
   "news|50589757|PIT": "2026-11-25T16:07:20Z",
