@@ -228,13 +228,34 @@ def key_players(p, before_week):
     cv["v"] = cv.pd + 2 * cv.ints
     for df in (qb, rc, rb, pr, cv):
         df["rank"] = df["v"].rank(ascending=False, method="min").astype(int)
+    # every QB's season across teams (traded QBs keep their numbers)
+    qa = p[p.position == "QB"].groupby("player_name").agg(g=("week", "nunique"), att=("attempts", "sum"), sk=("sacks_suffered", "sum"),
+                                                         pepa=("passing_epa", "sum"), pyd=("passing_yards", "sum")).reset_index()
+    qa = qa[qa.att + qa.sk > 0].copy()
+    qa["v"] = qa.pepa / (qa.att + qa.sk)
+    qbs_pool = qa[qa.att >= 100]
+    qbs_all = {}
+    for r in qa.itertuples():
+        if r.att >= 10:
+            row = qa.loc[r.Index].copy()
+            row["rank"] = int(1 + (qbs_pool.v > r.v).sum())
+            row["of"] = len(qbs_pool) + (0 if r.att >= 100 else 1)
+            qbs_all[r.player_name] = row
     out = {}
     def put(team, key, row, txt):
         out.setdefault(team, {})[key] = {"name": row.player_name, "rank": int(row["rank"]), "of": None, "txt": txt}
     for team in a.team.unique():
-        t = qb[qb.team == team].sort_values("att", ascending=False)
-        if len(t):
-            r = t.iloc[0]; put(team, "QB", r, f"{r.v:+.2f} EPA/db · {r.pyd / max(1, r.g):.0f} yds/g"); out[team]["QB"]["of"] = len(qb)
+        # QB = whoever started most recently (Rick 2026-11-27: current QB, not the one with the most throws),
+        # with his whole-season numbers across teams, ranked among QBs with 100+ attempts
+        cur = _current_qb(p, team)
+        r = qbs_all.get(cur) if cur else None
+        if r is not None:
+            put(team, "QB", r, f"{r.v:+.2f} EPA/db · {r.pyd / max(1, r.g):.0f} yds/g" + ("" if r.att >= 100 else f" · only {int(r.att)} throws"))
+            out[team]["QB"]["of"] = int(r["of"])
+        else:
+            t = qb[qb.team == team].sort_values("att", ascending=False)
+            if len(t):
+                r = t.iloc[0]; put(team, "QB", r, f"{r.v:+.2f} EPA/db · {r.pyd / max(1, r.g):.0f} yds/g"); out[team]["QB"]["of"] = len(qb)
         t = rc[rc.team == team].sort_values("tg", ascending=False)
         if len(t):
             r = t.iloc[0]; put(team, "WR1", r, f"{int(r.tg)} tgt · {r.v:+.2f} EPA/tgt · {r.ryd / max(1, r.g):.0f} yds/g"); out[team]["WR1"]["of"] = len(rc)
@@ -248,6 +269,14 @@ def key_players(p, before_week):
         if len(t):
             r = t.iloc[0]; put(team, "Cover", r, f"{int(r.pd)} PD · {int(r.ints)} INT"); out[team]["Cover"]["of"] = len(cv)
     return out
+
+
+def _current_qb(p, team):
+    """Name of the QB with 10+ attempts in the team's latest game (p already filtered to before this week)."""
+    x = p[(p.team == team) & (p.position == "QB") & (p.attempts >= 10)]
+    if not len(x):
+        return None
+    return x.sort_values(["week", "attempts"]).iloc[-1].player_name
 
 
 def backup_map(depth, prior, kickoff_iso=None):
