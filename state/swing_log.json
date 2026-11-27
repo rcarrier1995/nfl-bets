@@ -166,5 +166,17 @@
   "to": 58,
   "kalshi": 65.0,
   "won": null
+ },
+ {
+  "t": "2026-11-27T04:14:03Z",
+  "gameId": "401873082",
+  "game": "KC @ BUF",
+  "q": 4,
+  "clock": "1:47",
+  "team": "BUF",
+  "from": 48,
+  "to": 75,
+  "kalshi": 71.0,
+  "won": null
  }
 ]
