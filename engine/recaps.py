@@ -179,6 +179,10 @@ def recap_lines(L, season, week, store=None):
             cents += q * ((100 - p) if res == "win" else (50 - p) if res == "tie" else -p)
         if n:
             lines.append(f"Your bets {w}-{l} · {'+' if cents >= 0 else '-'}${abs(cents) / 100:.2f}")
+    wk = next((x for x in (L.get("weekly") or []) if x.get("season") == season and x.get("week") == week), None)
+    learned = ((wk or {}).get("review") or {}).get("learned")
+    if learned:
+        lines.append(learned)
     return lines
 
 

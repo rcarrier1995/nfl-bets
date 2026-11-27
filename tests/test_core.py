@@ -784,3 +784,31 @@ def test_rest_flag():
     assert calls[1]["restLine"].startswith("DEN has locked the #1 seed") and "its starters" in calls[0]["restLine"]
     board["week"] = 12
     assert R.attach(board, fetch=lambda s: codes) == 0 and "restLine" not in calls[0]
+
+
+def test_weekly_review_grades_rerun_and_recap_line(monkeypatch):
+    from engine import weekreview as WR, recaps as RC
+    monkeypatch.setattr("engine.watch.eqwd_team", lambda *a, **k: None)
+    monkeypatch.setattr("engine.profiles.adjust_pts", lambda a, h: (0.0, []))
+    rec = {"key": "2026-w11|1", "season": 2026, "week": 11, "away": "AAA", "home": "BBB", "winner": "BBB",
+           "tie": False, "right": True, "pickFair": 80.0, "pick": "BBB", "final": "AAA 10 — BBB 20",
+           "calls": {"AAA": {"call": "Pass", "fair": 20.0, "price": 21.0}, "BBB": {"call": "Pass", "fair": 80.0, "price": 79.0}}}
+    L = {"graded": {rec["key"]: rec}, "weekly": [{"season": 2026, "week": 11}], "shrink": {"factor": 1.0}}
+    snaps = {rec["key"]: {"spreadHome": -11.0, "inj": {}, "wx": None}}
+    rv = WR.attach(L, 2026, 11, snaps)
+    assert rv["byGrade"]["A"] == {"n": 1, "won": 1, "lost": 0, "net": 100 - 79 - M.fee_cents(79)}
+    assert rv["byCall"]["Pass"]["n"] == 2
+    assert rv["rerun"]["games"] == 1 and rv["rerun"]["changed"] == []
+    assert rv["learned"].startswith("Learned: A picks 1-0") and "no change" in rv["learned"]
+    assert WR.attach(L, 2026, 11, snaps) is None            # once per week
+    assert RC.recap_lines(L, 2026, 11)[-1] == rv["learned"]
+
+
+def test_shrink_needs_backtest(monkeypatch):
+    from engine import learning as LR
+    recs = {str(i): {"pickFair": 80.0, "right": i % 2 == 0} for i in range(60)}   # favorites hit 50% vs 80%
+    monkeypatch.setattr("engine.weekreview.backtest_shrink", lambda f, **k: {"factor": f, "passed": False})
+    L = {"graded": recs}
+    assert LR.update_shrink(L)["factor"] == 1.0 and "failed the backtest" in L["shrink"]["note"]
+    monkeypatch.setattr("engine.weekreview.backtest_shrink", lambda f, **k: {"factor": f, "passed": True})
+    assert LR.update_shrink(L)["factor"] < 1.0
