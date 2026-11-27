@@ -7,22 +7,28 @@
  },
  "rundown": {
   "on": true,
-  "at": "2026-11-27T00:06:07Z",
+  "at": "2026-11-27T00:18:31Z",
   "ok": true,
-  "games": 12,
+  "games": 13,
   "data": {
-   "DEN|PIT": {
+   "BUF|KC": {
+    "BetMGM": {
+     "KC": 40.3,
+     "BUF": 59.7
+    },
     "FanDuel": {
-     "DEN": 67.3,
-     "PIT": 32.7
-    },
-    "DraftKings": {
-     "DEN": 69.1,
-     "PIT": 30.9
-    },
+     "KC": 40.3,
+     "BUF": 59.7
+    }
+   },
+   "DEN|PIT": {
     "BetMGM": {
      "DEN": 67.4,
      "PIT": 32.6
+    },
+    "FanDuel": {
+     "DEN": 67.3,
+     "PIT": 32.7
     }
    },
    "BAL|HOU": {
@@ -40,6 +46,10 @@
     }
    },
    "IND|NYG": {
+    "DraftKings": {
+     "NYG": 71.4,
+     "IND": 28.6
+    },
     "BetMGM": {
      "NYG": 71.0,
      "IND": 29.0
@@ -64,6 +74,10 @@
     }
    },
    "JAX|TEN": {
+    "DraftKings": {
+     "TEN": 10.9,
+     "JAX": 89.1
+    },
     "BetMGM": {
      "TEN": 11.4,
      "JAX": 88.6
@@ -71,10 +85,6 @@
     "FanDuel": {
      "TEN": 11.6,
      "JAX": 88.4
-    },
-    "DraftKings": {
-     "TEN": 10.9,
-     "JAX": 89.1
     }
    },
    "CIN|NO": {
@@ -102,10 +112,6 @@
     }
    },
    "LAC|NE": {
-    "FanDuel": {
-     "NE": 52.4,
-     "LAC": 47.6
-    },
     "DraftKings": {
      "NE": 55.5,
      "LAC": 44.5
@@ -113,6 +119,10 @@
     "BetMGM": {
      "NE": 54.7,
      "LAC": 45.3
+    },
+    "FanDuel": {
+     "NE": 52.4,
+     "LAC": 47.6
     }
    },
    "ARI|WSH": {
@@ -130,10 +140,6 @@
     }
    },
    "SEA|SF": {
-    "FanDuel": {
-     "SEA": 42.9,
-     "SF": 57.1
-    },
     "DraftKings": {
      "SEA": 42.0,
      "SF": 58.0
@@ -141,6 +147,10 @@
     "BetMGM": {
      "SEA": 42.6,
      "SF": 57.4
+    },
+    "FanDuel": {
+     "SEA": 42.9,
+     "SF": 57.1
     }
    },
    "CLE|LV": {
