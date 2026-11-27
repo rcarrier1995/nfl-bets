@@ -4,7 +4,7 @@
  "pregameAt": "2026-11-25T01:48:24Z",
  "window-early": "2026-11-22",
  "alertsSent": [],
- "light": "2026-11-27T18:42:45Z",
+ "light": "2026-11-27T18:53:27Z",
  "window-late": "2026-11-22",
  "inactives": "2026-11-27",
  "valueSent": {},
@@ -46,7 +46,9 @@
   "401873093|NE|Carlton Davis III|Out": "2026-11-27T18:32:18Z",
   "401873084|ATL|DeMarcco Hellams|Out": "2026-11-27T18:42:45Z",
   "401873084|ATL|Matthew Bergeron|Out": "2026-11-27T18:42:45Z",
-  "401873084|ATL|Zachariah Branch|Out": "2026-11-27T18:42:45Z"
+  "401873084|ATL|Zachariah Branch|Out": "2026-11-27T18:42:45Z",
+  "401873083|PIT|Kaden Wetjen|Out": "2026-11-27T18:53:27Z",
+  "401873088|IND|Seth McGowan|Out": "2026-11-27T18:53:27Z"
  },
  "newsSeeded": true,
  "window-snf": "2026-11-22",

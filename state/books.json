@@ -7,7 +7,7 @@
  },
  "rundown": {
   "on": true,
-  "at": "2026-11-27T18:42:45Z",
+  "at": "2026-11-27T18:53:27Z",
   "ok": true,
   "games": 12,
   "data": {
@@ -36,24 +36,16 @@
     }
    },
    "IND|NYG": {
-    "DraftKings": {
-     "NYG": 71.5,
-     "IND": 28.5
-    },
-    "BetMGM": {
+    "FanDuel": {
      "NYG": 70.4,
      "IND": 29.6
     },
-    "FanDuel": {
+    "BetMGM": {
      "NYG": 70.4,
      "IND": 29.6
     }
    },
    "ATL|MIN": {
-    "FanDuel": {
-     "ATL": 26.3,
-     "MIN": 73.7
-    },
     "DraftKings": {
      "ATL": 26.7,
      "MIN": 73.3
@@ -61,6 +53,10 @@
     "BetMGM": {
      "ATL": 26.6,
      "MIN": 73.4
+    },
+    "FanDuel": {
+     "ATL": 26.3,
+     "MIN": 73.7
     }
    },
    "JAX|TEN": {
@@ -68,12 +64,20 @@
      "TEN": 12.0,
      "JAX": 88.0
     },
+    "DraftKings": {
+     "TEN": 12.6,
+     "JAX": 87.4
+    },
     "BetMGM": {
      "TEN": 12.4,
      "JAX": 87.6
     }
    },
    "CIN|NO": {
+    "DraftKings": {
+     "NO": 17.6,
+     "CIN": 82.4
+    },
     "BetMGM": {
      "NO": 18.4,
      "CIN": 81.6
@@ -84,6 +88,10 @@
     }
    },
    "MIA|NYJ": {
+    "DraftKings": {
+     "NYJ": 68.5,
+     "MIA": 31.5
+    },
     "BetMGM": {
      "NYJ": 67.8,
      "MIA": 32.2
@@ -91,10 +99,6 @@
     "FanDuel": {
      "NYJ": 69.0,
      "MIA": 31.0
-    },
-    "DraftKings": {
-     "NYJ": 68.5,
-     "MIA": 31.5
     }
    },
    "LAC|NE": {
@@ -112,10 +116,6 @@
     }
    },
    "ARI|WSH": {
-    "DraftKings": {
-     "WSH": 74.7,
-     "ARI": 25.3
-    },
     "BetMGM": {
      "WSH": 73.9,
      "ARI": 26.1
@@ -123,13 +123,13 @@
     "FanDuel": {
      "WSH": 75.3,
      "ARI": 24.7
+    },
+    "DraftKings": {
+     "WSH": 74.7,
+     "ARI": 25.3
     }
    },
    "SEA|SF": {
-    "DraftKings": {
-     "SEA": 42.0,
-     "SF": 58.0
-    },
     "BetMGM": {
      "SEA": 42.6,
      "SF": 57.4
@@ -137,6 +137,10 @@
     "FanDuel": {
      "SEA": 42.6,
      "SF": 57.4
+    },
+    "DraftKings": {
+     "SEA": 42.1,
+     "SF": 57.9
     }
    },
    "CLE|LV": {
