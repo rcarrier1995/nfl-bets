@@ -447,6 +447,12 @@ def tick(force=()):
     LR.grade_finals(board, snaps, L)
     forced = [j.split("-", 1)[1] for j in jobs if j.startswith("window-")]
     LR.window_lessons(board, L, force_windows=forced)
+    if not os.path.exists(os.path.join(C.STATE, "team_track.json")):   # first run: build this season's team history now
+        try:
+            from . import teamtrack as TT
+            TT.run(L)
+        except Exception as e:
+            print("team tracker seed failed:", e)
     if L["weekly"] and not L["weekly"][-1].get("review"):   # fill in a week reviewed before this existed (no push)
         try:
             from . import weekreview as WR
@@ -470,6 +476,15 @@ def tick(force=()):
                     WR.attach(L, season, wkn, snaps)
                 except Exception as e:
                     print("weekly review failed:", e)
+                try:   # team tracker (Rick 2026-11-27): every team vs our picks, this year weighted most; info only
+                    from . import teamtrack as TT
+                    tt = TT.run(L, season)
+                    note = TT.week_notes(L, season, wkn, tt["teams"])
+                    wk_item = next((x for x in L["weekly"] if x.get("season") == season and x.get("week") == wkn), None)
+                    if note and wk_item is not None and wk_item.get("review") is not None:
+                        wk_item["review"]["teamNote"] = note
+                except Exception as e:
+                    print("team tracker failed:", e)
                 try:   # Monday night recap push (Rick 2026-11-26): once per week, when the week's last game is final
                     from . import recaps as RC
                     RC.recap(L, season, wkn, rs, P.send)

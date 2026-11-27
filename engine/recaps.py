@@ -183,6 +183,9 @@ def recap_lines(L, season, week, store=None):
     learned = ((wk or {}).get("review") or {}).get("learned")
     if learned:
         lines.append(learned)
+    note = ((wk or {}).get("review") or {}).get("teamNote")
+    if note:
+        lines.append(note)
     return lines
 
 
