@@ -4,7 +4,7 @@
  "pregameAt": "2026-11-25T01:48:24Z",
  "window-early": "2026-11-22",
  "alertsSent": [],
- "light": "2026-11-27T21:01:21Z",
+ "light": "2026-11-27T21:07:32Z",
  "window-late": "2026-11-22",
  "inactives": "2026-11-27",
  "valueSent": {},
@@ -56,7 +56,9 @@
   "401873085|BAL|Olaivavega Ioane|Out": "2026-11-27T19:55:23Z",
   "401873085|BAL|Jaylinn Hawkins|Out": "2026-11-27T19:55:23Z",
   "401873084|MIN|Isaiah Rodgers|Out": "2026-11-27T20:24:05Z",
-  "401873084|MIN|Christian Darrisaw|Out": "2026-11-27T20:24:05Z"
+  "401873084|MIN|Christian Darrisaw|Out": "2026-11-27T20:24:05Z",
+  "401873085|HOU|Keylan Rutledge|Out": "2026-11-27T21:07:32Z",
+  "401873085|HOU|Danielle Hunter|Out": "2026-11-27T21:07:32Z"
  },
  "newsSeeded": true,
  "window-snf": "2026-11-22",
@@ -67,7 +69,7 @@
  "weekly": "2026-w11",
  "gapSent": {},
  "wpLast": {
-  "401873083": 77.3
+  "401873083": 82.9
  },
  "feedSent": {
   "news|50589757|PIT": "2026-11-25T16:07:20Z",
