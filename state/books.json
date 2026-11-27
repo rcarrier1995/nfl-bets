@@ -7,15 +7,11 @@
  },
  "rundown": {
   "on": true,
-  "at": "2026-11-27T03:05:33Z",
+  "at": "2026-11-27T03:17:59Z",
   "ok": true,
   "games": 12,
   "data": {
    "DEN|PIT": {
-    "FanDuel": {
-     "DEN": 67.3,
-     "PIT": 32.7
-    },
     "DraftKings": {
      "DEN": 68.6,
      "PIT": 31.4
@@ -23,6 +19,10 @@
     "BetMGM": {
      "DEN": 67.4,
      "PIT": 32.6
+    },
+    "FanDuel": {
+     "DEN": 67.3,
+     "PIT": 32.7
     }
    },
    "BAL|HOU": {
@@ -40,6 +40,10 @@
     }
    },
    "IND|NYG": {
+    "FanDuel": {
+     "NYG": 71.7,
+     "IND": 28.3
+    },
     "DraftKings": {
      "NYG": 71.4,
      "IND": 28.6
@@ -47,17 +51,9 @@
     "BetMGM": {
      "NYG": 71.0,
      "IND": 29.0
-    },
-    "FanDuel": {
-     "NYG": 71.7,
-     "IND": 28.3
     }
    },
    "ATL|MIN": {
-    "DraftKings": {
-     "ATL": 27.2,
-     "MIN": 72.8
-    },
     "BetMGM": {
      "ATL": 26.6,
      "MIN": 73.4
@@ -82,10 +78,6 @@
     }
    },
    "CIN|NO": {
-    "DraftKings": {
-     "NO": 18.3,
-     "CIN": 81.7
-    },
     "BetMGM": {
      "NO": 18.4,
      "CIN": 81.6
@@ -110,10 +102,6 @@
     }
    },
    "LAC|NE": {
-    "DraftKings": {
-     "NE": 55.5,
-     "LAC": 44.5
-    },
     "BetMGM": {
      "NE": 54.7,
      "LAC": 45.3
@@ -121,6 +109,10 @@
     "FanDuel": {
      "NE": 52.4,
      "LAC": 47.6
+    },
+    "DraftKings": {
+     "NE": 55.5,
+     "LAC": 44.5
     }
    },
    "ARI|WSH": {
@@ -138,6 +130,10 @@
     }
    },
    "SEA|SF": {
+    "FanDuel": {
+     "SEA": 42.9,
+     "SF": 57.1
+    },
     "DraftKings": {
      "SEA": 42.0,
      "SF": 58.0
@@ -145,10 +141,6 @@
     "BetMGM": {
      "SEA": 42.6,
      "SF": 57.4
-    },
-    "FanDuel": {
-     "SEA": 42.9,
-     "SF": 57.1
     }
    },
    "CLE|LV": {
@@ -166,10 +158,6 @@
     }
    },
    "CAR|TB": {
-    "DraftKings": {
-     "CAR": 41.4,
-     "TB": 58.6
-    },
     "BetMGM": {
      "CAR": 40.6,
      "TB": 59.4
@@ -177,6 +165,10 @@
     "FanDuel": {
      "CAR": 40.7,
      "TB": 59.3
+    },
+    "DraftKings": {
+     "CAR": 41.4,
+     "TB": 58.6
     }
    }
   }
