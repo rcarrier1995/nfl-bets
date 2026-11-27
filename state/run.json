@@ -4,7 +4,7 @@
  "pregameAt": "2026-11-25T01:48:24Z",
  "window-early": "2026-11-22",
  "alertsSent": [],
- "light": "2026-11-27T04:26:54Z",
+ "light": "2026-11-27T04:35:15Z",
  "window-late": "2026-11-22",
  "inactives": "2026-11-26",
  "valueSent": {},
@@ -45,9 +45,7 @@
  },
  "weekly": "2026-w11",
  "gapSent": {},
- "wpLast": {
-  "401873082": 100.0
- },
+ "wpLast": {},
  "feedSent": {
   "news|50589757|PIT": "2026-11-25T16:07:20Z",
   "news|50589984|PIT": "2026-11-25T16:07:20Z",
