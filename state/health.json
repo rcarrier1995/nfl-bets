@@ -1,24 +1,24 @@
 {
  "espn": {
   "ok": true,
-  "lastOk": "2026-11-27T10:27:04Z",
+  "lastOk": "2026-11-27T10:39:50Z",
   "note": "",
   "fails": 0
  },
  "kalshi": {
   "ok": true,
-  "lastOk": "2026-11-27T10:27:00Z",
+  "lastOk": "2026-11-27T10:37:37Z",
   "note": "",
   "fails": 0,
   "lastFail": "2026-11-26T08:21:58Z",
   "error": "HTTP Error 500: Internal Server Error"
  },
  "weather": {
-  "ok": true,
+  "ok": false,
   "lastOk": "2026-11-27T10:27:00Z",
   "note": "",
-  "fails": 0,
-  "lastFail": "2026-11-27T05:28:49Z",
+  "fails": 1,
+  "lastFail": "2026-11-27T10:39:46Z",
   "error": "<urlopen error _ssl.c:994: The handshake operation timed out>"
  },
  "nflverse": {
@@ -41,13 +41,13 @@
  },
  "polymarket": {
   "ok": true,
-  "lastOk": "2026-11-27T10:27:01Z",
+  "lastOk": "2026-11-27T10:39:47Z",
   "note": "",
   "fails": 0
  },
  "espn-news": {
   "ok": true,
-  "lastOk": "2026-11-27T10:27:01Z",
+  "lastOk": "2026-11-27T10:39:47Z",
   "note": "",
   "fails": 0
  },
