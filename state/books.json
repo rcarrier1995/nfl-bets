@@ -7,29 +7,25 @@
  },
  "rundown": {
   "on": true,
-  "at": "2026-11-27T00:46:04Z",
+  "at": "2026-11-27T01:00:41Z",
   "ok": true,
   "games": 13,
   "data": {
    "BUF|KC": {
     "DraftKings": {
-     "KC": 41.4,
-     "BUF": 58.6
+     "KC": 41.6,
+     "BUF": 58.4
     },
     "BetMGM": {
-     "KC": 40.3,
-     "BUF": 59.7
+     "KC": 40.9,
+     "BUF": 59.1
     },
     "FanDuel": {
-     "KC": 40.3,
-     "BUF": 59.7
+     "KC": 39.9,
+     "BUF": 60.1
     }
    },
    "DEN|PIT": {
-    "DraftKings": {
-     "DEN": 69.1,
-     "PIT": 30.9
-    },
     "BetMGM": {
      "DEN": 67.4,
      "PIT": 32.6
@@ -37,9 +33,17 @@
     "FanDuel": {
      "DEN": 67.3,
      "PIT": 32.7
+    },
+    "DraftKings": {
+     "DEN": 69.1,
+     "PIT": 30.9
     }
    },
    "BAL|HOU": {
+    "FanDuel": {
+     "BAL": 28.3,
+     "HOU": 71.7
+    },
     "DraftKings": {
      "BAL": 26.2,
      "HOU": 73.8
@@ -47,17 +51,9 @@
     "BetMGM": {
      "BAL": 27.6,
      "HOU": 72.4
-    },
-    "FanDuel": {
-     "BAL": 28.3,
-     "HOU": 71.7
     }
    },
    "IND|NYG": {
-    "DraftKings": {
-     "NYG": 71.4,
-     "IND": 28.6
-    },
     "BetMGM": {
      "NYG": 71.0,
      "IND": 29.0
@@ -65,6 +61,10 @@
     "FanDuel": {
      "NYG": 71.7,
      "IND": 28.3
+    },
+    "DraftKings": {
+     "NYG": 71.4,
+     "IND": 28.6
     }
    },
    "ATL|MIN": {
@@ -110,10 +110,6 @@
     }
    },
    "MIA|NYJ": {
-    "FanDuel": {
-     "NYJ": 69.0,
-     "MIA": 31.0
-    },
     "DraftKings": {
      "NYJ": 68.1,
      "MIA": 31.9
@@ -121,6 +117,10 @@
     "BetMGM": {
      "NYJ": 67.8,
      "MIA": 32.2
+    },
+    "FanDuel": {
+     "NYJ": 69.0,
+     "MIA": 31.0
     }
    },
    "LAC|NE": {
