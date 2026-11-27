@@ -4,7 +4,7 @@
  "pregameAt": "2026-11-25T01:48:24Z",
  "window-early": "2026-11-22",
  "alertsSent": [],
- "light": "2026-11-27T21:32:16Z",
+ "light": "2026-11-27T21:38:25Z",
  "window-late": "2026-11-22",
  "inactives": "2026-11-27",
  "valueSent": {},
@@ -60,18 +60,19 @@
   "401873085|HOU|Keylan Rutledge|Out": "2026-11-27T21:07:32Z",
   "401873085|HOU|Danielle Hunter|Out": "2026-11-27T21:07:32Z",
   "401873090|JAX|Bhayshul Tuten|Out": "2026-11-27T21:13:41Z",
-  "401873089|MIA|Bradley Pinion|Out": "2026-11-27T21:32:16Z"
+  "401873089|MIA|Bradley Pinion|Out": "2026-11-27T21:32:16Z",
+  "401873088|NYG|Shelby Harris|Out": "2026-11-27T21:38:25Z"
  },
  "newsSeeded": true,
  "window-snf": "2026-11-22",
  "expertsAt": {
   "2026-w11": 1795565234.710964,
-  "2026-w12": 1795804338.682769
+  "2026-w12": 1795815505.822517
  },
  "weekly": "2026-w11",
  "gapSent": {},
  "wpLast": {
-  "401873083": 94.7
+  "401873083": 95.5
  },
  "feedSent": {
   "news|50589757|PIT": "2026-11-25T16:07:20Z",
