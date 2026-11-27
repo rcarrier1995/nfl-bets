@@ -76,12 +76,16 @@ def build(L=None, season=None):
     q4 = _q4_scores(season)
     app = _app_fairs(L)
     per = {}   # (team, season) -> stats
+    log = {}   # team -> this season's games in order: (won, fair, margin vs the line)
     for r in g.itertuples():
         ph = app.get(str(r.espn).split(".")[0], r.pHome) if r.espn == r.espn else r.pHome
         res = float(r.result)
         for tm, opp, is_home, p in ((r.home, r.away, True, ph), (r.away, r.home, False, 100 - ph)):
             s = per.setdefault((tm, int(r.season)), _blank())
             won = 1.0 if (res > 0) == is_home and res != 0 else 0.5 if res == 0 else 0.0
+            if int(r.season) == season:
+                ats = (res - float(r.spread_line)) * (1 if is_home else -1)
+                log.setdefault(tm, []).append((won, p / 100, ats))
             s["games"] += 1
             s["n"] += 1
             s["w"] += won
@@ -129,9 +133,28 @@ def build(L=None, season=None):
                    "vsAppWeighted": round(100 * wres / wn, 1) if wn else None,
                    "homeVsApp": round(100 * hres / hn, 1) if hn else None,
                    "awayVsApp": round(100 * ares / an, 1) if an else None,
-                   "comebacks": cur["comebacks"], "blown": cur["blown"]}
+                   "comebacks": cur["comebacks"], "blown": cur["blown"], **last3(log.get(t, []))}
         rows[t]["line"] = team_line(rows[t])
     return rows
+
+
+TREND_PTS = 7.0   # last 3 games beat (or missed) the line by 7+ pts a game more than earlier games = trend
+
+
+def last3(games):
+    """Rick 2026-11-27: extra look at each team's 3 most recent games, to see who is getting better or worse.
+    Margin vs the line = how many points better (+) or worse (-) than the sportsbook expected. Info only."""
+    if len(games) < 3:
+        return {"last3": None}
+    l3, before = games[-3:], games[:-3]
+    w = sum(1 for x in l3 if x[0] == 1.0)
+    los = sum(1 for x in l3 if x[0] == 0.0)
+    m3 = sum(x[2] for x in l3) / 3
+    mb = sum(x[2] for x in before) / len(before) if before else 0.0
+    diff = m3 - mb
+    trend = "better" if diff >= TREND_PTS else "worse" if diff <= -TREND_PTS else "steady"
+    return {"last3": {"record": f"{w}-{los}", "vsLine": round(m3, 1), "earlierVsLine": round(mb, 1),
+                      "vsApp": round(100 * sum(x[0] - x[1] for x in l3) / 3, 1), "trend": trend}}
 
 
 def team_line(r):
@@ -149,6 +172,12 @@ def team_line(r):
     if v is not None and abs(v) >= 5:
         bits.append(f"wins {abs(v):.0f}% {'more' if v > 0 else 'less'} than our chances (this year counted most)")
     bits.append(f"home {r['home']}, away {r['away']}")
+    l3 = r.get("last3")
+    if l3:
+        arrow = {"better": "↑ getting better", "worse": "↓ getting worse"}.get(l3["trend"], "steady")
+        v = round(l3["vsLine"])
+        vs = "even with the line" if v == 0 else f"{abs(v)} pt{'s' if abs(v) != 1 else ''} a game {'better' if v > 0 else 'worse'} than the line"
+        bits.append(f"last 3: {l3['record']}, {vs} ({arrow})")
     return f"{r['team']}: " + " · ".join(bits)
 
 
@@ -202,6 +231,54 @@ def backtest(season=None, ks=(0.25, 0.5, 1.0), split=False):
             "tests": tests, "passed": any(t["passed"] for t in tests), "at": iso()}
 
 
+def backtest_last3(season=None, ks=(0.1, 0.2, 0.3)):
+    """Does a team's last-3-games margin vs the line help price its next game? Walk every 2021-now game
+    (playoffs in), feature = (home last-3 avg margin vs line) - (away same), same season, 3+ games each.
+    Adjusted home points = line + k*feature. Pass = better Brier weighted (this season x2), not worse this
+    season, and better in both 2021-23 and 2024-now."""
+    import numpy as np
+    g = _games(season or 2100)
+    season = season or int(g.season.max())
+    hist = {}
+    rows = []
+    for r in g.itertuples():
+        key = int(r.season)
+        hh, ha = hist.get((r.home, key), []), hist.get((r.away, key), [])
+        res, sp = float(r.result), float(r.spread_line)
+        if len(hh) >= 3 and len(ha) >= 3:
+            f = sum(hh[-3:]) / 3 - sum(ha[-3:]) / 3
+            rows.append((key, sp, f, 1.0 if res > 0 else 0.5 if res == 0 else 0.0, res - sp))
+        hist.setdefault((r.home, key), []).append(res - sp)
+        hist.setdefault((r.away, key), []).append(sp - res)
+    S = np.array([x[0] for x in rows])
+    SP = np.array([x[1] for x in rows])
+    F = np.array([x[2] for x in rows])
+    O = np.array([x[3] for x in rows])
+    ATS = np.array([x[4] for x in rows])
+    W = np.where(S == season, SEASON_W, 1.0)
+    prob = np.vectorize(lambda m: M.fair_pair(float(m))[0] / 100)
+
+    def br(pp, m=None):
+        e = (pp - O) ** 2
+        return float(np.average(e[m], weights=W[m])) if m is not None else float(np.average(e, weights=W))
+    early, late, cur = S <= 2023, S >= 2024, S == season
+    P = prob(SP)
+    base = {"all": br(P), "2021-23": br(P, early), "2024-now": br(P, late), "season": br(P, cur)}
+    tests = []
+    for k in ks:
+        Q = prob(SP + k * F)
+        got = {"all": br(Q), "2021-23": br(Q, early), "2024-now": br(Q, late), "season": br(Q, cur)}
+        ok = got["all"] < base["all"] and got["season"] <= base["season"] and got["2021-23"] < base["2021-23"] and got["2024-now"] < base["2024-now"]
+        tests.append({"k": k, **{kk: round(v, 5) for kk, v in got.items()}, "passed": bool(ok)})
+    hot = F >= 2 * TREND_PTS   # home side much hotter than away over the last 3
+    cold = F <= -2 * TREND_PTS
+    return {"games": int(len(rows)), "season": season, "base": {k: round(v, 5) for k, v in base.items()}, "tests": tests,
+            "corr": round(float(np.corrcoef(F, ATS)[0, 1]), 3) if len(rows) > 2 else None,
+            "hotSideCovers": round(100 * float(np.mean(ATS[hot] > 0)), 1) if hot.any() else None, "hotN": int(hot.sum()),
+            "coldSideCovers": round(100 * float(np.mean(ATS[cold] < 0)), 1) if cold.any() else None, "coldN": int(cold.sum()),
+            "passed": any(t["passed"] for t in tests), "at": iso()}
+
+
 def week_notes(L, season, week, rows):
     """Recap: one short line on the team the app missed worst this week (if any), with its season line."""
     recs = [r for r in (L.get("graded") or {}).values() if r.get("season") == season and r.get("week") == week
@@ -230,11 +307,12 @@ def run(L=None, season=None, with_backtest=True):
            "backtest": prev.get("backtest")}
     if with_backtest:
         try:
-            out["backtest"] = {"overall": backtest(season), "homeAway": backtest(season, split=True)}
+            out["backtest"] = {"overall": backtest(season), "homeAway": backtest(season, split=True),
+                               "last3": backtest_last3(season)}
         except Exception as e:
             print("team backtest failed:", e)
     bt = out.get("backtest") or {}
-    passed = any((bt.get(k) or {}).get("passed") for k in ("overall", "homeAway"))
+    passed = any((bt.get(k) or {}).get("passed") for k in ("overall", "homeAway", "last3"))
     out["status"] = ("Passed the backtest: ready to use in prices once Rick says yes." if passed else
                      "Info only: a team's past results vs our chances did not improve later picks in the backtest.")
     save_json(OUT, out)

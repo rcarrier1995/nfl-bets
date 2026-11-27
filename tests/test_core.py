@@ -825,3 +825,14 @@ def test_team_line_and_week_note():
                           "quarters": [{"q": 3, "cumAway": 17, "cumHome": 31}]}}}
     n = TT.week_notes(L, 2026, 12, {"DAL": r})
     assert n.startswith("Team note: PHI beat DAL (79%, A); DAL led by 14 into the 4th")
+
+
+def test_last3_trend():
+    from engine import teamtrack as TT
+    assert TT.last3([(1.0, .5, 3.0)] * 2) == {"last3": None}
+    g = [(0.0, .6, -6.0)] * 5 + [(1.0, .5, 10.0), (1.0, .5, 8.0), (0.0, .5, 3.0)]
+    l3 = TT.last3(g)["last3"]
+    assert l3["record"] == "2-1" and l3["vsLine"] == 7.0 and l3["trend"] == "better"
+    r = {"team": "PHI", "record": "4-7", "appRight": 0, "appPicked": 0, "upsets": 0, "comebacks": 0, "blown": 0,
+         "vsAppWeighted": 0, "home": "2-4", "away": "2-3", "last3": l3}
+    assert "last 3: 2-1, 7 pts a game better than the line (↑ getting better)" in TT.team_line(r)
