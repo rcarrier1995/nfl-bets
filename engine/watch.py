@@ -32,7 +32,8 @@ DSR_CUT = 0.45         # defensive success rate allowed, 80th pct 2006-20 (highe
 KEY_SNAP = 0.70
 FEE = 2
 TAGS = {"eqwd": "Elite QB, weak D", "dbu": "Their D banged up", "qbwr": "QB + WR1 beat their secondary",
-        "hot": "Hot streak overpriced", "wrout": "Key WR out", "dogx": "Underdog experts pick"}
+        "hot": "Hot streak overpriced", "wrout": "Key WR out", "dogx": "Underdog experts pick",
+        "newqb": "New QB track record"}
 DEF_POS = {"DE", "DT", "NT", "DL", "LB", "OLB", "ILB", "MLB", "CB", "S", "FS", "SS", "SAF", "DB"}
 
 
@@ -352,6 +353,13 @@ def for_board(board, games_list=None, week=None, early=False):
             if wo:
                 tags.append({"team": t, "tag": TAGS["wrout"], "kind": "fade", "players": wo,
                              "why": f"{', '.join(wo)} out (key WR). Teams missing a key WR have been priced about 4¢ too high, so {o} is slightly better value"})
+        try:   # new starting QB whose own track record differs from the team's offense (qbsplit): info only
+            from . import qbsplit as QS
+            nq = QS.tag_for(g)
+            if nq:
+                tags.append({**nq, "tag": TAGS["newqb"]})
+        except Exception as e:
+            print("new QB tag failed:", e)
         e = g.get("experts") or {}
         if e.get("dogPicks") and e.get("dog") in (a, h):
             tags.append({"team": e["dog"], "tag": TAGS["dogx"], "kind": "good",
@@ -519,6 +527,8 @@ STUDY = {
     TAGS["dbu"]: "2013–20: 172 games won 59% at 52¢. 2021–24: 113 games 60% at 55¢. 2025–26: 43 games 67% at 56¢.",
     TAGS["qbwr"]: "Priced 65–80¢: 2013–20 247 games won 82% at 73¢. 2021–24 114 games 80%. 2025–26 53 games 83% (about +4 to +8¢).",
     TAGS["wrout"]: "Team missing a key WR (70%+ snaps): priced about 4¢ too high in 2013–20 and 2021–26 (309 / 248 games). Tracked on the other side.",
+    TAGS["newqb"]: "2006–26 with playoffs: right after a QB change, the side whose new starter's own track record beat the team's "
+                   "offense that season won 57% at 52¢ (313 games, about +5¢ a bet before fees, 16 of 21 seasons up). Under our bar: info only.",
     TAGS["dogx"]: "Underdog picks by our 3 best underdog experts: 50 of 112 won, +6% a pick over 2025–26. Small sample.",
     TAGS["hot"]: "Teams on a hot player streak were priced 4–9¢ too high (QB 3+ straight 250-yd games, RB1 or WR1 2+ straight "
                  "100-yd games). Betting the other side: +1 to +5¢, small. Tracked on the other side.",

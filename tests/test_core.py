@@ -825,3 +825,22 @@ def test_team_line_and_week_note():
                           "quarters": [{"q": 3, "cumAway": 17, "cumHome": 31}]}}}
     n = TT.week_notes(L, 2026, 12, {"DAL": r})
     assert n.startswith("Team note: PHI beat DAL (79%, A); DAL led by 14 into the 4th")
+
+
+def test_qbsplit_lean_and_info():
+    from engine import qbsplit as QS
+    st = {"teams": {"BAL": {"starters": [{"id": "a", "name": "Lamar Jackson", "g": 5, "record": "3-2", "w": 3, "l": 2, "t": 0, "offEpa": 0.06},
+                                         {"id": "b", "name": "Jacoby Brissett", "g": 1, "record": "0-1", "w": 0, "l": 1, "t": 0, "offEpa": 0.1}],
+                            "offEpa": 0.02, "last": "a"},
+                    "HOU": {"starters": [{"id": "c", "name": "C.J. Stroud", "g": 10, "record": "6-4", "w": 6, "l": 4, "t": 0, "offEpa": 0.0}],
+                            "offEpa": 0.0, "last": "c"}},
+          "qbs": {"a": {"epa": 0.2, "plays": 900, "starts": "70-30"}, "b": {"epa": -0.03, "plays": 700, "starts": "23-51"},
+                  "c": {"epa": 0.0, "plays": 900, "starts": "30-20"}}}
+    b = QS.qb_info(st, "BAL", "b", "Jacoby Brissett")
+    assert b["new"] and b["with"] == "0-1" and b["without"] == "3-2" and b["split"]
+    h = QS.qb_info(st, "HOU", "c", "C.J. Stroud")
+    assert not h["new"] and not h["split"]
+    # Brissett's record (-0.03) is 5 points of EPA/play below BAL's offense (+0.02): lean 0.2 x 5 = 1c toward HOU (home, positive)
+    assert QS.lean(b, h) == 1.0
+    assert QS.lean(h, h) is None          # no new starter: no lean
+    assert QS.qb_info(st, "BAL", None, None) is None   # missing starter: left out, never invented

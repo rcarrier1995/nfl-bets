@@ -614,6 +614,15 @@ def tick(force=()):
         board["experts"] = EX.public(est)
     except Exception as e:
         print("experts failed:", e)
+    try:   # team numbers split by starting QB + mid-season moves (Rick 2026-11-27): info only
+        from . import qbsplit as QS
+        qp = load_json(QS.FILE, {}) or {}
+        if "pregame" in jobs or qp.get("season") != season or (now - B.parse_dt(qp.get("at"))).total_seconds() >= 86400:
+            QS.build(season)
+        QS.for_board(board)
+        QS.for_board(board, board.get("nextWeek") or [], week=week + 1)
+    except Exception as e:
+        print("qb split failed:", e)
     try:   # watch tags from the combo study: tag only, tracked live
         from . import watch as WT
         wp = load_json(WT.FILE, {}) or {}
