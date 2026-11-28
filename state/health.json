@@ -1,13 +1,13 @@
 {
  "espn": {
   "ok": true,
-  "lastOk": "2026-11-28T06:46:23Z",
+  "lastOk": "2026-11-28T06:58:57Z",
   "note": "",
   "fails": 0
  },
  "kalshi": {
   "ok": true,
-  "lastOk": "2026-11-28T06:44:10Z",
+  "lastOk": "2026-11-28T06:56:27Z",
   "note": "",
   "fails": 0,
   "lastFail": "2026-11-26T08:21:58Z",
@@ -17,8 +17,8 @@
   "ok": false,
   "lastOk": "2026-11-28T06:33:36Z",
   "note": "",
-  "fails": 1,
-  "lastFail": "2026-11-28T06:46:20Z",
+  "fails": 2,
+  "lastFail": "2026-11-28T06:58:36Z",
   "error": "<urlopen error _ssl.c:994: The handshake operation timed out>"
  },
  "nflverse": {
@@ -29,25 +29,25 @@
  },
  "cbs-experts": {
   "ok": true,
-  "lastOk": "2026-11-28T03:50:29Z",
+  "lastOk": "2026-11-28T06:58:54Z",
   "note": "",
   "fails": 0
  },
  "nfl-experts": {
   "ok": true,
-  "lastOk": "2026-11-28T03:50:32Z",
+  "lastOk": "2026-11-28T06:58:57Z",
   "note": "",
   "fails": 0
  },
  "polymarket": {
   "ok": true,
-  "lastOk": "2026-11-28T06:46:20Z",
+  "lastOk": "2026-11-28T06:58:38Z",
   "note": "",
   "fails": 0
  },
  "espn-news": {
   "ok": true,
-  "lastOk": "2026-11-28T06:46:20Z",
+  "lastOk": "2026-11-28T06:58:40Z",
   "note": "",
   "fails": 0
  },
