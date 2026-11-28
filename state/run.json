@@ -4,7 +4,7 @@
  "pregameAt": "2026-11-25T01:48:24Z",
  "window-early": "2026-11-22",
  "alertsSent": [],
- "light": "2026-11-28T08:50:50Z",
+ "light": "2026-11-28T09:00:55Z",
  "window-late": "2026-11-22",
  "inactives": "2026-11-27",
  "valueSent": {},
@@ -94,7 +94,10 @@
   "news|50615653|SF": "2026-11-27T23:09:24Z",
   "news|50615818|NE": "2026-11-27T23:29:41Z",
   "news|50615818|LAC": "2026-11-27T23:29:41Z",
-  "news|50616624|SEA": "2026-11-28T01:01:38Z"
+  "news|50616624|SEA": "2026-11-28T01:01:38Z",
+  "prac|401873093|Justin Herbert|DNP Thu, DNP Fri, DNP Sat": "2026-11-28T09:00:55Z",
+  "prac|401873092|Carson Beck|DNP Thu, DNP Fri, DNP Sat": "2026-11-28T09:00:55Z",
+  "prac|401873091|Brock Purdy|DNP Thu, DNP Fri, DNP Sat": "2026-11-28T09:00:55Z"
  },
  "feedSeeded": true,
  "buySeen": {},
