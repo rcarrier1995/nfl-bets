@@ -4,7 +4,7 @@
  "pregameAt": "2026-11-25T01:48:24Z",
  "window-early": "2026-11-22",
  "alertsSent": [],
- "light": "2026-11-28T01:11:46Z",
+ "light": "2026-11-28T01:21:53Z",
  "window-late": "2026-11-22",
  "inactives": "2026-11-27",
  "valueSent": {},
@@ -67,7 +67,8 @@
   "401873093|LAC|Daiyan Henley|Out": "2026-11-27T22:28:07Z",
   "401873093|LAC|Justin Herbert|Out": "2026-11-27T22:28:07Z",
   "401873091|SEA|Jarran Reed|Out": "2026-11-27T22:28:07Z",
-  "401873091|SF|Brock Purdy|Out": "2026-11-27T22:40:44Z"
+  "401873091|SF|Brock Purdy|Out": "2026-11-27T22:40:44Z",
+  "401873086|LV|Tonka Hemingway|Out": "2026-11-28T01:21:53Z"
  },
  "newsSeeded": true,
  "window-snf": "2026-11-22",
